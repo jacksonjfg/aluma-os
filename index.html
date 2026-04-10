@@ -10,12 +10,12 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
   const firebaseConfig = { apiKey:"AIzaSyDGzrCPsrV7b2JkX73wxBZpFKtNmDsnJHc", authDomain:"aluma-os.firebaseapp.com", projectId:"aluma-os", storageBucket:"aluma-os.firebasestorage.app", messagingSenderId:"912583832715", appId:"1:912583832715:web:b6a34c7efc4bbaec37908e" };
   const app = initializeApp(firebaseConfig);
   const storage = getStorage(app);
-  window._fb = { auth:getAuth(app), db:getFirestore(app), storage, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, ref, uploadBytes, getDownloadURL, deleteObject };
+  window._fb = { auth:getAuth(app), db:getFirestore(app), storage, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, ref, uploadBytes, getDownloadURL, deleteObject };
 </script>
 <style>
 :root{
