@@ -2462,6 +2462,109 @@ function showPresenceToast(name,online){
   setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; },4000);
   setTimeout(()=>t.remove(),4400);
 }
+
+// ===== EQUIPE =====
+async function renderEquipe(){
+  const main=document.getElementById('main');
+  main.innerHTML=`<div class="ph">
+    <div class="ptitle">👥 Equipe ${currentUserData?.role==='admin'?'<button class="btn btn-p btn-sm" onclick="showAddMember()">+ Novo membro</button>':''}
+    </div>
+    <div class="psub">Membros ativos da agência</div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px 20px" id="equipe-inner">
+    <div class="loading"><div class="spinner"></div> Carregando...</div>
+  </div>`;
+  await loadEquipeData();
+}
+
+async function loadEquipeData(){
+  const {db,collection,getDocs}=window._fb;
+  const [usersSnap,packsSnap,postsSnap,presSnap]=await Promise.all([
+    getDocs(collection(db,'users')),
+    getDocs(collection(db,'packs')),
+    getDocs(collection(db,'posts')),
+    getDocs(collection(db,'presence'))
+  ]);
+  const users=[]; usersSnap.forEach(d=>users.push({id:d.id,...d.data()}));
+  const allPacks=[]; packsSnap.forEach(d=>allPacks.push({id:d.id,...d.data()}));
+  const allPosts=[]; postsSnap.forEach(d=>allPosts.push({id:d.id,...d.data()}));
+  const presMap={}; presSnap.forEach(d=>presMap[d.id]=d.data());
+
+  const teamStats={};
+  TEAM.forEach(m=>{ teamStats[m.id]={packsDone:0,packsTotal:0,postsDone:0,postsTotal:0}; });
+  allPacks.forEach(p=>{
+    (p.assignees||[]).forEach(aid=>{
+      const ts=teamStats[aid]; if(!ts) return;
+      ts.packsTotal++; if(p.status==='concluido') ts.packsDone++;
+    });
+  });
+  allPosts.forEach(p=>{
+    (p.assignees||[]).forEach(aid=>{
+      const ts=teamStats[aid]; if(!ts) return;
+      ts.postsTotal++; if(p.status==='concluido') ts.postsDone++;
+    });
+  });
+
+  const inner=document.getElementById('equipe-inner'); if(!inner) return;
+
+  const cards=TEAM.map(m=>{
+    const userDoc=users.find(u=>
+      u.name?.toLowerCase()===m.name.toLowerCase()||
+      u.name?.toLowerCase().includes(m.name.toLowerCase())||
+      m.name.toLowerCase().includes(u.name?.toLowerCase()?.split(' ')?.[0]||'__')
+    );
+    const uid=userDoc?.id;
+    const pres=uid?presMap[uid]:null;
+    const isOnline=pres&&pres.online&&(Date.now()-pres.lastSeen)<90000;
+    const lastSeen=pres?.lastSeen?smartLastSeen(pres.lastSeen):'Nunca';
+    const photo=userDoc?.photo||window._teamPhotos?.[m.id]||window._teamPhotos?.[uid];
+    const roleLabel=userDoc?.role||m.role;
+    const stats=teamStats[m.id]||{packsDone:0,packsTotal:0,postsDone:0,postsTotal:0};
+    const pct=stats.packsTotal?Math.round(stats.packsDone/stats.packsTotal*100):0;
+
+    const av=photo
+      ?`<img src="${photo}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:3px solid ${isOnline?'#4ade80':'var(--border2)'};">`
+      :`<div style="width:64px;height:64px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;border:3px solid ${isOnline?'#4ade80':'var(--border2)'};">${m.name[0]}</div>`;
+
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s" onmouseenter="this.style.borderColor='var(--border2)'" onmouseleave="this.style.borderColor='var(--border)'">
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="position:relative;flex-shrink:0">
+          ${av}
+          <span style="position:absolute;bottom:2px;right:2px;width:14px;height:14px;border-radius:50%;background:${isOnline?'#4ade80':'var(--bg4)'};border:2px solid var(--bg2)" title="${isOnline?'Online':'Offline'}"></span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:2px">${m.name}</div>
+          <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px">${roleLabel}</div>
+          <div style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:${isOnline?'rgba(74,222,128,.12)':'var(--bg3)'};color:${isOnline?'#4ade80':'var(--text3)'}">
+            <span style="width:6px;height:6px;border-radius:50%;background:${isOnline?'#4ade80':'var(--text3)'}"></span>
+            ${isOnline?'Online agora':lastSeen}
+          </div>
+        </div>
+      </div>
+      <div style="height:1px;background:var(--border)"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Packs</div>
+          <div style="font-size:22px;font-weight:800;letter-spacing:-.5px">${stats.packsTotal}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${stats.packsDone} concluídos</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Posts</div>
+          <div style="font-size:22px;font-weight:800;letter-spacing:-.5px">${stats.postsTotal}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${stats.postsDone} concluídos</div>
+        </div>
+      </div>
+      ${stats.packsTotal?`<div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500"><span>Conclusão</span><span style="color:var(--accent);font-weight:700">${pct}%</span></div>
+        <div style="height:4px;background:var(--bg4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${m.color};border-radius:2px;transition:width .6s"></div></div>
+      </div>`:''}
+      ${userDoc?.email?`<div style="font-size:12px;color:var(--text3)">✉️ ${userDoc.email}</div>`:''}
+      ${currentUserData?.role==='admin'?`<div style="display:flex;gap:6px"><button class="btn btn-s btn-sm" style="flex:1" onclick="showEditMember('${m.id}')">✏️ Editar</button><button class="btn btn-d btn-sm" onclick="deleteMember('${m.id}','${m.name}')">🗑</button></div>`:''}
+    </div>`;
+  });
+
+  inner.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">${cards.join('')}</div>`;
+}
 </script>
 
 <!-- PACK MODAL -->
