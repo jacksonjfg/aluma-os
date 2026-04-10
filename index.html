@@ -2265,6 +2265,181 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   checkMobile();
 });
+
+// ===== SMART DATE =====
+function smartDate(dateStr){
+  if(!dateStr) return '';
+  const d=new Date(dateStr+'T12:00:00');
+  const today=new Date(); today.setHours(0,0,0,0);
+  const target=new Date(d); target.setHours(0,0,0,0);
+  const diff=Math.round((target-today)/(1000*60*60*24));
+  const wd=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  const mo=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  if(diff===0) return 'hoje';
+  if(diff===1) return 'amanhã';
+  if(diff>=2&&diff<=6) return wd[d.getDay()];
+  return wd[d.getDay()]+' '+d.getDate()+'/'+mo[d.getMonth()];
+}
+function formatMagicDate(dateStr){
+  if(!dateStr) return '—';
+  const d=new Date(dateStr+'T12:00:00');
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+}
+function daysUntilMagic(dateStr){
+  if(!dateStr) return '';
+  const today=new Date(); today.setHours(0,0,0,0);
+  const target=new Date(dateStr+'T12:00:00'); target.setHours(0,0,0,0);
+  const diff=Math.round((target-today)/(1000*60*60*24));
+  if(diff<0) return 'Já passou há '+Math.abs(diff)+' dias';
+  if(diff===0) return '🔴 É hoje!';
+  if(diff===1) return '🟡 Amanhã!';
+  if(diff<=5) return '🟡 Em '+diff+' dias';
+  return '🟢 Em '+diff+' dias';
+}
+async function saveMagicNumber(monthName,dateVal){
+  const {db,doc,setDoc}=window._fb;
+  try{
+    await setDoc(doc(db,'settings','magicNumbers'),{[monthName]:dateVal},{merge:true});
+    showToast('Magic Number salvo!','ok');
+    renderDashData();
+  }catch(e){ showToast('Erro: '+e.message,'err'); }
+}
+
+// ===== SMART LAST SEEN =====
+function smartLastSeen(ts){
+  if(!ts) return 'Nunca';
+  const diff=Date.now()-ts;
+  const min=Math.floor(diff/60000);
+  const hr=Math.floor(diff/3600000);
+  const day=Math.floor(diff/86400000);
+  if(min<2) return 'Agora há pouco';
+  if(min<60) return 'Há '+min+' min';
+  if(hr<24) return 'Há '+hr+'h';
+  if(day===1) return 'Ontem';
+  if(day<7) return 'Há '+day+' dias';
+  return new Date(ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+}
+
+// ===== PRESENCE & TEAM PHOTOS =====
+window._presence={};
+window._teamPhotos={};
+
+async function loadTeamPhotos(){
+  const {db,collection,getDocs}=window._fb;
+  try{
+    const cached=localStorage.getItem('_teamPhotos');
+    if(cached) window._teamPhotos=JSON.parse(cached);
+  }catch(e){}
+  try{
+    const snap=await getDocs(collection(db,'users'));
+    snap.forEach(d=>{
+      const data=d.data();
+      if(data.photo&&data.name){
+        const match=TEAM.find(t=>
+          t.name.toLowerCase()===data.name.toLowerCase()||
+          data.name.toLowerCase().includes(t.name.toLowerCase())||
+          t.name.toLowerCase().includes(data.name.toLowerCase().split(' ')[0])
+        );
+        if(match) window._teamPhotos[match.id]=data.photo;
+        window._teamPhotos[d.id]=data.photo;
+      }
+    });
+    localStorage.setItem('_teamPhotos',JSON.stringify(window._teamPhotos));
+  }catch(e){}
+}
+
+async function initPresence(){
+  if(!currentUser) return;
+  try{ const cached=localStorage.getItem('_teamPhotos'); if(cached) window._teamPhotos=JSON.parse(cached); }catch(e){}
+  try{ const saved=localStorage.getItem('_notifs'); if(saved) window._notifs=JSON.parse(saved); }catch(e){}
+  const {db,doc,setDoc,collection,onSnapshot}=window._fb;
+  const presRef=doc(db,'presence',currentUser.uid);
+  const writePresence=async()=>{
+    await setDoc(presRef,{online:true,uid:currentUser.uid,name:currentUserData?.name||'',lastSeen:Date.now()},{merge:true});
+  };
+  writePresence();
+  setInterval(writePresence,30000);
+  window.addEventListener('beforeunload',()=>{
+    setDoc(presRef,{online:false,lastSeen:Date.now()},{merge:true});
+  });
+  onSnapshot(collection(db,'presence'),(snap)=>{
+    const prev={...window._presence};
+    window._presence={};
+    snap.forEach(d=>{
+      const data=d.data();
+      const isOnline=data.online&&(Date.now()-data.lastSeen)<90000;
+      window._presence[d.id]=isOnline?data:false;
+    });
+    if(Object.keys(prev).length>0){
+      Object.entries(window._presence).forEach(([uid,data])=>{
+        if(uid===currentUser.uid) return;
+        const wasOnline=!!prev[uid];
+        const isNowOnline=!!data;
+        if(!wasOnline&&isNowOnline){
+          const name=data.name||uid;
+          showPresenceToast(name,true);
+          addNotif({icon:'🟢',title:name+' entrou',sub:'Agora online',time:Date.now(),uid});
+        } else if(wasOnline&&!isNowOnline){
+          const name=prev[uid]?.name||uid;
+          addNotif({icon:'⚫',title:name+' saiu',sub:'Ficou offline',time:Date.now(),uid});
+        }
+      });
+    }
+  });
+  loadTeamPhotos();
+}
+
+// ===== NOTIFICATIONS =====
+window._notifs=window._notifs||[];
+window._unread=0;
+
+function addNotif(n){
+  n.id=Date.now()+'_'+Math.random().toString(36).slice(2);
+  n.read=false;
+  window._notifs.unshift(n);
+  if(window._notifs.length>50) window._notifs=window._notifs.slice(0,50);
+  window._unread++;
+  updateNotifBadge();
+  renderNotifList();
+  try{ localStorage.setItem('_notifs',JSON.stringify(window._notifs.slice(0,30))); }catch(e){}
+}
+function addStatusNotif(packName,clientName,oldStatus,newStatus,changedBy){
+  const sNew=STATUSES.find(s=>s.id===newStatus)?.label||newStatus;
+  addNotif({icon:'📦',title:packName+' — '+clientName,sub:(changedBy||'Alguém')+' moveu para '+sNew,time:Date.now()});
+}
+function updateNotifBadge(){
+  const badge=document.getElementById('notif-badge');
+  if(!badge) return;
+  if(window._unread>0){ badge.textContent=window._unread>9?'9+':window._unread; badge.style.display='flex'; }
+  else { badge.style.display='none'; }
+}
+function toggleNotifPanel(){
+  const panel=document.getElementById('notif-panel');
+  if(!panel) return;
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open')) markAllRead();
+}
+function markAllRead(){
+  window._notifs.forEach(n=>n.read=true);
+  window._unread=0; updateNotifBadge(); renderNotifList();
+  try{ localStorage.setItem('_notifs',JSON.stringify(window._notifs.slice(0,30))); }catch(e){}
+}
+function renderNotifList(){
+  const el=document.getElementById('notif-list'); if(!el) return;
+  if(!window._notifs.length){ el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Nenhuma notificação ainda</div>'; return; }
+  el.innerHTML=window._notifs.map(n=>`<div class="notif-item ${n.read?'':'unread'}"><div class="notif-icon">${n.icon||'🔔'}</div><div class="notif-body"><div class="notif-title">${n.title||''}</div><div class="notif-sub">${n.sub||''}</div><div class="notif-time">${smartLastSeen(n.time)}</div></div></div>`).join('');
+}
+function showPresenceToast(name,online){
+  const m=TEAM.find(t=>t.name.toLowerCase()===name.toLowerCase()||name.toLowerCase().includes(t.name.toLowerCase()));
+  const color=m?.color||'var(--accent)';
+  const photo=m?window._teamPhotos?.[m.id]:null;
+  const avHtml=photo?`<img src="${photo}" style="width:32px;height:32px;object-fit:cover;border-radius:50%">`:`<div class="p-av" style="background:${color}">${name[0]}</div>`;
+  const t=document.createElement('div'); t.className='presence-toast';
+  t.innerHTML=avHtml+`<div><div style="font-weight:700;margin-bottom:1px">${name}</div><div style="font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:${online?'#4ade80':'var(--text3)'}"></span>${online?'Entrou agora':'Ficou offline'}</div></div>`;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; },4000);
+  setTimeout(()=>t.remove(),4400);
+}
 </script>
 
 <!-- PACK MODAL -->
