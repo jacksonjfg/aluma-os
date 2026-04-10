@@ -1392,6 +1392,28 @@ async function downloadAllFinal(pid){
   }
 }
 
+// ===== RICH TEXT =====
+const URL_RE=/https?:\/\/[^\s<>"]+|www\.[^\s<>"]+/g;
+function renderRichText(text){
+  if(!text) return '';
+  const esc=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const withBr=esc.replace(/\n/g,'<br>');
+  return withBr.replace(URL_RE,url=>{
+    const href=url.startsWith('http')?url:'https://'+url;
+    return '<a href="'+href+'" target="_blank" style="color:var(--accent);text-decoration:underline" contenteditable="false" onclick="event.stopPropagation()">'+url+'</a>';
+  });
+}
+function getRichText(el){
+  let html=el.innerHTML||'';
+  html=html.replace(/<br\s*\/?>/gi,'\n');
+  html=html.replace(/<div>/gi,'\n');
+  html=html.replace(/<\/div>/gi,'');
+  html=html.replace(/<[^>]+>/g,'');
+  html=html.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ');
+  return html.trim();
+}
+function autoLinkify(el){}
+
 function renderPF(post){
   const el=document.getElementById('pm-content');
   const idx=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0)).findIndex(p=>p.id===post.id)+1;
