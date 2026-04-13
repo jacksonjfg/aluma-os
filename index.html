@@ -748,15 +748,27 @@ let currentPackId=null,currentPostId=null;
 let clients={},packs={},posts={};
 let calDate=new Date(),dashDate=new Date(),cliCalDate=new Date();
 let calFC='',calFF='';
-let isDark=true,dragPackId=null;
+let isDark=false,dragPackId=null;
 window._calP={};
 
 // ===== THEME =====
 function toggleTheme(){
   isDark=!isDark;
-  document.documentElement.setAttribute('data-theme',isDark?'':'light');
-  document.getElementById('theme-btn').textContent=isDark?'🌙':'☀️';
+  applyTheme();
+  localStorage.setItem('theme',isDark?'dark':'light');
 }
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme',isDark?'':'light');
+  const btn=document.getElementById('theme-btn');
+  if(btn) btn.textContent=isDark?'🌙':'☀️';
+}
+// Init theme from localStorage or default light
+(function(){
+  const saved=localStorage.getItem('theme');
+  if(saved==='dark') isDark=true;
+  else isDark=false;
+  applyTheme();
+})();
 
 // CLOSE DROPDOWNS ON OUTSIDE CLICK
 document.addEventListener('click',e=>{
@@ -3222,19 +3234,68 @@ async function exportRoteiros(packId,clientName,modalEl){
 let relDate=new Date();
 
 async function renderRelatorio(container){
-  container.style.overflowY='auto';
-  container.style.display='block';
+  // Make container scrollable
+  container.style.cssText='flex:1;overflow-y:auto;display:block;padding:16px 20px';
+  const yr=relDate.getFullYear(), mo=relDate.getMonth(), mn=MONTHS[mo];
+
+  // Load data
+  const {db,collection,getDocs,query,where}=window._fb;
+  const [packsSnap,postsSnap]=await Promise.all([
+    getDocs(query(collection(db,'packs'),where('clientId','==',currentClientId))),
+    getDocs(query(collection(db,'posts'),where('clientId','==',currentClientId)))
+  ]);
+  const allPacks=[]; packsSnap.forEach(d=>{ const p={id:d.id,...d.data()}; if(p.month===mn) allPacks.push(p); });
+  const monthPosts=[]; postsSnap.forEach(d=>{
+    const p={id:d.id,...d.data()};
+    if(p.postDate){ const pd=new Date(p.postDate); if(pd.getMonth()===mo&&pd.getFullYear()===yr) monthPosts.push(p); }
+  });
+  monthPosts.sort((a,b)=>a.postDate?.localeCompare(b.postDate||'')||0);
+
+  const total=monthPosts.length;
+  const done=monthPosts.filter(p=>p.status==='concluido').length;
+  const scheduled=monthPosts.filter(p=>p.postDate).length;
+  const byFormat={};
+  monthPosts.forEach(p=>{ const f=p.format||'Outro'; byFormat[f]=(byFormat[f]||0)+1; });
+
   container.innerHTML=`
-    <div style="padding:16px 20px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn btn-s btn-sm" style="font-size:16px;padding:4px 12px" onclick="changeRelMonth(-1)">‹</button>
-        <div style="font-size:15px;font-weight:700;min-width:140px;text-align:center" id="rel-title">...</div>
-        <button class="btn btn-s btn-sm" style="font-size:16px;padding:4px 12px" onclick="changeRelMonth(1)">›</button>
-        <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="exportRelatorio()">📄 Exportar PDF</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+      <button class="btn btn-s btn-sm" style="font-size:18px;line-height:1;padding:3px 12px" onclick="changeRelMonth(-1)">‹</button>
+      <div style="font-size:16px;font-weight:800;min-width:140px;text-align:center;letter-spacing:-.3px">${mn} ${yr}</div>
+      <button class="btn btn-s btn-sm" style="font-size:18px;line-height:1;padding:3px 12px" onclick="changeRelMonth(1)">›</button>
+      <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="exportRelatorio()">📄 PDF</button>
+    </div>
+    <div class="statsgrid" style="margin-bottom:14px">
+      <div class="statcard"><div class="stat-lbl">Posts criados</div><div class="stat-val">${total}</div><div class="stat-sub">em ${mn}</div></div>
+      <div class="statcard"><div class="stat-lbl">Concluídos</div><div class="stat-val" style="color:var(--green)">${done}</div><div class="stat-sub">${total?Math.round(done/total*100):0}%</div></div>
+      <div class="statcard"><div class="stat-lbl">Agendados</div><div class="stat-val" style="color:var(--accent)">${scheduled}</div><div class="stat-sub">com data</div></div>
+      <div class="statcard"><div class="stat-lbl">Packs</div><div class="stat-val">${allPacks.length}</div><div class="stat-sub">este mês</div></div>
+    </div>
+    ${Object.keys(byFormat).length?`
+    <div class="dcard" style="margin-bottom:12px">
+      <div class="dcard-hdr">Formatos produzidos</div>
+      <div class="dcard-body">
+        ${Object.entries(byFormat).sort((a,b)=>b[1]-a[1]).map(([fmt,n])=>`
+          <div class="prog-item">
+            <div class="prog-lbl"><span class="ktag tag-${fmt.toLowerCase()}">${fmt}</span><span>${n} posts</span></div>
+            <div class="prog-bg"><div class="prog-bar" style="width:${total?n/total*100:0}%;background:var(--accent)"></div></div>
+          </div>`).join('')}
       </div>
-      <div id="rel-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>`:''}
+    <div class="dcard">
+      <div class="dcard-hdr">Posts do mês</div>
+      <div class="dcard-body" style="padding:0">
+        ${monthPosts.length?monthPosts.map((p,i)=>{
+          const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
+          const dt=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)">
+            <span style="font-size:11px;font-weight:700;color:var(--text3);min-width:24px">${String(i+1).padStart(2,'0')}</span>
+            <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title||'Post '+(i+1)}</div><div style="font-size:11px;color:var(--text3)">${dt}</div></div>
+            <span class="ktag tag-${(p.format||'feed').toLowerCase()}" style="font-size:10px;flex-shrink:0">${p.format||'—'}</span>
+            <span class="ktag s${s.cls}" style="font-size:10px;flex-shrink:0">${s.label}</span>
+          </div>`;
+        }).join(''):`<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Nenhum post em ${mn} ${yr}</div>`}
+      </div>
     </div>`;
-  await loadRelatorio();
 }
 
 async function loadRelatorio(){
@@ -3302,7 +3363,7 @@ async function loadRelatorio(){
     </div>`;
 }
 
-function changeRelMonth(d){ relDate.setMonth(relDate.getMonth()+d); loadRelatorio(); }
+function changeRelMonth(d){ relDate.setMonth(relDate.getMonth()+d); const ct=document.getElementById('ct'); if(ct) renderRelatorio(ct); }
 
 async function exportRelatorio(){
   const {db,collection,getDocs,query,where}=window._fb;
