@@ -3915,7 +3915,7 @@ function renderPautaGrid(yr, mo, key){
 
   let html = `<div id="pauta-export-area" style="background:var(--bg1);padding:28px 32px;border-radius:var(--r);border:1px solid var(--border)">
     <!-- HEADER -->
-    <div style="display:grid;grid-template-columns:160px 1fr 80px;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--border2)">
+    <div style="display:grid;grid-template-columns:160px 1fr 80px;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:2px solid var(--border2)">
       <div>
         <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:4px">✨ MAGIC NUMBER</div>
         <div style="font-size:32px;font-weight:800;letter-spacing:-1px;color:var(--text)" id="pauta-magic-display">—</div>
@@ -3924,6 +3924,18 @@ function renderPautaGrid(yr, mo, key){
         <div style="font-size:38px;font-weight:900;letter-spacing:6px;text-transform:uppercase;color:var(--accent);line-height:1">${mn}</div>
       </div>
       <div style="text-align:right;font-size:28px;font-weight:800;color:var(--text2)">${yr}</div>
+    </div>
+    <!-- LEGEND IN HEADER -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+      ${members.filter(Boolean).map((m,mi)=>{
+        const cfg=MEMBER_CFG[PAUTA_MEMBERS[mi]]||{bg:'var(--accent)',text:'#fff'};
+        return `<div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700">
+          <div style="width:10px;height:10px;border-radius:50%;background:${cfg.bg}"></div>${m.name}
+        </div>`;
+      }).join('')}
+      <div style="display:flex;gap:6px;margin-left:auto">
+        ${Object.entries(TYPE_COLORS).map(([t,bg])=>`<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;background:${bg};color:${TYPE_TEXT[t]}">${t}</span>`).join('')}
+      </div>
     </div>
     <!-- TABLE -->
     <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:11px;table-layout:fixed">
@@ -3936,7 +3948,7 @@ function renderPautaGrid(yr, mo, key){
           <th style="text-align:left;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);font-size:10px;letter-spacing:.5px;color:var(--text3)">COLABORADOR</th>
           ${DAYS_FULL.map((d,i)=>{
             const isWknd=i===0||i===6;
-            return `<th style="text-align:center;padding:7px 4px;background:${isWknd?'var(--bg4)':'var(--bg3)'};border:1px solid var(--border);font-size:10px;letter-spacing:.3px;color:${isWknd?'var(--text3)':'var(--text2)'}">${d}</th>`;
+            return `<th style="text-align:center;padding:7px 4px;background:${isWknd?'var(--bg4)':'var(--bg3)'};border:1px solid var(--border);font-size:12px;font-weight:600;letter-spacing:.3px;color:${isWknd?'var(--text3)':'var(--text2)'}">${d}</th>`;
           }).join('')}
         </tr>
       </thead>
@@ -3958,7 +3970,7 @@ function renderPautaGrid(yr, mo, key){
     html+=`<tr>
       <td style="background:var(--bg3);border:1px solid var(--border);padding:5px 8px;font-size:10px;font-weight:700;color:var(--text3)">Dias</td>
       ${weekDays.map(wd=>`<td style="background:${wd.isWknd?'var(--bg4)':'var(--bg3)'};border:1px solid var(--border);padding:4px;text-align:center;cursor:pointer;height:${CELL_H};box-sizing:border-box" onclick="toggleFeriado('${key}','${wd.dateStr}')" title="${wd.isFeriado?'Remover feriado':'Marcar feriado'}">
-        <div style="font-size:14px;font-weight:800;color:${wd.isFeriado?'var(--red)':wd.inMonth?'var(--text)':'var(--text3)'};opacity:${wd.inMonth?1:.4};line-height:1">${wd.day}</div>
+        <div style="font-size:16px;font-weight:800;color:${wd.isFeriado?'var(--red)':wd.inMonth?'var(--text)':'var(--text3)'};opacity:${wd.inMonth?1:.4};line-height:1">${wd.day}</div>
         ${wd.isFeriado?`<div style="font-size:7px;color:var(--red);font-weight:700;letter-spacing:.5px;margin-top:2px">FERIADO</div>`:''}
       </td>`).join('')}
     </tr>`;
@@ -3991,8 +4003,8 @@ function renderPautaGrid(yr, mo, key){
             onclick="openPautaCell(event,'${key}','${cellKey}','${wd.dateStr}','${memberId}')">
             ${wd.isFeriado?`<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text3);font-style:italic">—</div>`
             :hasContent?`<div style="background:${cellBg};border-radius:4px;padding:3px 5px;height:100%;overflow:hidden;box-sizing:border-box">
-                ${isJackson?`<span style="font-size:8px;font-weight:800;color:${cellTextColor};letter-spacing:.5px">[${displayType}]</span><br>`:''}
-                ${clientName?`<span style="font-size:9px;font-weight:600;color:${cellTextColor};opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${clientName}</span>`:''}
+                ${isJackson?`<span style="font-size:10px;font-weight:800;color:${cellTextColor};letter-spacing:.5px">[${displayType}]</span><br>`:''}
+                ${clientName?`<span style="font-size:11px;font-weight:700;color:${cellTextColor};opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${clientName}</span>`:''}
               </div>`
             :`<div style="height:100%;cursor:pointer"></div>`}
           </td>`;
@@ -4004,17 +4016,7 @@ function renderPautaGrid(yr, mo, key){
   }
 
   html+=`</tbody></table>
-    <div style="display:flex;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap">
-      ${members.filter(Boolean).map((m,mi)=>{
-        const cfg=MEMBER_CFG[PAUTA_MEMBERS[mi]]||{bg:'var(--accent)',text:'#fff'};
-        return `<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600">
-          <div style="width:9px;height:9px;border-radius:50%;background:${cfg.bg}"></div>${m.name}
-        </div>`;
-      }).join('')}
-      <div style="display:flex;gap:6px;margin-left:auto">
-        ${Object.entries(TYPE_COLORS).map(([t,bg])=>`<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:${bg};color:${TYPE_TEXT[t]}">${t}</span>`).join('')}
-      </div>
-    </div>
+
   </div>`;
 
   const el=document.getElementById('pauta-inner');
