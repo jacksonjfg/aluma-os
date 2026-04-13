@@ -945,59 +945,127 @@ async function renderDashData(){
   }catch(e){}
 
   inner.innerHTML=`
-    <!-- MAGIC NUMBER BANNER -->
-    <div style="display:flex;align-items:stretch;gap:12px;margin-bottom:16px">
-      <div style="background:linear-gradient(135deg,rgba(132,131,255,0.18) 0%,rgba(132,131,255,0.06) 100%);border:1.5px solid rgba(132,131,255,0.35);border-radius:var(--r);padding:18px 24px;flex:1;display:flex;align-items:center;gap:20px">
-        <div>
-          <div style="font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">✨ Magic Number</div>
-          <div style="font-size:11px;color:var(--text3);font-weight:500;margin-bottom:2px">Data de entrega — ${mn} ${yr}</div>
-          <div id="magic-display" style="font-size:42px;font-weight:800;letter-spacing:-2px;color:var(--text);line-height:1">
-            ${magicDate?formatMagicDate(magicDate):'—'}
-          </div>
-          ${magicDate?`<div style="font-size:12px;color:var(--text3);margin-top:4px">${daysUntilMagic(magicDate)}</div>`:''}
+    <!-- TOP ROW: 3 columns -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+
+      <!-- COL 1: MAGIC NUMBER (vermelho) -->
+      <div style="background:linear-gradient(135deg,rgba(132,131,255,0.15),rgba(132,131,255,0.05));border:1.5px solid rgba(132,131,255,0.3);border-radius:var(--r);padding:18px 20px">
+        <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">✨ Magic Number</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Data de entrega — ${mn} ${yr}</div>
+        <div style="font-size:44px;font-weight:800;letter-spacing:-2px;color:var(--text);line-height:1;margin-bottom:6px">
+          ${magicDate?formatMagicDate(magicDate):'—'}
         </div>
-        <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
-          <div style="position:relative">
-            <input type="date" id="magic-input-${mo}-${yr}" value="${magicDate||''}"
-              style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"
-              onchange="saveMagicNumber('${mn}',this.value)">
-            <button class="btn btn-s btn-sm" onclick="document.getElementById('magic-input-${mo}-${yr}').showPicker?.()??document.getElementById('magic-input-${mo}-${yr}').click()" style="font-size:12px">
-              ${magicDate?'✏️ Alterar':'📅 Definir data'}
-            </button>
-          </div>
+        ${magicDate?`<div style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:5px">${daysUntilMagic(magicDate)}</div>`:''}
+        <div style="margin-top:12px;display:flex;gap:6px">
+          <button class="btn btn-s btn-sm" onclick="document.getElementById('magic-input-${mo}-${yr}').showPicker?.()??document.getElementById('magic-input-${mo}-${yr}').click()" style="font-size:11px">
+            ${magicDate?'✏️ Alterar':'📅 Definir'}
+          </button>
           ${magicDate?`<button class="btn btn-d btn-sm" onclick="saveMagicNumber('${mn}','')" style="font-size:11px">Remover</button>`:''}
         </div>
+        <input type="date" id="magic-input-${mo}-${yr}" value="${magicDate||''}" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="saveMagicNumber('${mn}',this.value)">
       </div>
-    </div>
-    <div class="statsgrid">
-      <div class="statcard"><div class="stat-lbl">Clientes</div><div class="stat-val">${Object.keys(clients).length}</div><div class="stat-sub">Carteira ativa</div></div>
-      <div class="statcard"><div class="stat-lbl">Packs ${mn}</div><div class="stat-val">${mP.length}</div><div class="stat-sub">${dp} concluídos</div></div>
-      <div class="statcard"><div class="stat-lbl">Posts ${mn}</div><div class="stat-val">${mPs.length}</div><div class="stat-sub">${mPs.filter(p=>p.status==='concluido').length} finalizados</div></div>
-      <div class="statcard"><div class="stat-lbl">Conclusão</div><div class="stat-val" style="color:var(--accent)">${mP.length?Math.round(dp/mP.length*100):0}%</div><div class="stat-sub">Packs finalizados</div></div>
-    </div>
-    <div class="dash-grid">
-      <div class="dcard"><div class="dcard-hdr">Packs por status — ${mn}</div><div class="dcard-body">
-        ${STATUSES.map(s=>`<div class="prog-item"><div class="prog-lbl"><span class="ktag s${s.cls}" style="font-size:10px">${s.label}</span><span>${sc[s.id]}</span></div><div class="prog-bg"><div class="prog-bar" style="width:${mP.length?sc[s.id]/mP.length*100:0}%;background:var(--s${s.cls})"></div></div></div>`).join('')}
-      </div></div>
-      <div class="dcard"><div class="dcard-hdr">Progresso por cliente — ${mn}</div><div class="dcard-body">
-        ${Object.values(cp).filter(c=>c.total>0).map(c=>`<div class="prog-item"><div class="prog-lbl"><span style="font-weight:600">${c.name}</span><span style="font-size:11px;color:var(--text3)">${c.done}/${c.total}</span></div><div class="prog-bg"><div class="prog-bar" style="width:${c.total?c.done/c.total*100:0}%;background:${c.color}"></div></div></div>`).join('')||'<div style="font-size:13px;color:var(--text3);padding:14px 0;text-align:center">Nenhum pack este mês</div>'}
-      </div></div>
-    </div>
-    <!-- EVOLUCAO MENSAL -->
-    <div class="dcard" style="grid-column:1/-1;margin-top:4px">
-      <div class="dcard-hdr" style="font-size:13px;font-weight:700">📈 Posts entregues em ${yr}</div>
-      <div class="dcard-body" style="overflow-x:auto">
-        <div style="display:flex;align-items:flex-end;gap:5px;height:80px;padding-top:8px" id="dash-chart-inner">
-          ${monthChartBars.join('')}
+
+      <!-- COL 2: POSTS DO MÊS (azul) -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:14px">📦 Posts ${mn}</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+          <div style="font-size:48px;font-weight:800;letter-spacing:-2px;line-height:1;color:var(--text)">${mPs.length}</div>
+          <div style="font-size:14px;color:var(--text3)">no total</div>
         </div>
-        <div style="display:flex;gap:5px;margin-top:4px">
-          ${MONTHS.map(m=>`<div style="flex:1;text-align:center;font-size:9px;color:var(--text3);font-weight:600">${m.slice(0,3)}</div>`).join('')}
+        <div style="font-size:13px;color:var(--green);font-weight:600">${mPs.filter(p=>p.status==='concluido').length} finalizados</div>
+        <div style="margin-top:10px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${mPs.length?Math.round(mPs.filter(p=>p.status==='concluido').length/mPs.length*100):0}%;background:var(--green);border-radius:2px;transition:width .6s"></div>
         </div>
       </div>
+
+      <!-- COL 3: ANDAMENTO DA PAUTA (amarelo) -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative">
+        <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;align-self:flex-start">📊 Andamento da pauta</div>
+        ${(()=>{
+          // % of packs with status "entregue" this month
+          const entregues=mP.filter(p=>p.status==='entregue').length;
+          const pct=mP.length?Math.round(entregues/mP.length*100):0;
+          const r=54; const circ=2*Math.PI*r;
+          const dash=pct/100*circ;
+          const celebrate=pct>=100;
+          return `<div style="position:relative;width:120px;height:120px;margin:0 auto 8px">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="10"/>
+              <circle cx="60" cy="60" r="${r}" fill="none" stroke="${celebrate?'#4ade80':'var(--accent)'}" stroke-width="10"
+                stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}"
+                stroke-linecap="round" style="transition:stroke-dasharray .6s"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">${pct}%</div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);text-align:center">${entregues} de ${mP.length} packs entregues</div>
+          ${celebrate?`<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:4px;text-align:center">🎉 Magic Number batido!</div>`:''}`;
+        })()}
+      </div>
     </div>
-    <!-- MARCOS -->
-    ${marcosHtml}
+
+    <!-- BOTTOM ROW: packs por status + progresso por cliente + entrega total -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <!-- Packs por status -->
+      <div class="dcard">
+        <div class="dcard-hdr">Packs por status — ${mn}</div>
+        <div class="dcard-body">
+          ${STATUSES.map(s=>`<div class="prog-item"><div class="prog-lbl"><span class="ktag s${s.cls}" style="font-size:10px">${s.label}</span><span>${sc[s.id]||0}</span></div><div class="prog-bg"><div class="prog-bar d${s.cls}" style="width:${mP.length?(sc[s.id]||0)/mP.length*100:0}%"></div></div></div>`).join('')||'<div style="font-size:13px;color:var(--text3);padding:10px 0;text-align:center">Nenhum pack</div>'}
+        </div>
+      </div>
+
+      <!-- Progresso por cliente -->
+      <div class="dcard">
+        <div class="dcard-hdr">Progresso por cliente — ${mn}</div>
+        <div class="dcard-body">
+          ${Object.values(cp).filter(c=>c.total>0).map(c=>`<div class="prog-item"><div class="prog-lbl"><span style="font-weight:600">${c.name}</span><span style="font-size:11px;color:var(--text3)">${c.done}/${c.total}</span></div><div class="prog-bg"><div class="prog-bar" style="width:${c.total?c.done/c.total*100:0}%;background:${c.color}"></div></div></div>`).join('')||'<div style="font-size:13px;color:var(--text3);padding:14px 0;text-align:center">Nenhum pack este mês</div>'}
+        </div>
+      </div>
+
+      <!-- Entrega total (incluindo alterações e agendamentos) -->
+      <div class="dcard">
+        <div class="dcard-hdr">Entrega total — ${mn}</div>
+        <div class="dcard-body">
+          ${(()=>{
+            const finalStatuses=['entregue','agendamento','concluido'];
+            const totalFinal=mP.filter(p=>finalStatuses.includes(p.status)).length;
+            const pct=mP.length?Math.round(totalFinal/mP.length*100):0;
+            return Object.values(cp).filter(c=>c.total>0).map(c=>{
+              const clientPacks=mP.filter(p=>p.clientId===c.id);
+              const clientFinal=clientPacks.filter(p=>finalStatuses.includes(p.status)).length;
+              const cpct=clientPacks.length?Math.round(clientFinal/clientPacks.length*100):0;
+              return `<div class="prog-item">
+                <div class="prog-lbl"><span style="font-weight:600">${c.name}</span><span style="font-size:11px;color:var(--text3)">${clientFinal}/${clientPacks.length}</span></div>
+                <div class="prog-bg"><div class="prog-bar" style="width:${cpct}%;background:${c.color}"></div></div>
+              </div>`;
+            }).join('')||'<div style="font-size:13px;color:var(--text3);padding:14px 0;text-align:center">Nenhum pack este mês</div>';
+          })()}
+        </div>
+      </div>
+    </div>
+
+    <!-- CHART + MARCOS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="dcard">
+        <div class="dcard-hdr" style="font-size:13px;font-weight:700">📈 Posts entregues em ${yr}</div>
+        <div class="dcard-body" style="overflow-x:auto">
+          <div style="display:flex;align-items:flex-end;gap:5px;height:80px;padding-top:8px">
+            ${monthChartBars.join('')}
+          </div>
+          <div style="display:flex;gap:5px;margin-top:4px">
+            ${MONTHS.map(m=>`<div style="flex:1;text-align:center;font-size:9px;color:var(--text3);font-weight:600">${m.slice(0,3)}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+      ${marcosHtml}
+    </div>
     `;
+    // Check magic number celebration
+    const entreguesPct=mP.length?Math.round(mP.filter(p=>p.status==='entregue').length/mP.length*100):0;
+    const lastPct=parseInt(localStorage.getItem('_lastMagicPct_'+mn+'_'+yr)||'0');
+    if(entreguesPct>=100&&lastPct<100&&mP.length>0){
+      localStorage.setItem('_lastMagicPct_'+mn+'_'+yr,'100');
+      launchConfetti(0,'🎉 Magic Number batido!','Todos os conteúdos de '+mn+' foram entregues aos clientes!');
+    }
     checkMarcos(totalPostsAllTime);
 }
 function changeDM(d){ dashDate.setMonth(dashDate.getMonth()+d); renderDashData(); }
@@ -2203,25 +2271,37 @@ async function genClientPDF(packId,clientName,modalEl){
     .feed-cell{aspect-ratio:4/5;overflow:hidden;background:#1a1a2e;}
     .feed-cell img{width:100%;height:100%;object-fit:cover;display:block;}
     .feed-cell.empty{background:#0d0d1a;}
-    /* Post pages */
-    .post-page{background:#fff;padding:50px 56px;min-height:100vh;display:flex;flex-direction:column;}
-    .post-header{margin-bottom:28px;}
-    .post-num{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:${clientColor};margin-bottom:8px;}
-    .post-title{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px;color:#111;}
-    .post-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0;}
-    .pill{background:#f3f3f8;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:#555;}
-    .post-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;}
+    /* Post pages — LANDSCAPE A4 (297x210mm) */
+    @page{size:A4 landscape;margin:0;}
+    .post-page{background:#fff;width:297mm;min-height:210mm;padding:28px 36px;display:flex;flex-direction:column;page-break-after:always;}
+    .post-header{margin-bottom:14px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;}
+    .post-num{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:${clientColor};flex-shrink:0;}
+    .post-title{font-size:20px;font-weight:800;letter-spacing:-.3px;color:#111;flex:1;}
+    .post-pills{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+    .pill{background:#f3f3f8;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#555;}
+    .post-divider{height:1px;background:#f0f0f0;margin:12px 0;}
+    .post-body{flex:1;display:grid;gap:24px;align-items:start;overflow:hidden;}
+    .post-body.has-img-cap{grid-template-columns:1fr 300px;}
+    .post-body.no-cap{grid-template-columns:1fr;}
     .post-body.no-img{grid-template-columns:1fr;}
-    .slides-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;}
-    .slide{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;border:1px solid #eee;}
-    .slide.reel{aspect-ratio:9/16;}
-    .reel-wrap{display:flex;flex-direction:column;gap:10px;}
-    .reel-img{width:180px;aspect-ratio:9/16;object-fit:cover;border-radius:8px;border:1px solid #eee;}
-    .reel-link{display:inline-flex;align-items:center;gap:8px;background:#0a0a14;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-top:8px;}
-    .reel-link::before{content:'▶';font-size:14px;}
-    .cap-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:8px;}
-    .cap{font-size:14px;line-height:1.8;color:#222;white-space:pre-wrap;}
-    .post-divider{height:1px;background:#f0f0f0;margin:24px 0;}
+    /* Slides grid — adaptive columns so 10 imgs fit in one row or two */
+    .slides-wrap{display:grid;gap:5px;}
+    .slides-wrap.n1{grid-template-columns:repeat(1,1fr);}
+    .slides-wrap.n2{grid-template-columns:repeat(2,1fr);}
+    .slides-wrap.n3{grid-template-columns:repeat(3,1fr);}
+    .slides-wrap.n4{grid-template-columns:repeat(4,1fr);}
+    .slides-wrap.n5{grid-template-columns:repeat(5,1fr);}
+    .slides-wrap.n6{grid-template-columns:repeat(6,1fr);}
+    .slides-wrap.n7,.slides-wrap.n8,.slides-wrap.n9,.slides-wrap.n10{grid-template-columns:repeat(5,1fr);}
+    .slide{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:4px;border:1px solid #eee;}
+    /* Reels */
+    .reel-wrap{display:flex;gap:12px;align-items:flex-start;}
+    .reel-img{width:120px;aspect-ratio:9/16;object-fit:cover;border-radius:6px;border:1px solid #eee;flex-shrink:0;}
+    .reel-link{display:inline-flex;align-items:center;gap:7px;background:#0a0a14;color:#fff;padding:9px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;margin-top:10px;}
+    .reel-link::before{content:'▶';font-size:12px;}
+    /* Caption */
+    .cap-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:6px;}
+    .cap{font-size:12px;line-height:1.75;color:#222;white-space:pre-wrap;max-height:150mm;overflow:hidden;}
     /* Last page */
     .last-page{background:#0a0a14;display:flex;flex-direction:column;justify-content:center;min-height:100vh;padding:80px;}
     .last-logo{font-size:11px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:60px;}
@@ -2303,13 +2383,13 @@ async function genClientPDF(packId,clientName,modalEl){
         </div>
       </div>
       <div class="post-divider"></div>
-      <div class="post-body ${hasImgs?'':'no-img'}">
+      <div class="post-body ${hasImgs&&inclCap&&p.caption?'has-img-cap':(!hasImgs?'no-img':'no-cap')}">
         ${hasImgs?`<div>
           ${isReel?`<div class="reel-wrap">
             <img src="${imgs[0]}" class="reel-img" alt="Capa Reels">
-            ${p.driveLink?`<a href="${p.driveLink}" target="_blank" class="reel-link">Assistir ao Vídeo</a>`:''}
-          </div>`:`<div class="slides-wrap">
-            ${imgs.map(src=>`<img src="${src}" class="slide" alt="">`).join('')}
+            <div>${p.driveLink?`<a href="${p.driveLink}" target="_blank" class="reel-link">Assistir ao Vídeo</a>`:''}</div>
+          </div>`:`<div class="slides-wrap n${Math.min(imgs.length,10)}">
+            ${imgs.slice(0,10).map(src=>`<img src="${src}" class="slide" alt="">`).join('')}
           </div>`}
         </div>`:''}
         ${inclCap&&p.caption?`<div>
@@ -3015,14 +3095,16 @@ function checkMarcos(total){
   }
 }
 
-function launchConfetti(marco){
+function launchConfetti(marco,titulo,subtitulo){
   const msg=document.createElement('div');
   msg.style.cssText='position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);animation:min .2s ease;cursor:pointer';
+  const t=titulo||(marco+' posts!');
+  const s=subtitulo||'Marco histórico da Aluma! 🚀';
   msg.innerHTML=`<div style="text-align:center;animation:min .3s ease">
     <div style="font-size:64px;margin-bottom:10px">🎉</div>
-    <div style="font-size:32px;font-weight:800;color:#fff;letter-spacing:-.5px">${marco} posts!</div>
-    <div style="font-size:16px;color:rgba(255,255,255,.6);margin-top:6px">Marco histórico da Aluma! 🚀</div>
-    <button style="margin-top:20px;background:var(--accent);border:none;color:#fff;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" onclick="this.closest('div[style]').remove()">Incrível! 🎊</button>
+    <div style="font-size:32px;font-weight:800;color:#fff;letter-spacing:-.5px">${t}</div>
+    <div style="font-size:16px;color:rgba(255,255,255,.6);margin-top:6px">${s}</div>
+    <button style="margin-top:20px;background:var(--accent);border:none;color:#fff;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" onclick="this.closest('[style*=fixed]').remove()">Incrível! 🎊</button>
   </div>`;
   msg.onclick=e=>{ if(e.target===msg) msg.remove(); };
   document.body.appendChild(msg);
