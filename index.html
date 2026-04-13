@@ -2090,7 +2090,7 @@ async function exportPDF(){
       <div class="mhdr" style="background:linear-gradient(135deg,rgba(132,131,255,.18),rgba(132,131,255,.06));border-bottom-color:rgba(132,131,255,.25)">
         <div class="mhdr-info">
           <div class="mtitle" style="color:var(--accent)">📄 Gerar PDF do cliente</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">${pack?.type||'Pack'} — ${client.name} · ${pack?.month||''}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${client.name} · ${pack?.month||''}</div>
         </div>
         <button class="mclose" onclick="this.closest('.mo').remove()">×</button>
       </div>
@@ -2102,7 +2102,7 @@ async function exportPDF(){
             <button class="btn btn-s btn-sm" onclick="document.querySelectorAll('#pdf-post-list input').forEach(c=>c.checked=false)">Nenhum</button>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;max-height:190px;overflow-y:auto" id="pdf-post-list">
+        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;max-height:200px;overflow-y:auto" id="pdf-post-list">
           ${list.map((p,i)=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;cursor:pointer">
             <input type="checkbox" data-pid="${p.id}" checked style="width:15px;height:15px;accent-color:var(--accent);flex-shrink:0">
             <span style="font-size:13px;font-weight:500;flex:1">${p.title||'Post '+(i+1)}</span>
@@ -2110,7 +2110,7 @@ async function exportPDF(){
             ${(p.finalFiles||[]).length?`<span style="font-size:10px;color:var(--accent);font-weight:700">🎨 ${p.finalFiles.length}</span>`:''}
           </label>`).join('')}
         </div>
-        <div class="ff" style="margin-bottom:12px">
+        <div class="ff" style="margin-bottom:10px">
           <label class="flbl">Observação adicional</label>
           <textarea class="fta" id="pdf-obs" rows="2" placeholder="Ex: Aprovação solicitada até dia 20..."></textarea>
         </div>
@@ -2118,6 +2118,7 @@ async function exportPDF(){
           <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-imgs" checked style="accent-color:var(--accent)"> Slides / imagens</label>
           <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-cap" checked style="accent-color:var(--accent)"> Legendas</label>
           <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-dt" checked style="accent-color:var(--accent)"> Data e hora</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-feed" checked style="accent-color:var(--accent)"> Página do feed</label>
         </div>
         <div class="brow">
           <button class="btn btn-p" onclick="genClientPDF('${currentPackId}','${client.name}',this.closest('.mo'))">📄 Gerar PDF</button>
@@ -2137,11 +2138,15 @@ async function genClientPDF(packId,clientName,modalEl){
   const inclImgs=modalEl.querySelector('#pdf-imgs')?.checked;
   const inclCap=modalEl.querySelector('#pdf-cap')?.checked;
   const inclDt=modalEl.querySelector('#pdf-dt')?.checked;
-  const selPosts=Object.values(posts).filter(p=>selIds.includes(p.id)).sort((a,b)=>(a.order||0)-(b.order||0));
+  const inclFeed=modalEl.querySelector('#pdf-feed')?.checked;
+  const selPosts=Object.values(posts).filter(p=>selIds.includes(p.id)).sort((a,b)=>{
+    if(a.postDate&&b.postDate) return a.postDate.localeCompare(b.postDate);
+    return (a.order||0)-(b.order||0);
+  });
   modalEl.remove();
   showToast('Preparando PDF...','inf');
 
-  // Helper: fetch any URL and convert to base64 data URL
+  // Convert image URLs to base64
   async function toDataURL(url){
     try{
       const res=await fetch(url);
@@ -2150,118 +2155,184 @@ async function genClientPDF(packId,clientName,modalEl){
     }catch(e){ return url; }
   }
 
-  // Pre-load all images as base64 so they work in print window
+  // Pre-load images as base64
   const postImgData={};
   for(const p of selPosts){
-    postImgData[p.id]=[];
     const allImgs=[...(p.finalFiles||[]).map(f=>f.url||f.data||''),...(p.images||[])].filter(Boolean);
-    for(const url of allImgs.slice(0,6)){
-      // If already base64, use as-is; if URL, fetch and convert
-      if(url.startsWith('data:')){
-        postImgData[p.id].push(url);
-      } else {
-        const b64=await toDataURL(url);
-        postImgData[p.id].push(b64);
-      }
+    const loaded=[];
+    for(const url of allImgs.slice(0,8)){
+      loaded.push(url.startsWith('data:')?url:await toDataURL(url));
     }
+    postImgData[p.id]=loaded;
   }
 
   const today=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  const monthUpper=(pack?.month||'').toUpperCase();
+  const yearStr=new Date().getFullYear();
+  const clientColor='#8483ff';
 
-  // Calculate image dimensions based on format
-  function getImgStyle(format){
-    const f=(format||'').toLowerCase();
-    if(f.includes('reels')||f.includes('tiktok')) return 'width:120px;height:213px'; // 9:16
-    if(f.includes('stories')) return 'width:120px;height:213px';
-    return 'width:160px;height:200px'; // 4:5 carrossel default
-  }
-
-  let html=`<html><head><meta charset="UTF-8">
-  <style>
+  // ── CSS ──
+  const css=`
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;}
-    .cover{background:#0d0d12;color:#fff;padding:56px 48px;page-break-after:always;}
-    .cover-tag{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#8483ff;margin-bottom:14px;}
-    .cover-name{font-size:40px;font-weight:800;letter-spacing:-1.5px;margin-bottom:6px;}
-    .cover-sub{font-size:16px;color:rgba(255,255,255,.45);}
-    .cover-obs{margin-top:24px;background:rgba(132,131,255,.15);border-left:3px solid #8483ff;padding:14px 18px;border-radius:0 8px 8px 0;font-size:14px;color:rgba(255,255,255,.8);line-height:1.6;}
-    .cover-date{margin-top:32px;font-size:12px;color:rgba(255,255,255,.25);}
-    .post{padding:36px 48px;page-break-inside:avoid;border-bottom:1px solid #eee;}
-    .post-num{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#8483ff;margin-bottom:6px;}
-    .post-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:14px;}
-    .pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
-    .pill{background:#f2f2f8;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:#555;}
-    .slides{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
-    .slide{object-fit:cover;border-radius:8px;border:1px solid #eee;}
+    body{font-family:'Inter',Arial,sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .page{width:100%;min-height:100vh;page-break-after:always;page-break-inside:avoid;}
+    .page:last-child{page-break-after:auto;}
+    /* Cover */
+    .cover{background:#0a0a14;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:60px;text-align:center;position:relative;overflow:hidden;}
+    .cover::before{content:'';position:absolute;top:-20%;right:-15%;width:55%;height:100%;background:rgba(60,40,120,.35);clip-path:polygon(30% 0,100% 0,100% 100%,0% 100%);transform:skewX(-8deg);}
+    .cover::after{content:'';position:absolute;top:-10%;right:5%;width:35%;height:80%;background:rgba(80,50,160,.2);clip-path:polygon(40% 0,100% 0,100% 100%,10% 100%);transform:skewX(-8deg);}
+    .cover-logo{font-size:13px;font-weight:800;letter-spacing:4px;text-transform:uppercase;color:${clientColor};margin-bottom:40px;z-index:1;display:flex;align-items:center;gap:8px;}
+    .cover-client{font-size:52px;font-weight:900;color:#fff;letter-spacing:-1px;text-transform:uppercase;z-index:1;line-height:1.1;margin-bottom:16px;}
+    .cover-month{font-size:22px;font-weight:600;color:${clientColor};letter-spacing:6px;z-index:1;margin-bottom:40px;}
+    .cover-divider{width:60px;height:2px;background:${clientColor};margin:0 auto 40px;z-index:1;}
+    .cover-stats{display:flex;gap:40px;z-index:1;}
+    .cover-stat{text-align:center;}
+    .cover-stat-n{font-size:36px;font-weight:800;color:#fff;}
+    .cover-stat-l{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:4px;}
+    .cover-obs{margin-top:40px;background:rgba(132,131,255,.12);border:1px solid rgba(132,131,255,.3);border-radius:10px;padding:16px 24px;font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;max-width:600px;z-index:1;}
+    .cover-date{position:absolute;bottom:30px;font-size:11px;color:rgba(255,255,255,.2);z-index:1;}
+    /* Feed page */
+    .feed-page{background:#0a0a14;display:flex;align-items:stretch;min-height:100vh;padding:60px;}
+    .feed-left{width:320px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;padding-right:40px;}
+    .feed-label{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px;}
+    .feed-title{font-size:72px;font-weight:900;color:${clientColor};line-height:.9;margin-bottom:16px;}
+    .feed-sub{font-size:24px;font-weight:300;color:#fff;}
+    .feed-logo{font-size:11px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:40px;}
+    .feed-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;align-content:start;}
+    .feed-cell{aspect-ratio:4/5;overflow:hidden;background:#1a1a2e;}
+    .feed-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+    .feed-cell.empty{background:#0d0d1a;}
+    /* Post pages */
+    .post-page{background:#fff;padding:50px 56px;min-height:100vh;display:flex;flex-direction:column;}
+    .post-header{margin-bottom:28px;}
+    .post-num{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:${clientColor};margin-bottom:8px;}
+    .post-title{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:12px;color:#111;}
+    .post-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0;}
+    .pill{background:#f3f3f8;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;color:#555;}
+    .post-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;}
+    .post-body.no-img{grid-template-columns:1fr;}
+    .slides-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;}
+    .slide{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;border:1px solid #eee;}
+    .slide.reel{aspect-ratio:9/16;}
+    .reel-wrap{display:flex;flex-direction:column;gap:10px;}
+    .reel-img{width:180px;aspect-ratio:9/16;object-fit:cover;border-radius:8px;border:1px solid #eee;}
+    .reel-link{display:inline-flex;align-items:center;gap:8px;background:#0a0a14;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-top:8px;}
+    .reel-link::before{content:'▶';font-size:14px;}
     .cap-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:8px;}
-    .cap{font-size:14px;line-height:1.75;color:#222;white-space:pre-wrap;}
-    .footer{padding:20px 48px;border-top:1px solid #eee;display:flex;justify-content:space-between;font-size:11px;color:#bbb;}
+    .cap{font-size:14px;line-height:1.8;color:#222;white-space:pre-wrap;}
+    .post-divider{height:1px;background:#f0f0f0;margin:24px 0;}
+    /* Last page */
+    .last-page{background:#0a0a14;display:flex;flex-direction:column;justify-content:center;min-height:100vh;padding:80px;}
+    .last-logo{font-size:11px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:60px;}
+    .last-title{font-size:36px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${clientColor};margin-bottom:32px;}
+    .last-text{font-size:18px;line-height:1.9;color:rgba(255,255,255,.75);max-width:700px;}
     @media print{
-      .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .slide{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    }
-  </style></head><body>
-  <div class="cover">
-    <div class="cover-tag">Aluma Marketing & Conteudo</div>
-    <div class="cover-name">${clientName}</div>
-    <div class="cover-sub">${pack?.type||'Conteudos'} · ${pack?.month||''} · ${selPosts.length} posts</div>
+      .page{page-break-after:always;}
+      body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    }`;
+
+  // ── PAGE 1: COVER ──
+  const totalPosts=selPosts.length;
+  const reelCount=selPosts.filter(p=>['Reels','TikTok'].includes(p.format)).length;
+  const carroCount=selPosts.filter(p=>p.format==='Carrossel').length;
+
+  let html=`<html><head><meta charset="UTF-8"><style>${css}</style></head><body>`;
+
+  // Cover page
+  html+=`<div class="page cover">
+    <div class="cover-logo">⚡ ALUMA MARKETING & CONTEÚDO</div>
+    <div class="cover-client">${clientName}</div>
+    <div class="cover-month">${monthUpper} | ${yearStr}</div>
+    <div class="cover-divider"></div>
+    <div class="cover-stats">
+      <div class="cover-stat"><div class="cover-stat-n">${totalPosts}</div><div class="cover-stat-l">Posts</div></div>
+      ${reelCount?`<div class="cover-stat"><div class="cover-stat-n">${reelCount}</div><div class="cover-stat-l">Reels</div></div>`:''}
+      ${carroCount?`<div class="cover-stat"><div class="cover-stat-n">${carroCount}</div><div class="cover-stat-l">Carrosseis</div></div>`:''}
+    </div>
     ${obs?`<div class="cover-obs">${obs}</div>`:''}
     <div class="cover-date">Gerado em ${today}</div>
   </div>`;
 
-  selPosts.forEach((p,i)=>{
-    const dtStr=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{weekday:'long',day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'}):'';
-    const imgStyle=getImgStyle(p.format);
-    const imgs=postImgData[p.id]||[];
-    html+=`<div class="post">
-      <div class="post-num">Post ${String(i+1).padStart(2,'0')}</div>
-      <div class="post-title">${p.title||'Post '+(i+1)}</div>
-      <div class="pills">
-        ${p.format?`<span class="pill">&#128210; ${p.format}</span>`:''}
-        ${inclDt&&dtStr?`<span class="pill">&#128197; ${dtStr}</span>`:''}
-        ${p.funnel?`<span class="pill">&#127919; ${p.funnel}</span>`:''}
+  // ── PAGE 2: FEED GRID ──
+  if(inclFeed){
+    // Sort by date ascending, oldest = bottom-right
+    const feedPosts=[...selPosts].filter(p=>postImgData[p.id]?.length);
+    // Build grid: reverse order so oldest is at bottom-right
+    // Grid reads left-to-right, top-to-bottom
+    // Instagram feed reads right-to-left, bottom-to-top
+    // So we need: oldest at [bottom-right], newest at [top-left]
+    // Pad to multiple of 3
+    const total3=Math.ceil(feedPosts.length/3)*3;
+    // Reverse the posts so newest first (top-left)
+    const reversed=[...feedPosts].reverse();
+    while(reversed.length<total3) reversed.push(null);
+
+    html+=`<div class="page feed-page">
+      <div class="feed-left">
+        <div class="feed-logo">⚡ ALUMA MARKETING & CONTEÚDO</div>
+        <div class="feed-label">Visão Geral</div>
+        <div class="feed-title">FEED</div>
+        <div class="feed-sub">${monthUpper} ${yearStr}</div>
       </div>
-      ${inclImgs&&imgs.length?`<div class="slides">${imgs.map(src=>`<img class="slide" src="${src}" style="${imgStyle}">`).join('')}</div>`:''}
-      ${inclCap&&p.caption?`<div class="cap-lbl">Legenda</div><div class="cap">${p.caption}</div>`:''}
+      <div class="feed-grid">
+        ${reversed.map(p=>{
+          if(!p) return `<div class="feed-cell empty"></div>`;
+          const img=postImgData[p.id][0];
+          return `<div class="feed-cell"><img src="${img}" alt="${p.title||''}"></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // ── PAGES 3+: Individual posts ──
+  selPosts.forEach((p,i)=>{
+    const imgs=postImgData[p.id]||[];
+    const isReel=['Reels','TikTok'].includes(p.format);
+    const dtStr=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{weekday:'long',day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'}):'';
+
+    const hasImgs=inclImgs&&imgs.length>0;
+
+    html+=`<div class="page post-page">
+      <div class="post-header">
+        <div class="post-num">Post ${String(i+1).padStart(2,'0')}</div>
+        <div class="post-title">${p.title||'Post '+(i+1)}</div>
+        <div class="post-pills">
+          ${p.format?`<span class="pill">📐 ${p.format}</span>`:''}
+          ${inclDt&&dtStr?`<span class="pill">📅 ${dtStr}</span>`:''}
+        </div>
+      </div>
+      <div class="post-divider"></div>
+      <div class="post-body ${hasImgs?'':'no-img'}">
+        ${hasImgs?`<div>
+          ${isReel?`<div class="reel-wrap">
+            <img src="${imgs[0]}" class="reel-img" alt="Capa Reels">
+            ${p.driveLink?`<a href="${p.driveLink}" target="_blank" class="reel-link">Assistir ao Vídeo</a>`:''}
+          </div>`:`<div class="slides-wrap">
+            ${imgs.map(src=>`<img src="${src}" class="slide" alt="">`).join('')}
+          </div>`}
+        </div>`:''}
+        ${inclCap&&p.caption?`<div>
+          <div class="cap-lbl">Legenda</div>
+          <div class="cap">${p.caption}</div>
+        </div>`:''}
+      </div>
     </div>`;
   });
 
-  html+=`<div class="footer"><span>Aluma Marketing & Conteudo</span><span>${today}</span></div>
-<!-- TASK MODAL -->
-<div class="mo" id="task-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle" id="task-modal-title">Nova tarefa</div></div><button class="mclose" onclick="document.getElementById('task-mo').classList.remove('open')">×</button></div>
-    <div style="padding:20px">
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Título</label><input class="fi" id="t-title" placeholder="Ex: Gravar vídeos da Natália"></div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Descrição</label><textarea class="fta" id="t-desc" rows="2" placeholder="Detalhes..."></textarea></div>
-      <div class="fgrid" style="margin-bottom:12px">
-        <div class="ff"><label class="flbl">Prioridade</label>
-          <select class="fs" id="t-priority">
-            <option value="alta">🔴 Alta</option>
-            <option value="media" selected>🟡 Média</option>
-            <option value="baixa">🟢 Baixa</option>
-          </select>
-        </div>
-        <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" id="t-due"></div>
-      </div>
-      <div class="ff" style="margin-bottom:14px"><label class="flbl">Responsáveis</label>
-        <div class="assignee-grid" id="t-assignees"></div>
-      </div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveTask()">Salvar</button>
-        <button class="btn btn-s" onclick="document.getElementById('task-mo').classList.remove('open')">Cancelar</button>
-        <button class="btn btn-d btn-sm" id="t-delete-btn" style="display:none;margin-left:auto" onclick="deleteTask()">🗑 Excluir</button>
-      </div>
-    </div>
-  </div>
-</div>
+  // ── LAST PAGE: Lembretes gerais ──
+  html+=`<div class="page last-page">
+    <div class="last-logo">⚡ ALUMA MARKETING & CONTEÚDO</div>
+    <div class="last-title">Lembretes Gerais:</div>
+    <div class="last-text">Após o envio do planejamento, aguardamos o retorno referente à aprovação em até 72h, para seguirmos com os ajustes necessários e a programação dos posts nas redes. Em caso de não retorno neste prazo, seguiremos com a programação conforme o planejamento enviado.</div>
+  </div>`;
 
-</body></html>`;
+  html+=`</body></html>`;
 
   const w=window.open('','_blank');
   if(!w){ showToast('Permita pop-ups para gerar o PDF','err'); return; }
   w.document.write(html); w.document.close();
-  setTimeout(()=>{ w.focus(); w.print(); },1200);
+  setTimeout(()=>{ w.focus(); w.print(); },1000);
   showToast('PDF pronto!','ok');
 }
 
@@ -3041,6 +3112,7 @@ async function renderApprovalPage(packId){
       <div style="font-size:18px;font-weight:700;margin-bottom:10px;letter-spacing:-.3px">${p.title||'Post '+(i+1)}</div>
       ${p.postDate?`<div style="font-size:12px;color:#888;margin-bottom:12px">📅 ${new Date(p.postDate).toLocaleString('pt-BR',{weekday:'long',day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'})}</div>`:''}
       ${imgs.length?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${imgs.slice(0,6).map(src=>`<img src="${src}" style="width:100px;height:125px;object-fit:cover;border-radius:8px;border:1px solid #eee">`).join('')}</div>`:''}
+      ${['Reels','TikTok'].includes(p.format)&&p.driveLink?`<a href="${p.driveLink}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#0a0a14;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:14px">▶ Assistir ao Vídeo</a>`:''}
       ${p.caption?`<div style="background:#f8f8fc;border-radius:8px;padding:12px 14px;font-size:13.5px;line-height:1.7;color:#333;margin-bottom:14px;white-space:pre-wrap">${p.caption}</div>`:''}
       <!-- APPROVAL BUTTONS -->
       <div style="display:flex;gap:8px;margin-bottom:10px">
