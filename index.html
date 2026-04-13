@@ -697,6 +697,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 </div>
 
 <script>
+// VERSION: 20260413_142552
 // ===== CONSTANTS =====
 const STATUSES=[
   {id:'planejamento',label:'Planejamento',cls:'p'},
@@ -897,9 +898,11 @@ async function renderDashData(){
   mP.forEach(p=>{if(cp[p.clientId]){cp[p.clientId].total++;if(p.status==='concluido')cp[p.clientId].done++;}});
   const inner=document.getElementById('dash-inner'); if(!inner) return;
 
-  // Month chart bars for current year
+  // Month chart bars — with historical data baked in
+  const historical2026=[44,96,108,120,0,0,0,0,0,0,0,0];
+  const histBase=(yr===2026?historical2026:Array(12).fill(0)).slice();
+  const mCounts=histBase;
   const allYearPosts=APs.filter(p=>p.postDate&&new Date(p.postDate).getFullYear()===yr);
-  const mCounts=Array(12).fill(0);
   allYearPosts.forEach(p=>{ mCounts[new Date(p.postDate).getMonth()]++; });
   const mMax=Math.max(...mCounts,1);
   const monthChartBars=mCounts.map((n,i)=>{
@@ -910,8 +913,9 @@ async function renderDashData(){
       `<div style="width:100%;height:${h}px;background:${isCur?'var(--accent)':'var(--bg4)'};border-radius:3px 3px 0 0;min-height:4px"></div></div>`;
   });
 
-  // Total posts all time
-  const totalPostsAllTime=APs.length;
+  // Total posts all time — include historical pre-system posts
+  const historicalTotal=(yr>=2026?368:0); // jan44+fev96+mar108+abr120=368
+  const totalPostsAllTime=APs.length+historicalTotal;
 
   // Marcos
   const _marcos=[100,250,500,1000,2000,5000];
@@ -2879,7 +2883,10 @@ async function deleteTask(){
 async function buildMonthChart(db,yr){
   const {collection,getDocs,query,where}=window._fb;
   const snap=await getDocs(collection(db,'posts'));
-  const counts=Array(12).fill(0);
+  // Historical data (before system) — fixed per year
+  const historical={2026:[44,96,108,120,0,0,0,0,0,0,0,0]};
+  const base=(historical[yr]||Array(12).fill(0)).slice();
+  const counts=base;
   snap.forEach(d=>{
     const p=d.data();
     if(p.postDate){
