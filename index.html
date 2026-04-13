@@ -1003,42 +1003,38 @@ async function renderDashData(){
       </div>
     </div>
 
-    <!-- BOTTOM ROW: packs por status + progresso por cliente + entrega total -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
-      <!-- Packs por status -->
-      <div class="dcard">
-        <div class="dcard-hdr">Packs por status — ${mn}</div>
-        <div class="dcard-body">
-          ${STATUSES.map(s=>`<div class="prog-item"><div class="prog-lbl"><span class="ktag s${s.cls}" style="font-size:10px">${s.label}</span><span>${sc[s.id]||0}</span></div><div class="prog-bg"><div class="prog-bar d${s.cls}" style="width:${mP.length?(sc[s.id]||0)/mP.length*100:0}%"></div></div></div>`).join('')||'<div style="font-size:13px;color:var(--text3);padding:10px 0;text-align:center">Nenhum pack</div>'}
-        </div>
+    <!-- BOTTOM ROW: 2 cols + blur toggle -->
+    <div id="dash-sensitive" style="transition:filter .3s">
+      <div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:8px">
+        <button onclick="toggleDashBlur()" id="dash-blur-btn" class="btn btn-s btn-sm" style="font-size:11px;display:flex;align-items:center;gap:5px">
+          👁 Borrar dados
+        </button>
       </div>
-
-      <!-- Progresso por cliente -->
-      <div class="dcard">
-        <div class="dcard-hdr">Progresso por cliente — ${mn}</div>
-        <div class="dcard-body">
-          ${Object.values(cp).filter(c=>c.total>0).map(c=>`<div class="prog-item"><div class="prog-lbl"><span style="font-weight:600">${c.name}</span><span style="font-size:11px;color:var(--text3)">${c.done}/${c.total}</span></div><div class="prog-bg"><div class="prog-bar" style="width:${c.total?c.done/c.total*100:0}%;background:${c.color}"></div></div></div>`).join('')||'<div style="font-size:13px;color:var(--text3);padding:14px 0;text-align:center">Nenhum pack este mês</div>'}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <!-- Packs por status -->
+        <div class="dcard">
+          <div class="dcard-hdr">Packs por status — ${mn}</div>
+          <div class="dcard-body">
+            ${STATUSES.map(s=>`<div class="prog-item"><div class="prog-lbl"><span class="ktag s${s.cls}" style="font-size:10px">${s.label}</span><span>${sc[s.id]||0}</span></div><div class="prog-bg"><div class="prog-bar d${s.cls}" style="width:${mP.length?(sc[s.id]||0)/mP.length*100:0}%"></div></div></div>`).join('')||'<div style="font-size:13px;color:var(--text3);padding:10px 0;text-align:center">Nenhum pack</div>'}
+          </div>
         </div>
-      </div>
-
-      <!-- Entrega total (incluindo alterações e agendamentos) -->
-      <div class="dcard">
-        <div class="dcard-hdr">Entrega total — ${mn}</div>
-        <div class="dcard-body">
-          ${(()=>{
-            const finalStatuses=['entregue','agendamento','concluido'];
-            const totalFinal=mP.filter(p=>finalStatuses.includes(p.status)).length;
-            const pct=mP.length?Math.round(totalFinal/mP.length*100):0;
-            return Object.values(cp).filter(c=>c.total>0).map(c=>{
-              const clientPacks=mP.filter(p=>p.clientId===c.id);
-              const clientFinal=clientPacks.filter(p=>finalStatuses.includes(p.status)).length;
-              const cpct=clientPacks.length?Math.round(clientFinal/clientPacks.length*100):0;
-              return `<div class="prog-item">
-                <div class="prog-lbl"><span style="font-weight:600">${c.name}</span><span style="font-size:11px;color:var(--text3)">${clientFinal}/${clientPacks.length}</span></div>
-                <div class="prog-bg"><div class="prog-bar" style="width:${cpct}%;background:${c.color}"></div></div>
-              </div>`;
-            }).join('')||'<div style="font-size:13px;color:var(--text3);padding:14px 0;text-align:center">Nenhum pack este mês</div>';
-          })()}
+        <!-- Entrega total -->
+        <div class="dcard">
+          <div class="dcard-hdr">Entrega total (incl. alterações e agendamentos) — ${mn}</div>
+          <div class="dcard-body">
+            ${(()=>{
+              const fs=['entregue','agendamento','concluido'];
+              return Object.values(cp).filter(cl=>cl.total>0).map(cl=>{
+                const cPacks=mP.filter(p=>p.clientId===cl.id);
+                const cFinal=cPacks.filter(p=>fs.includes(p.status)).length;
+                const cpct=cPacks.length?Math.round(cFinal/cPacks.length*100):0;
+                return `<div class="prog-item">
+                  <div class="prog-lbl"><span style="font-weight:600">${cl.name}</span><span style="font-size:11px;color:var(--text3)">${cFinal}/${cPacks.length}</span></div>
+                  <div class="prog-bg"><div class="prog-bar" style="width:${cpct}%;background:${cl.color}"></div></div>
+                </div>`;
+              }).join('')||'<div style="font-size:13px;color:var(--text3);padding:14px 0;text-align:center">Nenhum pack este mês</div>';
+            })()}
+          </div>
         </div>
       </div>
     </div>
@@ -2536,6 +2532,18 @@ function checkMobile(){
   if(hb) hb.style.display=isMobile?'flex':'none';
 }
 window.addEventListener('resize',checkMobile);
+
+
+// ===== DASH BLUR =====
+let _dashBlurred=false;
+function toggleDashBlur(){
+  _dashBlurred=!_dashBlurred;
+  const el=document.getElementById('dash-sensitive');
+  const btn=document.getElementById('dash-blur-btn');
+  if(el) el.style.filter=_dashBlurred?'blur(6px)':'';
+  if(el) el.style.userSelect=_dashBlurred?'none':'';
+  if(btn) btn.innerHTML=_dashBlurred?'👁 Revelar dados':'👁 Borrar dados';
+}
 
 // ===== TOAST =====
 function showToast(msg,type='inf'){
