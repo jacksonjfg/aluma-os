@@ -6,6 +6,7 @@
 <title>Aluma OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -544,6 +545,31 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .prio-media{color:#facc15;background:rgba(250,204,21,.12);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;}
 .prio-baixa{color:#4ade80;background:rgba(74,222,128,.12);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;}
 
+
+/* ===== PAUTA ===== */
+.pauta-wrap{padding:14px 20px;flex:1;overflow-y:auto;}
+.pauta-table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:900px;}
+.pauta-table th{background:var(--bg3);padding:7px 6px;font-weight:700;text-align:center;border:1px solid var(--border);font-size:11px;letter-spacing:.3px;}
+.pauta-table th.day-col{min-width:110px;}
+.pauta-table th.label-col{min-width:90px;text-align:left;padding-left:10px;}
+.pauta-week-hdr td{background:var(--bg4);font-weight:700;font-size:11px;color:var(--text3);padding:4px 8px;border:1px solid var(--border);text-align:center;}
+.pauta-member-row td{border:1px solid var(--border);padding:3px 4px;vertical-align:top;}
+.pauta-member-label{display:flex;align-items:center;gap:6px;padding:4px 6px;font-weight:700;font-size:11px;}
+.pauta-cell{min-height:38px;cursor:pointer;border-radius:4px;padding:3px 5px;transition:background .12s;display:flex;flex-direction:column;gap:2px;}
+.pauta-cell:hover{filter:brightness(1.15);}
+.pauta-cell.feriado{background:var(--bg4)!important;opacity:.6;cursor:default;}
+.pauta-cell.empty{background:transparent;}
+.pauta-tag{display:inline-flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.5px;padding:1px 5px;border-radius:3px;color:#fff;}
+.pauta-tag.PLAN{background:#fb923c;}
+.pauta-tag.REV{background:#818cf8;}
+.pauta-tag.DES{background:#c084fc;}
+.pauta-tag.PDF{background:#2dd4bf;color:#0d0d1a;}
+.pauta-client{font-size:9px;color:rgba(255,255,255,.85);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:95px;}
+/* Cell editor dropdown */
+.pauta-editor{position:fixed;z-index:300;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:12px;box-shadow:var(--shad);width:220px;}
+.pauta-editor select,.pauta-editor input{width:100%;margin-bottom:8px;}
+.holiday-marker{background:var(--bg3);border-radius:4px;padding:3px 6px;font-size:9px;color:var(--text3);text-align:center;font-weight:600;}
+
 </style>
 </head>
 <body>
@@ -571,6 +597,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
       <button class="ttab" onclick="setView('calendario')">📅 Calendário</button>
       <button class="ttab" onclick="setView('equipe')">👥 Equipe</button>
       <button class="ttab" onclick="setView('tarefas')">✅ Tarefas</button>
+      <button class="ttab" onclick="setView('pauta')">📅 Pauta</button>
     </div>
     <div class="tright">
       <button class="tbtn" id="btn-add-top" style="display:none" onclick="showAddClient()">＋</button>
@@ -609,6 +636,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
         <button class="sb-item" onclick="setView('calendario')"><span>📅</span>Calendário</button>
         <button class="sb-item" onclick="setView('equipe')"><span>👥</span>Equipe</button>
         <button class="sb-item" onclick="setView('tarefas')"><span>✅</span>Tarefas</button>
+        <button class="sb-item" onclick="setView('pauta')"><span>📅</span>Pauta</button>
       </div>
       <div class="sb-sect" style="padding-bottom:2px"><div class="sb-lbl">Clientes</div></div>
       <div class="sb-clients" id="sb-clients"><div class="loading"><div class="spinner"></div></div></div>
@@ -858,6 +886,7 @@ function setView(view,cid){
   else if(view==='calendario') renderCalendario();
   else if(view==='equipe') renderEquipe();
   else if(view==='tarefas') renderTarefas();
+  else if(view==='pauta') renderPauta();
 }
 
 function openClient(cid){
@@ -3791,6 +3820,257 @@ function renderKanban(packsByStatus){
         ${(packsByStatus[s.id]||[]).map(p=>renderCard(p)).join('')}
       </div>
     </div>`).join('');
+}
+
+// ===== PAUTA =====
+let pautaDate = new Date();
+let pautaData = {}; // { 'YYYY-MM': { 'memberId_YYYY-MM-DD': {type,client,feriado} } }
+
+async function renderPauta(){
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="ph">
+      <div class="ptitle" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        📅 Pauta
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <button class="btn btn-s btn-sm" onclick="changePautaMonth(-1)">‹</button>
+          <span id="pauta-lbl" style="font-size:14px;font-weight:700;min-width:120px;text-align:center"></span>
+          <button class="btn btn-s btn-sm" onclick="changePautaMonth(1)">›</button>
+          <button class="btn btn-s btn-sm" onclick="exportPautaImg()" style="margin-left:6px">🖼 Exportar imagem</button>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;overflow:auto;padding:14px 20px">
+      <div id="pauta-inner"><div class="loading"><div class="spinner"></div></div></div>
+    </div>`;
+  await loadPautaMonth();
+}
+
+function changePautaMonth(d){
+  pautaDate.setMonth(pautaDate.getMonth()+d);
+  loadPautaMonth();
+}
+
+async function loadPautaMonth(){
+  const yr = pautaDate.getFullYear();
+  const mo = pautaDate.getMonth();
+  const mn = MONTHS[mo];
+  const key = yr+'-'+String(mo+1).padStart(2,'0');
+  const lbl = document.getElementById('pauta-lbl');
+  if(lbl) lbl.textContent = mn+' '+yr;
+
+  // Load from Firestore
+  const {db,doc,getDoc} = window._fb;
+  try{
+    const snap = await getDoc(doc(db,'pauta',key));
+    pautaData[key] = snap.exists() ? snap.data() : {};
+  }catch(e){ pautaData[key] = {}; }
+
+  renderPautaGrid(yr, mo, key);
+}
+
+function renderPautaGrid(yr, mo, key){
+  const data = pautaData[key] || {};
+  const mn = MONTHS[mo];
+
+  // Magic number for this month
+  const magicStr = ''; // filled later via settings
+
+  // Build weeks: find first day of month, go back to Sunday
+  const firstDay = new Date(yr, mo, 1);
+  const startDow = firstDay.getDay(); // 0=Sun
+  const startDate = new Date(firstDay);
+  startDate.setDate(1 - startDow);
+
+  const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const TYPES = ['PLAN','REV','DES','PDF'];
+  const TYPE_COLORS = {PLAN:'#fb923c',REV:'#818cf8',DES:'#c084fc',PDF:'#2dd4bf'};
+  const clientList = Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
+
+  let html = `<div id="pauta-export-area">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:16px;padding:12px 0 14px;border-bottom:2px solid var(--border);margin-bottom:12px">
+      <div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent)">Magic Number</div>
+        <div style="font-size:28px;font-weight:800;letter-spacing:-1px" id="pauta-magic-display">—</div>
+      </div>
+      <div style="flex:1;text-align:center">
+        <div style="font-size:32px;font-weight:800;letter-spacing:4px;text-transform:uppercase;color:var(--accent)">${mn}</div>
+      </div>
+      <div style="font-size:28px;font-weight:800;color:var(--text2)">${yr}</div>
+    </div>
+    <!-- Legend -->
+    <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      ${TEAM.map(m=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600">
+        <div style="width:10px;height:10px;border-radius:50%;background:${m.color}"></div>${m.name}
+      </div>`).join('')}
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;margin-left:auto">
+        ${TYPES.map(t=>`<span class="pauta-tag ${t}">[${t}]</span>`).join('')}
+      </div>
+    </div>
+    <!-- Table -->
+    <div style="overflow-x:auto">
+    <table class="pauta-table" id="pauta-tbl">
+      <thead>
+        <tr>
+          <th class="label-col">Colaboradores</th>
+          ${DAYS.map(d=>`<th class="day-col">${d}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>`;
+
+  // Build 6 weeks
+  let cur = new Date(startDate);
+  for(let w=0; w<6; w++){
+    // Week header row: day numbers
+    html += `<tr class="pauta-week-hdr"><td></td>`;
+    const weekDays = [];
+    for(let d=0; d<7; d++){
+      const inMonth = cur.getMonth()===mo;
+      const dayNum = cur.getDate();
+      const dateStr = cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(dayNum).padStart(2,'0');
+      const isFeriado = data['feriado_'+dateStr];
+      html += `<td style="${!inMonth?'color:var(--text3);opacity:.4':''}" onclick="toggleFeriado('${key}','${dateStr}')" title="Marcar feriado" style="cursor:pointer">
+        ${dayNum}${isFeriado?' 🚫':''}
+      </td>`;
+      weekDays.push({date:cur.getDate(), month:cur.getMonth(), year:cur.getFullYear(), dateStr, inMonth, isFeriado});
+      cur.setDate(cur.getDate()+1);
+    }
+    html += `</tr>`;
+
+    // One row per team member
+    TEAM.forEach(m => {
+      html += `<tr class="pauta-member-row">
+        <td><div class="pauta-member-label">
+          <div style="width:8px;height:8px;border-radius:50%;background:${m.color}"></div>
+          ${m.name}
+        </div></td>`;
+      weekDays.forEach(wd => {
+        const cellKey = m.id+'_'+wd.dateStr;
+        const cell = data[cellKey] || {};
+        const bg = cell.type ? (TYPE_COLORS[cell.type]||'var(--bg3)') : 'transparent';
+        const fClass = wd.isFeriado ? 'feriado' : (cell.type ? '' : 'empty');
+        const client = cell.client ? (clients[cell.client]?.name || cell.client) : '';
+        html += `<td style="background:var(--bg1)">
+          <div class="pauta-cell ${fClass}" style="${cell.type?'background:'+bg+';opacity:0.9':''}" 
+            onclick="${wd.isFeriado?'':'openPautaCell(event,\''+key+'\',\''+cellKey+'\',\''+wd.dateStr+'\')'}">
+            ${wd.isFeriado ? '<div class="holiday-marker">Feriado</div>' : (cell.type ? `
+              <span class="pauta-tag ${cell.type}">[${cell.type}]</span>
+              ${client?`<span class="pauta-client">${client}</span>`:''}
+            ` : '')}
+          </div>
+        </td>`;
+      });
+      html += `</tr>`;
+    });
+  }
+
+  html += `</tbody></table></div></div>`;
+
+  const el = document.getElementById('pauta-inner');
+  if(el) el.innerHTML = html;
+
+  // Load magic number for display
+  const {db,doc,getDoc} = window._fb;
+  getDoc(doc(db,'settings','magicNumbers')).then(snap=>{
+    if(snap.exists()){
+      const d = snap.data()[MONTHS[mo]];
+      const el2 = document.getElementById('pauta-magic-display');
+      if(el2) el2.textContent = d ? formatMagicDate(d) : '—';
+    }
+  }).catch(()=>{});
+}
+
+function openPautaCell(event, monthKey, cellKey, dateStr){
+  event.stopPropagation();
+  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
+
+  const data = pautaData[monthKey] || {};
+  const cell = data[cellKey] || {};
+  const clientList = Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
+
+  const ed = document.createElement('div');
+  ed.className = 'pauta-editor';
+  const rect = event.currentTarget.getBoundingClientRect();
+  ed.style.left = Math.min(rect.left, window.innerWidth-240)+'px';
+  ed.style.top = (rect.bottom+4)+'px';
+
+  ed.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">${dateStr}</div>
+    <select class="fs" id="pe-type" style="margin-bottom:8px">
+      <option value="">— Nenhuma tarefa —</option>
+      ${['PLAN','REV','DES','PDF'].map(t=>`<option value="${t}" ${cell.type===t?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <select class="fs" id="pe-client" style="margin-bottom:10px">
+      <option value="">— Sem cliente —</option>
+      ${clientList.map(cl=>`<option value="${cl.id}" ${cell.client===cl.id?'selected':''}>${cl.name}</option>`).join('')}
+    </select>
+    <div class="brow">
+      <button class="btn btn-p btn-sm" onclick="savePautaCell('${monthKey}','${cellKey}')">Salvar</button>
+      <button class="btn btn-d btn-sm" onclick="clearPautaCell('${monthKey}','${cellKey}')">Limpar</button>
+      <button class="btn btn-s btn-sm" onclick="this.closest('.pauta-editor').remove()">×</button>
+    </div>`;
+
+  document.body.appendChild(ed);
+  document.addEventListener('click', function handler(e){
+    if(!ed.contains(e.target)){ ed.remove(); document.removeEventListener('click',handler); }
+  });
+}
+
+async function savePautaCell(monthKey, cellKey){
+  const type = document.getElementById('pe-type').value;
+  const client = document.getElementById('pe-client').value;
+  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
+  if(!pautaData[monthKey]) pautaData[monthKey] = {};
+  if(type){ pautaData[monthKey][cellKey] = {type,client}; }
+  else { delete pautaData[monthKey][cellKey]; }
+  await savePautaToFirestore(monthKey);
+  const [yr,mo] = monthKey.split('-').map(Number);
+  renderPautaGrid(yr, mo-1, monthKey);
+}
+
+async function clearPautaCell(monthKey, cellKey){
+  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
+  if(pautaData[monthKey]) delete pautaData[monthKey][cellKey];
+  await savePautaToFirestore(monthKey);
+  const [yr,mo] = monthKey.split('-').map(Number);
+  renderPautaGrid(yr, mo-1, monthKey);
+}
+
+async function toggleFeriado(monthKey, dateStr){
+  if(!pautaData[monthKey]) pautaData[monthKey] = {};
+  const fk = 'feriado_'+dateStr;
+  if(pautaData[monthKey][fk]) delete pautaData[monthKey][fk];
+  else pautaData[monthKey][fk] = true;
+  await savePautaToFirestore(monthKey);
+  const [yr,mo] = monthKey.split('-').map(Number);
+  renderPautaGrid(yr, mo-1, monthKey);
+}
+
+async function savePautaToFirestore(monthKey){
+  const {db,doc,setDoc} = window._fb;
+  try{
+    await setDoc(doc(db,'pauta',monthKey), pautaData[monthKey]||{});
+  }catch(e){ showToast('Erro ao salvar pauta: '+e.message,'err'); }
+}
+
+async function exportPautaImg(){
+  showToast('Gerando imagem...','inf');
+  const el = document.getElementById('pauta-export-area');
+  if(!el){ showToast('Pauta não carregada','err'); return; }
+  // Use html2canvas if available, else print
+  if(typeof html2canvas !== 'undefined'){
+    const canvas = await html2canvas(el, {scale:2, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg1').trim()||'#fff'});
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pauta-'+MONTHS[pautaDate.getMonth()]+'-'+pautaDate.getFullYear()+'.png';
+    a.click();
+    showToast('Imagem exportada!','ok');
+  } else {
+    window.print();
+    showToast('Use Ctrl+P para salvar como imagem','inf');
+  }
 }
 </script>
 
