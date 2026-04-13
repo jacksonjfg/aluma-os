@@ -3438,230 +3438,15 @@ async function exportRoteiros(packId,clientName,modalEl){
   if(!w){ showToast('Permita pop-ups para gerar o roteiro','err'); return; }
   w.document.write(html); w.document.clos
 // ===== RELATÓRIO MENSAL =====
-let relDate=new Date();
 
-async function renderRelatorio(container){
-  try{
-    container.setAttribute('style','flex:1;overflow-y:auto;display:block;padding:16px 20px');
-    container.innerHTML='<div class="loading"><div class="spinner"></div> Carregando...</div>';
-    const yr=relDate.getFullYear(),mo=relDate.getMonth(),mn=MONTHS[mo];
-    const {db,collection,getDocs,query,where}=window._fb;
-    const [packsSnap,postsSnap]=await Promise.all([
-      getDocs(query(collection(db,'packs'),where('clientId','==',currentClientId))),
-      getDocs(query(collection(db,'posts'),where('clientId','==',currentClientId)))
-    ]);
-    const allPacks=[];
-    packsSnap.forEach(d=>{const p={id:d.id,...d.data()};if(p.month===mn)allPacks.push(p);});
-    const monthPosts=[];
-    postsSnap.forEach(d=>{
-      const p={id:d.id,...d.data()};
-      if(p.postDate){const pd=new Date(p.postDate);if(pd.getMonth()===mo&&pd.getFullYear()===yr)monthPosts.push(p);}
-    });
-    monthPosts.sort((a,b)=>(a.postDate||'').localeCompare(b.postDate||''));
-    const total=monthPosts.length;
-    const done=monthPosts.filter(p=>p.status==='concluido').length;
-    const byFormat={};
-    monthPosts.forEach(p=>{const f=p.format||'Outro';byFormat[f]=(byFormat[f]||0)+1;});
 
-    let h='<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">'
-      +'<button class="btn btn-s btn-sm" style="font-size:18px;padding:3px 12px" onclick="changeRelMonth(-1)">\u2039</button>'
-      +'<div style="font-size:16px;font-weight:800;min-width:140px;text-align:center">'+mn+' '+yr+'</div>'
-      +'<button class="btn btn-s btn-sm" style="font-size:18px;padding:3px 12px" onclick="changeRelMonth(1)">\u203a</button>'
-      +'<button class="btn btn-s btn-sm" style="margin-left:auto" onclick="exportRelatorio()">PDF</button>'
-      +'</div>';
 
-    h+='<div class="statsgrid" style="margin-bottom:14px">'
-      +'<div class="statcard"><div class="stat-lbl">Posts criados</div><div class="stat-val">'+total+'</div><div class="stat-sub">em '+mn+'</div></div>'
-      +'<div class="statcard"><div class="stat-lbl">Concluidos</div><div class="stat-val" style="color:var(--green)">'+done+'</div><div class="stat-sub">'+(total?Math.round(done/total*100):0)+'%</div></div>'
-      +'<div class="statcard"><div class="stat-lbl">Packs</div><div class="stat-val">'+allPacks.length+'</div><div class="stat-sub">este mes</div></div>'
-      +'</div>';
 
-    if(Object.keys(byFormat).length){
-      h+='<div class="dcard" style="margin-bottom:12px"><div class="dcard-hdr">Formatos produzidos</div><div class="dcard-body">';
-      Object.entries(byFormat).sort((a,b)=>b[1]-a[1]).forEach(function(e){
-        h+='<div class="prog-item"><div class="prog-lbl"><span>'+e[0]+'</span><span>'+e[1]+'</span></div>'
-          +'<div class="prog-bg"><div class="prog-bar" style="width:'+(total?Math.round(e[1]/total*100):0)+'%;background:var(--accent)"></div></div></div>';
-      });
-      h+='</div></div>';
-    }
 
-    h+='<div class="dcard"><div class="dcard-hdr">Posts do mes</div><div class="dcard-body" style="padding:0">';
-    if(monthPosts.length){
-      monthPosts.forEach(function(p,i){
-        const s=STATUSES.find(function(x){return x.id===p.status;})||STATUSES[0];
-        const dt=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'sem data';
-        h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)">'
-          +'<span style="font-size:11px;font-weight:700;color:var(--text3);min-width:24px">'+String(i+1).padStart(2,'0')+'</span>'
-          +'<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+( p.title||('Post '+(i+1)))+'</div>'
-          +'<div style="font-size:11px;color:var(--text3)">'+dt+'</div></div>'
-          +'<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg3);flex-shrink:0">'+(p.format||'—')+'</span>'
-          +'<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg3);flex-shrink:0">'+s.label+'</span>'
-          +'</div>';
-      });
-    } else {
-      h+='<div style="padding:24px;text-align:center;color:var(--text3)">Nenhum post em '+mn+' '+yr+'</div>';
-    }
-    h+='</div></div>';
-    container.innerHTML=h;
-  }catch(err){
-    container.innerHTML='<div style="padding:24px;color:var(--red);font-size:13px"><strong>Erro:</strong> '+err.message+'<br><br><button class="btn btn-s" onclick="swCT(\'relatorio\')">Tentar novamente</button></div>';
-    console.error('renderRelatorio:',err);
-  }
-}
 
-async function loadRelatorio(){
-  const {db,collection,getDocs,query,where}=window._fb;
-  const yr=relDate.getFullYear(), mo=relDate.getMonth();
-  const mn=MONTHS[mo];
-  const t=document.getElementById('rel-title'); if(t) t.textContent=`${mn} ${yr}`;
 
-  // Load packs for this client (filter month in JS to avoid composite index)
-  const packsSnap=await getDocs(query(collection(db,'packs'),where('clientId','==',currentClientId)));
-  const allPacksAll=[]; packsSnap.forEach(d=>allPacksAll.push({id:d.id,...d.data()}));
-  const allPacks=allPacksAll.filter(p=>p.month===mn);
 
-  const postsSnap=await getDocs(query(collection(db,'posts'),where('clientId','==',currentClientId)));
-  const allPosts=[]; postsSnap.forEach(d=>allPosts.push({id:d.id,...d.data()}));
-  const monthPosts=allPosts.filter(p=>{
-    if(!p.postDate) return false;
-    const d=new Date(p.postDate);
-    return d.getMonth()===mo&&d.getFullYear()===yr;
-  });
 
-  const client=clients[currentClientId];
-  const totalPosts=monthPosts.length;
-  const donePosts=monthPosts.filter(p=>p.status==='concluido').length;
-  const byFormat={};
-  monthPosts.forEach(p=>{ const f=p.format||'Outro'; byFormat[f]=(byFormat[f]||0)+1; });
-  const scheduled=monthPosts.filter(p=>p.postDate&&p.status!=='em_alteracoes').length;
-
-  const el=document.getElementById('rel-content'); if(!el) return;
-  el.innerHTML=`
-    <div class="statsgrid" style="margin-bottom:14px">
-      <div class="statcard"><div class="stat-lbl">Posts criados</div><div class="stat-val">${totalPosts}</div><div class="stat-sub">em ${mn}</div></div>
-      <div class="statcard"><div class="stat-lbl">Concluídos</div><div class="stat-val" style="color:var(--green)">${donePosts}</div><div class="stat-sub">${totalPosts?Math.round(donePosts/totalPosts*100):0}% do mês</div></div>
-      <div class="statcard"><div class="stat-lbl">Agendados</div><div class="stat-val" style="color:var(--accent)">${scheduled}</div><div class="stat-sub">com data definida</div></div>
-      <div class="statcard"><div class="stat-lbl">Packs</div><div class="stat-val">${allPacks.length}</div><div class="stat-sub">este mês</div></div>
-    </div>
-    <!-- FORMATOS -->
-    <div class="dcard" style="margin-bottom:12px">
-      <div class="dcard-hdr">Formatos produzidos</div>
-      <div class="dcard-body">
-        ${Object.entries(byFormat).length
-          ? Object.entries(byFormat).sort((a,b)=>b[1]-a[1]).map(([fmt,n])=>`
-            <div class="prog-item">
-              <div class="prog-lbl"><span class="ktag tag-${fmt.toLowerCase()}">${fmt}</span><span>${n} posts</span></div>
-              <div class="prog-bg"><div class="prog-bar" style="width:${totalPosts?n/totalPosts*100:0}%;background:var(--accent)"></div></div>
-            </div>`).join('')
-          : '<div style="font-size:13px;color:var(--text3);padding:10px 0;text-align:center">Nenhum post este mês</div>'}
-      </div>
-    </div>
-    <!-- LISTA DE POSTS -->
-    <div class="dcard">
-      <div class="dcard-hdr">Posts do mês</div>
-      <div class="dcard-body" style="padding:0">
-        ${monthPosts.sort((a,b)=>a.postDate?.localeCompare(b.postDate||'')||0).map((p,i)=>{
-          const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
-          const dt=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
-          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)">
-            <span style="font-size:11px;font-weight:700;color:var(--text3);min-width:30px">${String(i+1).padStart(2,'0')}</span>
-            <div style="flex:1"><div style="font-size:13px;font-weight:600">${p.title||'Post '+(i+1)}</div><div style="font-size:11px;color:var(--text3)">${dt}</div></div>
-            <span class="ktag tag-${(p.format||'feed').toLowerCase()}" style="font-size:10.5px">${p.format||'Feed'}</span>
-            <span class="ktag s${s.cls}" style="font-size:10.5px">${s.label}</span>
-          </div>`;
-        }).join('')||'<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Nenhum post este mês</div>'}
-      </div>
-    </div>`;
-}
-
-function changeRelMonth(d){ relDate.setMonth(relDate.getMonth()+d); const ct=document.getElementById('ct'); if(ct) renderRelatorio(ct); }
-
-async function exportRelatorio(){
-  const {db,collection,getDocs,query,where}=window._fb;
-  const yr=relDate.getFullYear(), mo=relDate.getMonth(), mn=MONTHS[mo];
-  const client=clients[currentClientId];
-  const postsSnap=await getDocs(query(collection(db,'posts'),where('clientId','==',currentClientId)));
-  const allPosts=[]; postsSnap.forEach(d=>allPosts.push({id:d.id,...d.data()}));
-  const monthPosts=allPosts.filter(p=>{
-    if(!p.postDate) return false;
-    const d=new Date(p.postDate); return d.getMonth()===mo&&d.getFullYear()===yr;
-  }).sort((a,b)=>a.postDate?.localeCompare(b.postDate||'')||0);
-  const today=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-  const done=monthPosts.filter(p=>p.status==='concluido').length;
-
-  let html=`<html><head><meta charset="UTF-8"><style>
-    body{font-family:Arial,sans-serif;color:#111;max-width:800px;margin:0 auto;padding:32px}
-    .cover{background:#0d0d12;color:#fff;padding:32px;border-radius:10px;margin-bottom:24px}
-    .cover-tag{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#8483ff;margin-bottom:8px}
-    .cover-name{font-size:28px;font-weight:800;margin-bottom:4px}
-    .cover-sub{font-size:14px;color:rgba(255,255,255,.4)}
-    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
-    .stat{background:#f5f5f8;border-radius:8px;padding:14px;text-align:center}
-    .stat-n{font-size:28px;font-weight:800;margin-bottom:2px}
-    .stat-l{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px}
-    table{width:100%;border-collapse:collapse}
-    th{background:#f5f5f8;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#888}
-    td{padding:9px 12px;border-bottom:1px solid #f0f0f0;font-size:13px}
-    .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#f0f0f0}
-    .footer{margin-top:24px;text-align:center;font-size:11px;color:#bbb}
-  </style></head><body>
-  <div class="cover">
-    <div class="cover-tag">Aluma Marketing & Conteúdo · Relatório</div>
-    <div class="cover-name">${client?.name||''}</div>
-    <div class="cover-sub">${mn} ${yr}</div>
-  </div>
-  <div class="stats">
-    <div class="stat"><div class="stat-n">${monthPosts.length}</div><div class="stat-l">Posts produzidos</div></div>
-    <div class="stat"><div class="stat-n">${done}</div><div class="stat-l">Concluídos</div></div>
-    <div class="stat"><div class="stat-n">${monthPosts.length?Math.round(done/monthPosts.length*100):0}%</div><div class="stat-l">Taxa conclusão</div></div>
-  </div>
-  <table>
-    <tr><th>#</th><th>Post</th><th>Data</th><th>Formato</th><th>Status</th></tr>
-    ${monthPosts.map((p,i)=>{
-      const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
-      const dt=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
-      return `<tr><td style="color:#888;font-weight:600">${String(i+1).padStart(2,'0')}</td><td>${p.title||'Post '+(i+1)}</td><td>${dt}</td><td><span class="tag">${p.format||'—'}</span></td><td><span class="tag">${s.label}</span></td></tr>`;
-    }).join('')}
-  </table>
-  <div class="footer">Gerado em ${today} · Aluma Marketing & Conteúdo</div>
-  
-<!-- TASK MODAL -->
-<div class="mo" id="task-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle" id="task-modal-title">Nova tarefa</div></div><button class="mclose" onclick="document.getElementById('task-mo').classList.remove('open')">×</button></div>
-    <div style="padding:20px">
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Título</label><input class="fi" id="t-title" placeholder="Ex: Gravar vídeos da Natália"></div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Descrição</label><textarea class="fta" id="t-desc" rows="2" placeholder="Detalhes..."></textarea></div>
-      <div class="fgrid" style="margin-bottom:12px">
-        <div class="ff"><label class="flbl">Prioridade</label>
-          <select class="fs" id="t-priority">
-            <option value="alta">🔴 Alta</option>
-            <option value="media" selected>🟡 Média</option>
-            <option value="baixa">🟢 Baixa</option>
-          </select>
-        </div>
-        <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" id="t-due"></div>
-      </div>
-      <div class="ff" style="margin-bottom:14px"><label class="flbl">Responsáveis</label>
-        <div class="assignee-grid" id="t-assignees"></div>
-      </div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveTask()">Salvar</button>
-        <button class="btn btn-s" onclick="document.getElementById('task-mo').classList.remove('open')">Cancelar</button>
-        <button class="btn btn-d btn-sm" id="t-delete-btn" style="display:none;margin-left:auto" onclick="deleteTask()">🗑 Excluir</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-</body></html>`;
-
-  const w=window.open('','_blank');
-  if(!w){ showToast('Permita pop-ups','err'); return; }
-  w.document.write(html); w.document.close();
-  setTimeout(()=>w.print(),600);
-  showToast('Relatório pronto!','ok');
-}
 e();
   setTimeout(()=>w.print(),700);
   showToast('Roteiro pronto!','ok');
@@ -4137,6 +3922,212 @@ async function exportPautaImg(){
     window.print();
     showToast('Use Ctrl+P para salvar como imagem','inf');
   }
+}
+
+// ===== RELATÓRIO MENSAL POR CLIENTE =====
+let relDate = new Date();
+
+async function renderRelatorio(container){
+  container.setAttribute('style','flex:1;overflow-y:auto;display:block');
+  container.innerHTML = '<div style="padding:20px"><div class="loading"><div class="spinner"></div> Carregando...</div></div>';
+  await buildRelatorio(container);
+}
+
+function changeRelMonth(d){
+  relDate.setMonth(relDate.getMonth()+d);
+  const ct = document.getElementById('ct');
+  if(ct) buildRelatorio(ct);
+}
+
+async function buildRelatorio(container){
+  try{
+    const yr = relDate.getFullYear();
+    const mo = relDate.getMonth();
+    const mn = MONTHS[mo];
+    const {db, collection, getDocs, query, where} = window._fb;
+    const client = clients[currentClientId];
+    if(!client){ container.innerHTML='<div style="padding:20px;color:var(--text3)">Cliente não encontrado.</div>'; return; }
+
+    // Load packs and posts
+    const [packsSnap, postsSnap] = await Promise.all([
+      getDocs(query(collection(db,'packs'), where('clientId','==',currentClientId))),
+      getDocs(query(collection(db,'posts'), where('clientId','==',currentClientId)))
+    ]);
+
+    const allPacks = []; packsSnap.forEach(d=>allPacks.push({id:d.id,...d.data()}));
+    const monthPacks = allPacks.filter(p=>p.month===mn);
+
+    const allPosts = []; postsSnap.forEach(d=>allPosts.push({id:d.id,...d.data()}));
+    const monthPosts = allPosts.filter(p=>{
+      if(!p.postDate) return false;
+      const pd = new Date(p.postDate);
+      return pd.getMonth()===mo && pd.getFullYear()===yr;
+    }).sort((a,b)=>(a.postDate||'').localeCompare(b.postDate||''));
+
+    // Stats
+    const totalPosts = monthPosts.length;
+    const donePosts = monthPosts.filter(p=>p.status==='concluido').length;
+    const entregues = monthPacks.filter(p=>['entregue','agendamento','concluido'].includes(p.status)).length;
+    const byFormat = {};
+    monthPosts.forEach(p=>{ const f=p.format||'Outro'; byFormat[f]=(byFormat[f]||0)+1; });
+
+    // Build HTML
+    let h = '<div style="padding:16px 20px">';
+
+    // Nav
+    h += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+      <button class="btn btn-s btn-sm" style="font-size:18px;padding:2px 12px" onclick="changeRelMonth(-1)">&#8249;</button>
+      <div style="font-size:16px;font-weight:800;min-width:150px;text-align:center;letter-spacing:-.3px">${mn} ${yr}</div>
+      <button class="btn btn-s btn-sm" style="font-size:18px;padding:2px 12px" onclick="changeRelMonth(1)">&#8250;</button>
+      <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="exportRelatorio()">&#128196; Exportar PDF</button>
+    </div>`;
+
+    // Stats cards
+    const pct = totalPosts ? Math.round(donePosts/totalPosts*100) : 0;
+    const entPct = monthPacks.length ? Math.round(entregues/monthPacks.length*100) : 0;
+    h += `<div class="statsgrid" style="margin-bottom:16px">
+      <div class="statcard"><div class="stat-lbl">Posts criados</div><div class="stat-val">${totalPosts}</div><div class="stat-sub">em ${mn}</div></div>
+      <div class="statcard"><div class="stat-lbl">Concluídos</div><div class="stat-val" style="color:var(--green)">${donePosts}</div><div class="stat-sub">${pct}% do mês</div></div>
+      <div class="statcard"><div class="stat-lbl">Packs entregues</div><div class="stat-val" style="color:var(--accent)">${entregues}</div><div class="stat-sub">de ${monthPacks.length} packs</div></div>
+      <div class="statcard"><div class="stat-lbl">Taxa entrega</div><div class="stat-val" style="color:${entPct>=100?'var(--green)':'var(--text)'}">${entPct}%</div><div class="stat-sub">ao cliente</div></div>
+    </div>`;
+
+    // Formats
+    if(Object.keys(byFormat).length){
+      h += '<div class="dcard" style="margin-bottom:12px"><div class="dcard-hdr">Formatos produzidos</div><div class="dcard-body">';
+      Object.entries(byFormat).sort((a,b)=>b[1]-a[1]).forEach(([fmt,n])=>{
+        const pct2 = totalPosts ? Math.round(n/totalPosts*100) : 0;
+        h += `<div class="prog-item">
+          <div class="prog-lbl">
+            <span class="ktag tag-${fmt.toLowerCase().replace(/\s/g,'')}">${fmt}</span>
+            <span style="font-size:12px;color:var(--text3)">${n} post${n>1?'s':''} &mdash; ${pct2}%</span>
+          </div>
+          <div class="prog-bg"><div class="prog-bar" style="width:${pct2}%;background:var(--accent)"></div></div>
+        </div>`;
+      });
+      h += '</div></div>';
+    }
+
+    // Packs status
+    if(monthPacks.length){
+      h += '<div class="dcard" style="margin-bottom:12px"><div class="dcard-hdr">Packs do mês</div><div class="dcard-body" style="padding:0">';
+      monthPacks.forEach(pk=>{
+        const s = STATUSES.find(x=>x.id===pk.status)||STATUSES[0];
+        const postCount = allPosts.filter(p=>p.packId===pk.id).length;
+        h += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${pk.type||'Pack'}</div>
+            <div style="font-size:11px;color:var(--text3)">${postCount} posts</div>
+          </div>
+          <span class="ktag s${s.cls}" style="font-size:11px">${s.label}</span>
+        </div>`;
+      });
+      h += '</div></div>';
+    }
+
+    // Posts list
+    h += '<div class="dcard"><div class="dcard-hdr">Posts do mês</div><div class="dcard-body" style="padding:0">';
+    if(monthPosts.length){
+      monthPosts.forEach((p,i)=>{
+        const s = STATUSES.find(x=>x.id===p.status)||STATUSES[0];
+        const dt = p.postDate ? new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+        h += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)">
+          <span style="font-size:11px;font-weight:700;color:var(--text3);min-width:24px">${String(i+1).padStart(2,'0')}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.title||'Post '+(i+1)}</div>
+            <div style="font-size:11px;color:var(--text3)">${dt}</div>
+          </div>
+          <span class="ktag tag-${(p.format||'feed').toLowerCase().replace(/\s/g,'')}" style="font-size:10px;flex-shrink:0">${p.format||'—'}</span>
+          <span class="ktag s${s.cls}" style="font-size:10px;flex-shrink:0">${s.label}</span>
+        </div>`;
+      });
+    } else {
+      h += `<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Nenhum post em ${mn} ${yr}</div>`;
+    }
+    h += '</div></div>';
+    h += '</div>';
+
+    container.innerHTML = h;
+
+  } catch(err){
+    container.innerHTML = `<div style="padding:24px;color:var(--red);font-size:13px">
+      <strong>Erro ao carregar:</strong> ${err.message}
+      <br><br><button class="btn btn-s" onclick="swCT('relatorio')">Tentar novamente</button>
+    </div>`;
+    console.error('buildRelatorio:', err);
+  }
+}
+
+async function exportRelatorio(){
+  const yr = relDate.getFullYear(), mo = relDate.getMonth(), mn = MONTHS[mo];
+  const client = clients[currentClientId];
+  const {db, collection, getDocs, query, where} = window._fb;
+  const [packsSnap, postsSnap] = await Promise.all([
+    getDocs(query(collection(db,'packs'), where('clientId','==',currentClientId))),
+    getDocs(query(collection(db,'posts'), where('clientId','==',currentClientId)))
+  ]);
+  const allPacks=[]; packsSnap.forEach(d=>allPacks.push({id:d.id,...d.data()}));
+  const monthPacks = allPacks.filter(p=>p.month===mn);
+  const allPosts=[]; postsSnap.forEach(d=>allPosts.push({id:d.id,...d.data()}));
+  const monthPosts = allPosts.filter(p=>{
+    if(!p.postDate) return false;
+    const pd=new Date(p.postDate);
+    return pd.getMonth()===mo && pd.getFullYear()===yr;
+  }).sort((a,b)=>(a.postDate||'').localeCompare(b.postDate||''));
+
+  const today = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  const done = monthPosts.filter(p=>p.status==='concluido').length;
+  const entregues = monthPacks.filter(p=>['entregue','agendamento','concluido'].includes(p.status)).length;
+
+  const html = `<html><head><meta charset="UTF-8"><style>
+    body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:32px;color:#111}
+    .cover{background:#0a0a14;color:#fff;padding:36px;border-radius:10px;margin-bottom:24px}
+    .cover-tag{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#8483ff;margin-bottom:10px}
+    .cover-name{font-size:32px;font-weight:800;margin-bottom:4px}
+    .cover-sub{font-size:15px;color:rgba(255,255,255,.45)}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+    .stat{background:#f5f5f8;border-radius:8px;padding:16px;text-align:center}
+    .stat-n{font-size:30px;font-weight:800;margin-bottom:2px}
+    .stat-l{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px}
+    table{width:100%;border-collapse:collapse;margin-bottom:24px}
+    th{background:#f5f5f8;padding:10px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#888;border-bottom:2px solid #e0e0e0}
+    td{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px}
+    .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#f0f0f0}
+    .footer{text-align:center;font-size:11px;color:#bbb;margin-top:24px;padding-top:16px;border-top:1px solid #eee}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body>
+  <div class="cover">
+    <div class="cover-tag">Aluma Marketing &amp; Conteúdo &mdash; Relatório</div>
+    <div class="cover-name">${client?.name||''}</div>
+    <div class="cover-sub">${mn} ${yr}</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-n">${monthPosts.length}</div><div class="stat-l">Posts produzidos</div></div>
+    <div class="stat"><div class="stat-n">${done}</div><div class="stat-l">Concluídos</div></div>
+    <div class="stat"><div class="stat-n">${monthPosts.length?Math.round(done/monthPosts.length*100):0}%</div><div class="stat-l">Taxa de conclusão</div></div>
+  </div>
+  <table>
+    <tr><th>#</th><th>Post</th><th>Data</th><th>Formato</th><th>Status</th></tr>
+    ${monthPosts.map((p,i)=>{
+      const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
+      const dt=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+      return `<tr>
+        <td style="color:#aaa;font-weight:600">${String(i+1).padStart(2,'0')}</td>
+        <td>${p.title||'Post '+(i+1)}</td>
+        <td>${dt}</td>
+        <td><span class="tag">${p.format||'—'}</span></td>
+        <td><span class="tag">${s.label}</span></td>
+      </tr>`;
+    }).join('')}
+  </table>
+  <div class="footer">Aluma Marketing &amp; Conteúdo &mdash; Gerado em ${today}</div>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  if(!w){ showToast('Permita pop-ups','err'); return; }
+  w.document.write(html); w.document.close();
+  setTimeout(()=>w.print(), 600);
+  showToast('Relatório pronto!','ok');
 }
 </script>
 
