@@ -1091,7 +1091,7 @@ async function renderCT(){
 }
 
 // ===== KANBAN =====
-async function renderKanbanInto(container){
+async function renderKanbanInto(container){ container.style.overflowY=''; container.style.display='';
   container.innerHTML=`<div class="kanban-outer"><div class="kanban-board" id="kb"><div class="loading"><div class="spinner"></div></div></div></div>`;
   await loadKanban();
 }
@@ -1979,7 +1979,7 @@ async function openClientAndPost(cid,packId,postId){
 function closePV(){ document.getElementById('pvo').classList.remove('open'); }
 
 // ===== DOCS =====
-async function renderDocsInto(container){
+async function renderDocsInto(container){ container.style.overflowY=''; container.style.display='';
   const {db,doc,getDoc}=window._fb;
   let d={};
   try{ const snap=await getDoc(doc(db,'clientDocs',currentClientId)); if(snap.exists()) d=snap.data(); }catch(e){}
@@ -3222,12 +3222,14 @@ async function exportRoteiros(packId,clientName,modalEl){
 let relDate=new Date();
 
 async function renderRelatorio(container){
+  container.style.overflowY='auto';
+  container.style.display='block';
   container.innerHTML=`
     <div style="padding:16px 20px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn btn-s btn-sm" style="font-size:16px;padding:4px 10px" onclick="changeRelMonth(-1)">‹</button>
-        <div style="font-size:15px;font-weight:700;min-width:120px;text-align:center" id="rel-title">...</div>
-        <button class="btn btn-s btn-sm" style="font-size:16px;padding:4px 10px" onclick="changeRelMonth(1)">›</button>
+        <button class="btn btn-s btn-sm" style="font-size:16px;padding:4px 12px" onclick="changeRelMonth(-1)">‹</button>
+        <div style="font-size:15px;font-weight:700;min-width:140px;text-align:center" id="rel-title">...</div>
+        <button class="btn btn-s btn-sm" style="font-size:16px;padding:4px 12px" onclick="changeRelMonth(1)">›</button>
         <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="exportRelatorio()">📄 Exportar PDF</button>
       </div>
       <div id="rel-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
