@@ -1333,10 +1333,11 @@ function renderPostsList(){
   const list=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0));
   // Orientações do Mês special item
   const oriAtivo=currentPostId==='__orientacoes__';
-  el.innerHTML=`<div class="mpost-item ${oriAtivo?'active':''}" onclick="openOrientacoes()" style="border-bottom:2px solid var(--border)">
-    <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>
+  el.innerHTML=`<div class="mpost-item ${oriAtivo?'active':''}" onclick="openOrientacoes()"
+    style="border-bottom:2px solid var(--border);background:${oriAtivo?'rgba(132,131,255,0.12)':'rgba(132,131,255,0.05)'};border-left:3px solid var(--accent);padding-left:10px">
+    <div style="font-size:14px;flex-shrink:0">📋</div>
     <div style="flex:1;min-width:0">
-      <div class="mpost-name" style="${oriAtivo?'color:var(--accent)':''}">📋 Orientações do Mês</div>
+      <div class="mpost-name" style="color:var(--accent);font-weight:700">Orientações do Mês</div>
     </div>
   </div>${list.map(p=>{
     const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
@@ -2601,7 +2602,8 @@ async function loadEquipeData(){
     getDocs(collection(db,'presence'))
   ]);
   const users=[]; usersSnap.forEach(d=>users.push({id:d.id,...d.data()}));
-  const allPacks=[]; packsSnap.forEach(d=>allPacks.push({id:d.id,...d.data()}));
+  const allPacksAll=[]; packsSnap.forEach(d=>allPacksAll.push({id:d.id,...d.data()}));
+  const allPacks=allPacksAll.filter(p=>p.month===mn);
   const allPosts=[]; postsSnap.forEach(d=>allPosts.push({id:d.id,...d.data()}));
   const presMap={}; presSnap.forEach(d=>presMap[d.id]=d.data());
 
@@ -3220,15 +3222,16 @@ async function exportRoteiros(packId,clientName,modalEl){
 let relDate=new Date();
 
 async function renderRelatorio(container){
-  container.innerHTML=`<div class="calwrap">
-    <div class="calnav">
-      <button class="calnav-btn" onclick="changeRelMonth(-1)">‹</button>
-      <div class="calmtitle" id="rel-title"></div>
-      <button class="calnav-btn" onclick="changeRelMonth(1)">›</button>
-      <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="exportRelatorio()">📄 Exportar PDF</button>
-    </div>
-    <div id="rel-content"><div class="loading"><div class="spinner"></div></div></div>
-  </div>`;
+  container.innerHTML=`
+    <div style="padding:16px 20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-s btn-sm" style="font-size:16px;padding:4px 10px" onclick="changeRelMonth(-1)">‹</button>
+        <div style="font-size:15px;font-weight:700;min-width:120px;text-align:center" id="rel-title">...</div>
+        <button class="btn btn-s btn-sm" style="font-size:16px;padding:4px 10px" onclick="changeRelMonth(1)">›</button>
+        <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="exportRelatorio()">📄 Exportar PDF</button>
+      </div>
+      <div id="rel-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>`;
   await loadRelatorio();
 }
 
@@ -3238,9 +3241,10 @@ async function loadRelatorio(){
   const mn=MONTHS[mo];
   const t=document.getElementById('rel-title'); if(t) t.textContent=`${mn} ${yr}`;
 
-  // Load packs and posts for this client+month
-  const packsSnap=await getDocs(query(collection(db,'packs'),where('clientId','==',currentClientId),where('month','==',mn)));
-  const allPacks=[]; packsSnap.forEach(d=>allPacks.push({id:d.id,...d.data()}));
+  // Load packs for this client (filter month in JS to avoid composite index)
+  const packsSnap=await getDocs(query(collection(db,'packs'),where('clientId','==',currentClientId)));
+  const allPacksAll=[]; packsSnap.forEach(d=>allPacksAll.push({id:d.id,...d.data()}));
+  const allPacks=allPacksAll.filter(p=>p.month===mn);
 
   const postsSnap=await getDocs(query(collection(db,'posts'),where('clientId','==',currentClientId)));
   const allPosts=[]; postsSnap.forEach(d=>allPosts.push({id:d.id,...d.data()}));
