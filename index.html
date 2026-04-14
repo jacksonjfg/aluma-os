@@ -726,6 +726,20 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 
 <script>
 // VERSION: 20260413_142552
+// ===== INSTAGRAM API =====
+const INSTAGRAM_ACCESS_TOKEN = 'EAA8jGKmCX10BRDax8w3BjppqjAiz8BqyJeyEqGr7Km0B14TAxuijesoKdSXgU23BhvMYc9slomL1UPNhufZBcwteG9TNK3fQJSdHeywlxVPNmftKZCl6eFyTFHVnZBzwUBiwtPNn8I3nEFqnZBlo6T0uhZCuYIRpm91rUXzwXYbKWweOItqShrWVryoJ0pJFjWxtwbS5eeZCKQzv5IfMhhQXjXYxFdNxrT'; // Renovar a cada 60 dias no Graph API Explorer
+const CLIENT_INSTAGRAM_MAP = {
+  'Saulo Severo':     '17841445778218708',
+  'Natália Brainer':  '17841408351718823',
+  'João Victor Luna': '17841401393114005',
+  'Jeferson Tostes':  '17841400170286740',
+  'Iran Weyne':       '17841400757055692',
+  'Thais Machado':    '17841401869723453',
+  'Ricardo Resende':  '17841401482635376',
+  'Plantão 360':      '17841474651277757',
+  'King Contabilidade':'17841407866444858'
+};
+
 // ===== CONSTANTS =====
 const STATUSES=[
   {id:'planejamento',label:'Planejamento',cls:'p'},
@@ -1179,6 +1193,7 @@ async function renderClientDetail(){
       <button class="ptab ${clientTab==='cal'?'active':''}" onclick="swCT('cal')">📅 Calendário</button>
       <button class="ptab ${clientTab==='docs'?'active':''}" onclick="swCT('docs')">📁 Documentos</button>
       <button class="ptab ${clientTab==='relatorio'?'active':''}" onclick="swCT('relatorio')">📊 Relatório</button>
+      <button class="ptab ${clientTab==='metricas'?'active':''}" onclick="swCT('metricas')">📈 Métricas IG</button>
       <div style="flex:1"></div>
       <button class="btn btn-s btn-sm" style="margin:4px 0" onclick="showEditClient()">✏️ Editar</button>
       ${currentUserData?.role==='admin'?'<button class="btn btn-p btn-sm" style="margin:4px 0" onclick="showNewPack()">+ Novo pack</button>':''}</div>
@@ -1196,6 +1211,7 @@ async function renderCT(){
   if(clientTab==='packs') await renderKanbanInto(el);
   else if(clientTab==='cal') await renderClientCalInto(el);
   else if(clientTab==='relatorio') await renderRelatorio(el);
+  else if(clientTab==='metricas') await renderMetricas(el);
   else await renderDocsInto(el);
 }
 
@@ -3510,6 +3526,7 @@ function showEditClient(){
   document.getElementById('ec-handle').value=cl.handle||'';
   document.getElementById('ec-niche').value=cl.niche||'';
   document.getElementById('ec-color').value=cl.color||'#8483ff';
+  document.getElementById('ec-instagram-id').value=cl.instagramId||'';
   editClientPhotoB64=cl.photo||'';
   const prev=document.getElementById('ec-photo-preview');
   if(cl.photo){
@@ -3528,7 +3545,8 @@ async function saveEditClient(){
   const niche=document.getElementById('ec-niche').value.trim();
   const color=document.getElementById('ec-color').value;
   if(!name){ showToast('Nome obrigatório','err'); return; }
-  const data={name,handle,niche,color};
+  const instagramId=document.getElementById('ec-instagram-id')?.value.trim()||'';
+  const data={name,handle,niche,color,instagramId};
   if(editClientPhotoB64) data.photo=editClientPhotoB64;
   await updateDoc(doc(db,'clients',editingClientId),data);
   clients[editingClientId]={...clients[editingClientId],...data};
@@ -4111,16 +4129,10 @@ async function exportRelatorio(){
     ${monthPosts.map((p,i)=>{
       const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
       const dt=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
-      return `<tr>
-        <td style="color:#aaa;font-weight:600">${String(i+1).padStart(2,'0')}</td>
-        <td>${p.title||'Post '+(i+1)}</td>
-        <td>${dt}</td>
-        <td><span class="tag">${p.format||'—'}</span></td>
-        <td><span class="tag">${s.label}</span></td>
-      </tr>`;
+      return '<tr><td style="color:#aaa;font-weight:600">'+String(i+1).padStart(2,'0')+'</td><td>'+(p.title||'Post '+(i+1))+'</td><td>'+dt+'</td><td><span class="tag">'+(p.format||'—')+'</span></td><td><span class="tag">'+s.label+'</span></td></tr>';
     }).join('')}
   </table>
-  <div class="footer">Aluma Marketing &amp; Conteúdo &mdash; Gerado em ${today}</div>
+  <div class="footer">Aluma Marketing & Conteúdo &mdash; Gerado em ${today}</div>
   </body></html>`;
 
   const w = window.open('','_blank');
@@ -4128,6 +4140,137 @@ async function exportRelatorio(){
   w.document.write(html); w.document.close();
   setTimeout(()=>w.print(), 600);
   showToast('Relatório pronto!','ok');
+}
+
+// ===== INSTAGRAM METRICS =====
+async function renderMetricas(container){
+  container.setAttribute('style','flex:1;overflow-y:auto;display:block');
+  const client = clients[currentClientId];
+
+  // Try to find Instagram ID: from client record or from name map
+  const igId = client?.instagramId || CLIENT_INSTAGRAM_MAP[client?.name] || '';
+
+  if(!igId){
+    container.innerHTML = `<div class="empty" style="padding:60px">
+      <div class="empty-ico">📊</div>
+      <div class="empty-title">Instagram não configurado</div>
+      <div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:360px">
+        Configure o Instagram Business ID nas configurações do cliente.
+      </div>
+      <button class="btn btn-p" style="margin-top:16px" onclick="showEditClient()">⚙️ Configurar cliente</button>
+    </div>`;
+    return;
+  }
+
+  if(!INSTAGRAM_ACCESS_TOKEN || INSTAGRAM_ACCESS_TOKEN === ''){
+    container.innerHTML = `<div class="empty" style="padding:60px">
+      <div class="empty-ico">🔑</div>
+      <div class="empty-title">Token não configurado</div>
+      <div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:400px">
+        Configure o token de acesso do Instagram no código.<br>
+        Gere um novo token em <strong>developers.facebook.com → Ferramentas → Explorador da Graph API</strong>
+      </div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = '<div style="padding:20px"><div class="loading"><div class="spinner"></div> Buscando métricas...</div></div>';
+
+  try{
+    const token = INSTAGRAM_ACCESS_TOKEN;
+    const res = await fetch(
+      'https://graph.facebook.com/v18.0/'+igId+'/media?fields=id,caption,timestamp,like_count,comments_count,media_type,permalink&limit=25&access_token='+token
+    );
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+
+    const posts = data.data || [];
+    const totalLikes = posts.reduce((s,p)=>s+(p.like_count||0),0);
+    const totalComments = posts.reduce((s,p)=>s+(p.comments_count||0),0);
+    const avgLikes = posts.length ? Math.round(totalLikes/posts.length) : 0;
+    const avgComments = posts.length ? Math.round(totalComments/posts.length) : 0;
+    const bestPost = posts.reduce((b,p)=>(p.like_count||0)>(b?.like_count||0)?p:b, posts[0]);
+
+    let h = '<div style="padding:16px 20px">';
+
+    // Header
+    h += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);display:flex;align-items:center;justify-content:center;font-size:22px">📸</div>
+      <div>
+        <div style="font-size:16px;font-weight:700">@${client.handle||client.name}</div>
+        <div style="font-size:11px;color:var(--text3)">Últimos ${posts.length} posts</div>
+      </div>
+      <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="swCT('metricas')">🔄 Atualizar</button>
+    </div>`;
+
+    // Stats
+    h += `<div class="statsgrid" style="margin-bottom:16px">
+      <div class="statcard"><div class="stat-lbl">Total curtidas</div><div class="stat-val" style="color:#f472b6">${totalLikes.toLocaleString('pt-BR')}</div><div class="stat-sub">${posts.length} posts</div></div>
+      <div class="statcard"><div class="stat-lbl">Total comentários</div><div class="stat-val" style="color:#60a5fa">${totalComments.toLocaleString('pt-BR')}</div><div class="stat-sub">${posts.length} posts</div></div>
+      <div class="statcard"><div class="stat-lbl">Média curtidas</div><div class="stat-val" style="color:var(--accent)">${avgLikes}</div><div class="stat-sub">por post</div></div>
+      <div class="statcard"><div class="stat-lbl">Média comentários</div><div class="stat-val" style="color:var(--green)">${avgComments}</div><div class="stat-sub">por post</div></div>
+    </div>`;
+
+    // Best post
+    if(bestPost){
+      h += `<div style="background:linear-gradient(135deg,rgba(132,131,255,.12),rgba(132,131,255,.04));border:1px solid rgba(132,131,255,.25);border-radius:var(--r);padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:8px">🏆 Melhor post</div>
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="flex:1;font-size:13px;line-height:1.6;color:var(--text2)">${(bestPost.caption||'').slice(0,150)}${(bestPost.caption||'').length>150?'...':''}</div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:26px;font-weight:800;color:var(--accent)">${bestPost.like_count||0}</div>
+            <div style="font-size:10px;color:var(--text3)">curtidas</div>
+          </div>
+        </div>
+        <a href="${bestPost.permalink}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;color:var(--accent);font-size:12px;font-weight:600;text-decoration:none">Ver post ↗</a>
+      </div>`;
+    }
+
+    // Posts table
+    h += `<div class="dcard"><div class="dcard-hdr">Últimos posts</div>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg3)">
+          <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Data</th>
+          <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Tipo</th>
+          <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px;max-width:300px">Legenda</th>
+          <th style="padding:8px 12px;text-align:center;color:var(--text3);font-size:10px">❤️</th>
+          <th style="padding:8px 12px;text-align:center;color:var(--text3);font-size:10px">💬</th>
+          <th style="padding:8px 12px;text-align:center;color:var(--text3);font-size:10px">🔗</th>
+        </tr></thead>
+        <tbody>`;
+    posts.forEach((p,i)=>{
+      const dt = new Date(p.timestamp).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+      const tipo = p.media_type==='VIDEO'?'Reels':p.media_type==='CAROUSEL_ALBUM'?'Carrossel':'Feed';
+      const tagClass = p.media_type==='VIDEO'?'reels':p.media_type==='CAROUSEL_ALBUM'?'carrossel':'feed';
+      h += `<tr style="border-top:1px solid var(--border)">
+        <td style="padding:8px 12px;white-space:nowrap;color:var(--text3)">${dt}</td>
+        <td style="padding:8px 12px"><span class="ktag tag-${tagClass}" style="font-size:10px">${tipo}</span></td>
+        <td style="padding:8px 12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${(p.caption||'—').slice(0,60)}${(p.caption||'').length>60?'...':''}</td>
+        <td style="padding:8px 12px;text-align:center;font-weight:700;color:#f472b6">${p.like_count||0}</td>
+        <td style="padding:8px 12px;text-align:center;font-weight:700;color:#60a5fa">${p.comments_count||0}</td>
+        <td style="padding:8px 12px;text-align:center"><a href="${p.permalink}" target="_blank" style="color:var(--accent);font-weight:700">↗</a></td>
+      </tr>`;
+    });
+    h += '</tbody></table></div></div>';
+    h += `<div style="margin-top:14px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);font-size:12px;color:var(--text3)">
+      ℹ️ Métricas de alcance e impressões exigem aprovação do Meta (em andamento). Por ora exibimos curtidas e comentários.
+    </div>`;
+    h += '</div>';
+    container.innerHTML = h;
+
+  }catch(err){
+    container.innerHTML = `<div class="empty" style="padding:40px">
+      <div class="empty-ico">⚠️</div>
+      <div class="empty-title">Erro ao carregar métricas</div>
+      <div style="color:var(--text3);font-size:13px;margin-top:8px">${err.message}</div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-p btn-sm" onclick="swCT('metricas')">🔄 Tentar novamente</button>
+        <button class="btn btn-s btn-sm" onclick="showEditClient()">⚙️ Verificar config</button>
+      </div>
+    </div>`;
+    console.error('renderMetricas:', err);
+  }
 }
 </script>
 
@@ -4227,6 +4370,10 @@ async function exportRelatorio(){
       <div class="fgrid">
         <div class="ff"><label class="flbl">Nicho</label><input class="fi" id="ec-niche"></div>
         <div class="ff"><label class="flbl">Cor</label><input type="color" class="fi" id="ec-color" style="padding:3px;height:36px;cursor:pointer"></div>
+      </div>
+      <div class="ff" style="margin-top:10px">
+        <label class="flbl">📊 Instagram Business ID <span style="font-weight:400;color:var(--text3)">(para métricas)</span></label>
+        <input class="fi" id="ec-instagram-id" placeholder="Ex: 17841445778218708">
       </div>
       <div class="brow">
         <button class="btn btn-p" onclick="saveEditClient()">Salvar</button>
