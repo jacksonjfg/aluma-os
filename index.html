@@ -2378,7 +2378,10 @@ async function genClientPDF(packId,clientName,modalEl){
   const reelCount=selPosts.filter(p=>['Reels','TikTok'].includes(p.format)).length;
   const carroCount=selPosts.filter(p=>p.format==='Carrossel').length;
 
-  let html=`<html><head><meta charset="UTF-8"><style>${css}</style></head><body>`;
+  // Nome do arquivo para salvamento
+  const pdfFileName = `Conteúdos ${pack?.month || ''} - ${clientName}`;
+
+  let html=`<html><head><meta charset="UTF-8"><title>${pdfFileName}</title><style>${css}</style></head><body>`;
 
   // Cover page
   html+=`<div class="page cover">
