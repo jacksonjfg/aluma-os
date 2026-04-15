@@ -2321,14 +2321,14 @@ async function genClientPDF(packId,clientName,modalEl){
     .cover-stat-l{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:4px;}
     .cover-obs{margin-top:40px;background:rgba(132,131,255,.12);border:1px solid rgba(132,131,255,.3);border-radius:10px;padding:16px 24px;font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;max-width:600px;z-index:1;}
     .cover-date{position:absolute;bottom:30px;font-size:11px;color:rgba(255,255,255,.2);z-index:1;}
-    /* Feed page - 3 colunas x 4 fileiras, aspect ratio fixo */
-    .feed-page{background:#0a0a14;display:flex;align-items:center;min-height:100vh;padding:50px 60px;}
-    .feed-left{width:240px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;padding-right:40px;}
-    .feed-label{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px;}
-    .feed-title{font-size:64px;font-weight:900;color:${clientColor};line-height:.9;margin-bottom:16px;}
-    .feed-sub{font-size:22px;font-weight:300;color:#fff;}
-    .feed-grid{display:grid;grid-template-columns:repeat(3,140px);grid-template-rows:repeat(4,auto);gap:4px;}
-    .feed-cell{width:140px;height:175px;overflow:hidden;background:#1a1a2e;border-radius:2px;}
+    /* Feed page - 3 colunas x 4 fileiras */
+    .feed-page{background:#0a0a14;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:40px;}
+    .feed-left{width:200px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;padding-right:30px;}
+    .feed-label{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:12px;}
+    .feed-title{font-size:56px;font-weight:900;color:${clientColor};line-height:.9;margin-bottom:12px;}
+    .feed-sub{font-size:18px;font-weight:300;color:#fff;}
+    .feed-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:3px;width:450px;height:600px;}
+    .feed-cell{overflow:hidden;background:#1a1a2e;border-radius:2px;}
     .feed-cell img{width:100%;height:100%;object-fit:cover;display:block;}
     .feed-cell.empty{background:#15152a;}
     /* Post pages — LANDSCAPE A4 (297x210mm) */
@@ -2424,6 +2424,10 @@ async function genClientPDF(packId,clientName,modalEl){
     const dtStr=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{weekday:'long',day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'}):'';
 
     const hasImgs=inclImgs&&imgs.length>0;
+    const hasCap=inclCap&&p.caption;
+    
+    // Pular post se não tem imagem nem legenda para exibir
+    if(!hasImgs && !hasCap) return;
 
     html+=`<div class="page post-page">
       <div class="post-header">
@@ -2435,7 +2439,7 @@ async function genClientPDF(packId,clientName,modalEl){
         </div>
       </div>
       <div class="post-divider"></div>
-      <div class="post-body ${hasImgs&&inclCap&&p.caption?'has-img-cap':(!hasImgs?'no-img':'no-cap')}">
+      <div class="post-body ${hasImgs&&hasCap?'has-img-cap':(!hasImgs?'no-img':'no-cap')}">
         ${hasImgs?`<div>
           ${isReel?`<div class="reel-wrap">
             <img src="${imgs[0]}" class="reel-img" alt="Capa Reels">
@@ -2446,7 +2450,7 @@ async function genClientPDF(packId,clientName,modalEl){
             ${imgs.slice(0,12).map(src=>`<img src="${src}" class="slide" alt="">`).join('')}
           </div>`}
         </div>`:''}
-        ${inclCap&&p.caption?`<div>
+        ${hasCap?`<div>
           <div class="cap-lbl">Legenda</div>
           <div class="cap">${p.caption.replace(/\n/g,'<br>')}</div>
         </div>`:''}
