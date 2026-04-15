@@ -2289,7 +2289,7 @@ async function genClientPDF(packId,clientName,modalEl){
   for(const p of selPosts){
     const allImgs=[...(p.finalFiles||[]).map(f=>f.url||f.data||''),...(p.images||[])].filter(Boolean);
     const loaded=[];
-    for(const url of allImgs.slice(0,8)){
+    for(const url of allImgs.slice(0,12)){
       loaded.push(url.startsWith('data:')?url:await toDataURL(url));
     }
     postImgData[p.id]=loaded;
@@ -2342,27 +2342,27 @@ async function genClientPDF(packId,clientName,modalEl){
     .pill{background:#f3f3f8;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#555;}
     .post-divider{height:1px;background:#f0f0f0;margin:12px 0;}
     .post-body{flex:1;display:grid;gap:24px;align-items:start;overflow:hidden;}
-    .post-body.has-img-cap{grid-template-columns:1fr 300px;}
+    .post-body.has-img-cap{grid-template-columns:1fr 280px;}
     .post-body.no-cap{grid-template-columns:1fr;}
     .post-body.no-img{grid-template-columns:1fr;}
-    /* Slides grid — adaptive columns so 10 imgs fit in one row or two */
-    .slides-wrap{display:grid;gap:5px;}
-    .slides-wrap.n1{grid-template-columns:repeat(1,1fr);}
-    .slides-wrap.n2{grid-template-columns:repeat(2,1fr);}
-    .slides-wrap.n3{grid-template-columns:repeat(3,1fr);}
-    .slides-wrap.n4{grid-template-columns:repeat(4,1fr);}
-    .slides-wrap.n5{grid-template-columns:repeat(5,1fr);}
-    .slides-wrap.n6{grid-template-columns:repeat(6,1fr);}
-    .slides-wrap.n7,.slides-wrap.n8,.slides-wrap.n9,.slides-wrap.n10{grid-template-columns:repeat(5,1fr);}
+    /* Slides grid — Carrossel: 4 colunas x 3 fileiras (até 12 imagens) */
+    .slides-wrap{display:grid;gap:6px;align-content:start;}
+    .slides-wrap.n1{grid-template-columns:1fr;max-width:280px;}
+    .slides-wrap.n2{grid-template-columns:repeat(2,1fr);max-width:400px;}
+    .slides-wrap.n3{grid-template-columns:repeat(3,1fr);max-width:500px;}
+    .slides-wrap.n4,.slides-wrap.n5,.slides-wrap.n6,.slides-wrap.n7,.slides-wrap.n8,.slides-wrap.n9,.slides-wrap.n10,.slides-wrap.n11,.slides-wrap.n12{grid-template-columns:repeat(4,1fr);}
     .slide{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:4px;border:1px solid #eee;}
-    /* Reels */
-    .reel-wrap{display:flex;gap:12px;align-items:flex-start;}
-    .reel-img{width:120px;aspect-ratio:9/16;object-fit:cover;border-radius:6px;border:1px solid #eee;flex-shrink:0;}
-    .reel-link{display:inline-flex;align-items:center;gap:7px;background:#0a0a14;color:#fff;padding:9px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;margin-top:10px;}
-    .reel-link::before{content:'▶';font-size:12px;}
-    /* Caption */
+    /* Estático: imagem única maior */
+    .static-wrap{max-width:320px;}
+    .static-wrap .slide{aspect-ratio:4/5;width:100%;max-height:400px;}
+    /* Reels: capa maior + botão */
+    .reel-wrap{display:flex;gap:16px;align-items:flex-start;}
+    .reel-img{width:180px;aspect-ratio:9/16;object-fit:cover;border-radius:8px;border:1px solid #eee;flex-shrink:0;}
+    .reel-link{display:inline-flex;align-items:center;gap:8px;background:#0a0a14;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-top:12px;}
+    .reel-link::before{content:'▶';font-size:14px;}
+    /* Caption - respeitar quebras de linha */
     .cap-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#aaa;margin-bottom:6px;}
-    .cap{font-size:12px;line-height:1.75;color:#222;white-space:pre-wrap;max-height:150mm;overflow:hidden;}
+    .cap{font-size:12px;line-height:1.75;color:#222;white-space:pre-wrap;word-wrap:break-word;max-height:150mm;overflow:hidden;}
     /* Last page */
     .last-page{background:#0a0a14;display:flex;flex-direction:column;justify-content:center;min-height:100vh;padding:80px;}
     .last-logo{font-size:11px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:60px;}
@@ -2385,12 +2385,6 @@ async function genClientPDF(packId,clientName,modalEl){
     <div class="cover-logo">⚡ ALUMA MARKETING & CONTEÚDO</div>
     <div class="cover-client">${clientName}</div>
     <div class="cover-month">${monthUpper} | ${yearStr}</div>
-    <div class="cover-divider"></div>
-    <div class="cover-stats">
-      <div class="cover-stat"><div class="cover-stat-n">${totalPosts}</div><div class="cover-stat-l">Posts</div></div>
-      ${reelCount?`<div class="cover-stat"><div class="cover-stat-n">${reelCount}</div><div class="cover-stat-l">Reels</div></div>`:''}
-      ${carroCount?`<div class="cover-stat"><div class="cover-stat-n">${carroCount}</div><div class="cover-stat-l">Carrosseis</div></div>`:''}
-    </div>
     ${obs?`<div class="cover-obs">${obs}</div>`:''}
     <div class="cover-date">Gerado em ${today}</div>
   </div>`;
@@ -2449,13 +2443,15 @@ async function genClientPDF(packId,clientName,modalEl){
           ${isReel?`<div class="reel-wrap">
             <img src="${imgs[0]}" class="reel-img" alt="Capa Reels">
             <div>${p.driveLink?`<a href="${p.driveLink}" target="_blank" class="reel-link">Assistir ao Vídeo</a>`:''}</div>
-          </div>`:`<div class="slides-wrap n${Math.min(imgs.length,10)}">
-            ${imgs.slice(0,10).map(src=>`<img src="${src}" class="slide" alt="">`).join('')}
+          </div>`:imgs.length===1?`<div class="static-wrap">
+            <img src="${imgs[0]}" class="slide" alt="">
+          </div>`:`<div class="slides-wrap n${Math.min(imgs.length,12)}">
+            ${imgs.slice(0,12).map(src=>`<img src="${src}" class="slide" alt="">`).join('')}
           </div>`}
         </div>`:''}
         ${inclCap&&p.caption?`<div>
           <div class="cap-lbl">Legenda</div>
-          <div class="cap">${p.caption}</div>
+          <div class="cap">${p.caption.replace(/\n/g,'<br>')}</div>
         </div>`:''}
       </div>
     </div>`;
