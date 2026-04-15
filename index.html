@@ -2321,26 +2321,25 @@ async function genClientPDF(packId,clientName,modalEl){
     .cover-stat-l{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:4px;}
     .cover-obs{margin-top:40px;background:rgba(132,131,255,.12);border:1px solid rgba(132,131,255,.3);border-radius:10px;padding:16px 24px;font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;max-width:600px;z-index:1;}
     .cover-date{position:absolute;bottom:30px;font-size:11px;color:rgba(255,255,255,.2);z-index:1;}
-    /* Feed page */
+    /* Feed page - 3 colunas x 4 fileiras fixo */
     .feed-page{background:#0a0a14;display:flex;align-items:stretch;min-height:100vh;padding:60px;}
-    .feed-left{width:320px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;padding-right:40px;}
+    .feed-left{width:280px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;padding-right:40px;}
     .feed-label{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:16px;}
     .feed-title{font-size:72px;font-weight:900;color:${clientColor};line-height:.9;margin-bottom:16px;}
     .feed-sub{font-size:24px;font-weight:300;color:#fff;}
-    .feed-logo{font-size:11px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.25);margin-bottom:40px;}
-    .feed-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;align-content:start;}
-    .feed-cell{aspect-ratio:4/5;overflow:hidden;background:#1a1a2e;}
+    .feed-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:4px;align-content:center;max-height:85vh;}
+    .feed-cell{aspect-ratio:4/5;overflow:hidden;background:#1a1a2e;border-radius:2px;}
     .feed-cell img{width:100%;height:100%;object-fit:cover;display:block;}
-    .feed-cell.empty{background:#0d0d1a;}
+    .feed-cell.empty{background:#15152a;}
     /* Post pages — LANDSCAPE A4 (297x210mm) */
     @page{size:A4 landscape;margin:0;}
     .post-page{background:#fff;width:297mm;min-height:210mm;padding:28px 36px;display:flex;flex-direction:column;page-break-after:always;}
-    .post-header{margin-bottom:14px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;}
-    .post-num{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:${clientColor};flex-shrink:0;}
+    .post-header{margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(90deg,rgba(132,131,255,.12) 0%,transparent 100%);padding:12px 16px;border-radius:8px;border-left:4px solid ${clientColor};}
+    .post-num{font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:${clientColor};flex-shrink:0;}
     .post-title{font-size:20px;font-weight:800;letter-spacing:-.3px;color:#111;flex:1;}
     .post-pills{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
-    .pill{background:#f3f3f8;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#555;}
-    .post-divider{height:1px;background:#f0f0f0;margin:12px 0;}
+    .pill{background:#f3f3f8;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;color:#555;}
+    .post-divider{height:1px;background:#e8e8f0;margin:12px 0;}
     .post-body{flex:1;display:grid;gap:24px;align-items:start;overflow:hidden;}
     .post-body.has-img-cap{grid-template-columns:1fr 280px;}
     .post-body.no-cap{grid-template-columns:1fr;}
@@ -2394,27 +2393,22 @@ async function genClientPDF(packId,clientName,modalEl){
 
   // ── PAGE 2: FEED GRID ──
   if(inclFeed){
-    // Sort by date ascending, oldest = bottom-right
+    // Feed grid: 3 colunas x 4 fileiras = 12 células fixas
     const feedPosts=[...selPosts].filter(p=>postImgData[p.id]?.length);
-    // Build grid: reverse order so oldest is at bottom-right
-    // Grid reads left-to-right, top-to-bottom
-    // Instagram feed reads right-to-left, bottom-to-top
-    // So we need: oldest at [bottom-right], newest at [top-left]
-    // Pad to multiple of 3
-    const total3=Math.ceil(feedPosts.length/3)*3;
-    // Reverse the posts so newest first (top-left)
+    // Reverse para newest no topo-esquerda
     const reversed=[...feedPosts].reverse();
-    while(reversed.length<total3) reversed.push(null);
+    // Sempre 12 células
+    while(reversed.length<12) reversed.push(null);
+    const cells=reversed.slice(0,12);
 
     html+=`<div class="page feed-page">
       <div class="feed-left">
-        <div class="feed-logo">⚡ ALUMA MARKETING & CONTEÚDO</div>
         <div class="feed-label">Visão Geral</div>
         <div class="feed-title">FEED</div>
         <div class="feed-sub">${monthUpper} ${yearStr}</div>
       </div>
       <div class="feed-grid">
-        ${reversed.map(p=>{
+        ${cells.map(p=>{
           if(!p) return `<div class="feed-cell empty"></div>`;
           const img=postImgData[p.id][0];
           return `<div class="feed-cell"><img src="${img}" alt="${p.title||''}"></div>`;
@@ -2467,84 +2461,7 @@ async function genClientPDF(packId,clientName,modalEl){
     <div class="last-text">Após o envio do planejamento, aguardamos o retorno referente à aprovação em até 72h, para seguirmos com os ajustes necessários e a programação dos posts nas redes. Em caso de não retorno neste prazo, seguiremos com a programação conforme o planejamento enviado.</div>
   </div>`;
 
-  html+=`
-<!-- COMERCIAL: CLIENTE MODAL -->
-<div class="mo" id="com-cliente-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr">
-      <div class="mhdr-info"><div class="mtitle" id="ccl-modal-title">Novo cliente</div></div>
-      <button class="mclose" onclick="closeComClienteModal()">×</button>
-    </div>
-    <div style="padding:20px;overflow-y:auto;max-height:80vh">
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Nome</label><input class="fi" id="ccl-name" placeholder="Nome do cliente"></div>
-        <div class="ff"><label class="flbl">@ Instagram</label><input class="fi" id="ccl-instagram" placeholder="@handle"></div>
-      </div>
-      <div class="ff" style="margin-bottom:10px"><label class="flbl">Nicho</label><input class="fi" id="ccl-niche" placeholder="Ex: Dentista, Advogado..."></div>
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Valor do contrato (R$/mês)</label><input type="number" class="fi" id="ccl-valor" placeholder="0,00"></div>
-        <div class="ff"><label class="flbl">Custo operacional (R$/mês) <span class="tooltip-icon" title="Quanto custa atender este cliente (horas da equipe, ferramentas específicas, etc.)">?</span></label><input type="number" class="fi" id="ccl-custo" placeholder="0,00"></div>
-      </div>
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Início do contrato</label><input type="date" class="fi" id="ccl-inicio"></div>
-        <div class="ff"><label class="flbl">Término do contrato</label><input type="date" class="fi" id="ccl-fim"></div>
-      </div>
-      <div class="ff" style="margin-bottom:10px">
-        <label class="flbl">Status</label>
-        <select class="fs" id="ccl-status">
-          <option value="ativo">✅ Ativo</option>
-          <option value="pausado">⏸ Pausado</option>
-          <option value="encerrado">❌ Encerrado</option>
-        </select>
-      </div>
-      <div class="ff" style="margin-bottom:14px"><label class="flbl">Observações</label><textarea class="fta" id="ccl-obs" rows="2" placeholder="Notas sobre o cliente..."></textarea></div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveComCliente()">Salvar</button>
-        <button class="btn btn-s" onclick="closeComClienteModal()">Cancelar</button>
-        <button class="btn btn-d btn-sm" id="ccl-delete-btn" style="display:none;margin-left:auto" onclick="deleteComCliente()">🗑 Excluir</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- COMERCIAL: PROSPECT MODAL -->
-<div class="mo" id="com-prospect-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr">
-      <div class="mhdr-info"><div class="mtitle" id="cp-modal-title">Novo prospect</div></div>
-      <button class="mclose" onclick="closeProspectModal()">×</button>
-    </div>
-    <div style="padding:20px">
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Nome</label><input class="fi" id="cp-name" placeholder="Nome ou empresa"></div>
-        <div class="ff"><label class="flbl">@ Instagram</label><input class="fi" id="cp-instagram" placeholder="@handle"></div>
-      </div>
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Nicho</label><input class="fi" id="cp-niche" placeholder="Ex: Médico, Restaurante..."></div>
-        <div class="ff"><label class="flbl">Valor proposto (R$/mês)</label><input type="number" class="fi" id="cp-valor" placeholder="0,00"></div>
-      </div>
-      <div class="ff" style="margin-bottom:10px">
-        <label class="flbl">Etapa do pipeline</label>
-        <select class="fs" id="cp-status">
-          <option value="prospeccao">Prospecção</option>
-          <option value="contato">Contato</option>
-          <option value="proposta">Proposta</option>
-          <option value="negociacao">Negociação</option>
-          <option value="fechado">✅ Fechado</option>
-          <option value="perdido">❌ Perdido</option>
-        </select>
-      </div>
-      <div class="ff" style="margin-bottom:14px"><label class="flbl">Observações</label><textarea class="fta" id="cp-obs" rows="2" placeholder="Notas, próximos passos..."></textarea></div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveProspect()">Salvar</button>
-        <button class="btn btn-s" onclick="closeProspectModal()">Cancelar</button>
-        <button class="btn btn-d btn-sm" id="cp-delete-btn" style="display:none;margin-left:auto" onclick="deleteProspect()">🗑 Excluir</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-</body></html>`;
+  html+=`</body></html>`;
 
   const w=window.open('','_blank');
   if(!w){ showToast('Permita pop-ups para gerar o PDF','err'); return; }
