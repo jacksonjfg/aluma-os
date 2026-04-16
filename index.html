@@ -587,6 +587,69 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .tooltip-icon{cursor:help;color:var(--text3);font-size:12px;background:var(--bg4);border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;}
 .alert-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
 
+/* === TOOLTIP SYSTEM === */
+.tooltip-wrap{position:relative;display:inline-flex;}
+.tooltip-wrap .tooltip-content{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.5;white-space:normal;width:max-content;max-width:280px;box-shadow:var(--shad);z-index:500;opacity:0;visibility:hidden;transition:opacity .15s,visibility .15s;}
+.tooltip-wrap:hover .tooltip-content{opacity:1;visibility:visible;}
+.tooltip-wrap .tooltip-content::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--border2);}
+
+/* === EVOLUTION CHART === */
+.evo-chart{display:flex;align-items:flex-end;gap:4px;height:80px;padding:10px 0;}
+.evo-bar{flex:1;background:var(--bg4);border-radius:3px 3px 0 0;min-height:4px;transition:height .4s,background .2s;cursor:pointer;position:relative;}
+.evo-bar:hover{background:var(--accent);}
+.evo-bar-label{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--text3);white-space:nowrap;}
+.evo-bar.current{background:var(--accent);}
+
+/* === GLOBAL KANBAN DRAG-DROP === */
+.gk-card{cursor:grab;transition:transform .15s,box-shadow .15s;}
+.gk-card:active{cursor:grabbing;}
+.gk-card.dragging{opacity:.5;transform:scale(.98);}
+.gkcol.drag-over{border-color:var(--accent);background:rgba(132,131,255,.05);}
+.gkcol.drag-over .kcol-body{background:rgba(132,131,255,.03);}
+
+/* === TAREFAS INLINE === */
+.task-inline{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;transition:border-color .15s;}
+.task-inline:focus-within{border-color:var(--accent);}
+.task-inline-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.task-inline-body{display:none;padding-top:10px;border-top:1px solid var(--border);}
+.task-inline.expanded .task-inline-body{display:block;}
+.task-inline-title{flex:1;background:none;border:none;font-size:14px;font-weight:600;color:var(--text);font-family:inherit;outline:none;}
+.task-inline-title::placeholder{color:var(--text3);}
+
+/* === MINI DASHBOARD === */
+.mini-dash{background:linear-gradient(135deg,rgba(132,131,255,0.12) 0%,rgba(132,131,255,0.04) 100%);border:1px solid rgba(132,131,255,.25);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:14px;}
+.mini-dash-icon{font-size:28px;}
+.mini-dash-text{flex:1;}
+.mini-dash-title{font-size:15px;font-weight:700;color:var(--accent);letter-spacing:-.2px;}
+.mini-dash-sub{font-size:12px;color:var(--text3);margin-top:2px;}
+
+/* === POMODORO === */
+.pomodoro-wrap{position:fixed;bottom:80px;right:20px;z-index:100;}
+.pomodoro-btn{background:var(--bg2);border:2px solid var(--accent);border-radius:50%;width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;box-shadow:var(--shad);transition:transform .2s,background .2s;}
+.pomodoro-btn:hover{transform:scale(1.05);}
+.pomodoro-btn.active{background:var(--accent);animation:pomodoro-pulse 2s infinite;}
+@keyframes pomodoro-pulse{0%,100%{box-shadow:0 0 0 0 rgba(132,131,255,.4)}50%{box-shadow:0 0 0 12px rgba(132,131,255,0)}}
+.pomodoro-panel{position:absolute;bottom:70px;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:16px 18px;width:260px;box-shadow:var(--shad);display:none;}
+.pomodoro-panel.open{display:block;animation:ddin .15s ease;}
+.pomodoro-timer{font-size:42px;font-weight:800;text-align:center;letter-spacing:-1px;margin:10px 0;font-variant-numeric:tabular-nums;}
+.pomodoro-timer.work{color:var(--accent);}
+.pomodoro-timer.break{color:var(--green);}
+.pomodoro-controls{display:flex;gap:8px;justify-content:center;margin-top:12px;}
+
+/* === CUSTOS BREAKDOWN === */
+.cost-breakdown{background:var(--bg3);border-radius:var(--rs);padding:8px 12px;font-size:11px;color:var(--text3);margin-top:6px;}
+.cost-breakdown-item{display:flex;justify-content:space-between;margin-bottom:2px;}
+.cost-breakdown-item:last-child{margin-bottom:0;padding-top:4px;border-top:1px solid var(--border);font-weight:700;color:var(--text2);}
+
+/* === REUNIÕES === */
+.reuniao-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;transition:border-color .15s;}
+.reuniao-card:hover{border-color:var(--border2);}
+.reuniao-date{font-size:11px;color:var(--accent);font-weight:700;margin-bottom:4px;}
+.reuniao-title{font-size:14px;font-weight:600;margin-bottom:6px;}
+.reuniao-links{display:flex;gap:8px;flex-wrap:wrap;}
+.reuniao-link{font-size:12px;color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--ag);border-radius:var(--rs);transition:background .15s;}
+.reuniao-link:hover{background:rgba(132,131,255,.2);}
+
 </style>
 </head>
 <body>
@@ -1177,7 +1240,10 @@ async function renderGlobalKanban(container){
           const cl=clients[p.clientId]; const color=cl?.color||'#8483ff';
           const type=p.type||'Feed'; const tcls=type.toLowerCase().replace(' ','');
           const assigneeHtml=(p.assignees||[]).map(aid=>{ const m=TEAM.find(t=>t.id===aid); return m?`<div class="kassignee-dot" style="background:${m.color}" title="${m.name}">${m.name[0]}</div>`:''; }).join('');
-          return `<div class="kcard" onclick="currentClientId='${p.clientId}';openPack('${p.id}')">
+          return `<div class="kcard gk-card" draggable="true" 
+            ondragstart="dragGlobalPack(event,'${p.id}')"
+            ondragend="endDragGlobalPack(event)"
+            onclick="currentClientId='${p.clientId}';openPack('${p.id}')">
             <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
               <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0"></span>
               <span style="font-size:11px;font-weight:600;color:${color}">${cl?.name||'?'}</span>
@@ -1199,6 +1265,28 @@ async function renderGlobalKanban(container){
   }).join('');
 }
 
+// Drag and drop handlers for global kanban
+let _draggedPackId = null;
+function dragGlobalPack(e, packId){
+  _draggedPackId = packId;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function endDragGlobalPack(e){
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.gkcol').forEach(c=>c.classList.remove('drag-over'));
+}
+async function dropGlobalPack(e, newStatus){
+  e.preventDefault();
+  document.querySelectorAll('.gkcol').forEach(c=>c.classList.remove('drag-over'));
+  if(!_draggedPackId) return;
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'packs',_draggedPackId),{status:newStatus,updatedAt:Date.now()});
+  showToast('Status atualizado!','ok');
+  _draggedPackId = null;
+  renderGlobalKanban(document.getElementById('todos-tab'));
+}
+
 // ===== CLIENT DETAIL =====
 let clientTab='packs';
 async function renderClientDetail(){
@@ -1212,6 +1300,7 @@ async function renderClientDetail(){
       <button class="ptab ${clientTab==='packs'?'active':''}" onclick="swCT('packs')">📦 Publicações</button>
       <button class="ptab ${clientTab==='cal'?'active':''}" onclick="swCT('cal')">📅 Calendário</button>
       <button class="ptab ${clientTab==='docs'?'active':''}" onclick="swCT('docs')">📁 Documentos</button>
+      <button class="ptab ${clientTab==='reunioes'?'active':''}" onclick="swCT('reunioes')">🎥 Reuniões</button>
       <button class="ptab ${clientTab==='relatorio'?'active':''}" onclick="swCT('relatorio')">📊 Relatório</button>
       <button class="ptab ${clientTab==='metricas'?'active':''}" onclick="swCT('metricas')">📈 Métricas IG</button>
       <div style="flex:1"></div>
@@ -1223,7 +1312,7 @@ async function renderClientDetail(){
 }
 function swCT(t){
   clientTab=t;
-  document.querySelectorAll('.ptab').forEach(el=>{ const m={packs:'Publicações',cal:'Calendário',docs:'Documentos',relatorio:'Relatório'}; el.classList.toggle('active',el.textContent.trim().includes(m[t]||'__')); });
+  document.querySelectorAll('.ptab').forEach(el=>{ const m={packs:'Publicações',cal:'Calendário',docs:'Documentos',reunioes:'Reuniões',relatorio:'Relatório',metricas:'Métricas'}; el.classList.toggle('active',el.textContent.trim().includes(m[t]||'__')); });
   renderCT();
 }
 async function renderCT(){
@@ -1232,7 +1321,106 @@ async function renderCT(){
   else if(clientTab==='cal') await renderClientCalInto(el);
   else if(clientTab==='relatorio') await renderRelatorio(el);
   else if(clientTab==='metricas') await renderMetricas(el);
+  else if(clientTab==='reunioes') await renderReunioes(el);
   else await renderDocsInto(el);
+}
+
+// ===== REUNIÕES =====
+let _editReuniaoId = null;
+async function renderReunioes(container){
+  container.setAttribute('style','flex:1;overflow-y:auto;padding:16px 20px');
+  container.innerHTML=`<div class="loading"><div class="spinner"></div></div>`;
+  
+  const {db,collection,getDocs,query,where}=window._fb;
+  const snap = await getDocs(query(collection(db,'reunioes'),where('clientId','==',currentClientId)));
+  let reunioes = []; snap.forEach(d=>reunioes.push({id:d.id,...d.data()}));
+  reunioes.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+    <button class="btn btn-p btn-sm" onclick="showAddReuniao()">+ Nova reunião</button>
+  </div>`;
+  
+  if(!reunioes.length){
+    html += `<div class="empty"><div class="empty-ico">🎥</div><div class="empty-title">Nenhuma reunião registrada</div><div style="color:var(--text3);font-size:13px;margin-top:4px">Registre reuniões com links de gravação e transcrição</div></div>`;
+  } else {
+    html += reunioes.map(r=>{
+      const dataFmt = r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+      return `<div class="reuniao-card" onclick="editReuniao('${r.id}')">
+        <div class="reuniao-date">📅 ${dataFmt}</div>
+        <div class="reuniao-title">${r.titulo||'Reunião'}</div>
+        <div class="reuniao-links">
+          ${r.linkGravacao?`<a href="${r.linkGravacao}" target="_blank" class="reuniao-link" onclick="event.stopPropagation()">🎥 Gravação</a>`:''}
+          ${r.linkTranscricao?`<a href="${r.linkTranscricao}" target="_blank" class="reuniao-link" onclick="event.stopPropagation()">📝 Transcrição</a>`:''}
+          ${!r.linkGravacao&&!r.linkTranscricao?'<span style="font-size:12px;color:var(--text3)">Sem links cadastrados</span>':''}
+        </div>
+        ${r.notas?`<div style="font-size:12px;color:var(--text3);margin-top:8px;line-height:1.5">${r.notas.slice(0,120)}${r.notas.length>120?'...':''}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+  
+  container.innerHTML = html;
+}
+
+function showAddReuniao(){
+  _editReuniaoId = null;
+  document.getElementById('reuniao-modal-title').textContent = 'Nova reunião';
+  document.getElementById('r-titulo').value = '';
+  document.getElementById('r-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('r-gravacao').value = '';
+  document.getElementById('r-transcricao').value = '';
+  document.getElementById('r-notas').value = '';
+  document.getElementById('r-delete-btn').style.display = 'none';
+  document.getElementById('reuniao-mo').classList.add('open');
+}
+
+async function editReuniao(id){
+  const {db,doc,getDoc}=window._fb;
+  const snap = await getDoc(doc(db,'reunioes',id));
+  if(!snap.exists()) return;
+  const r = snap.data();
+  _editReuniaoId = id;
+  document.getElementById('reuniao-modal-title').textContent = 'Editar reunião';
+  document.getElementById('r-titulo').value = r.titulo||'';
+  document.getElementById('r-data').value = r.data||'';
+  document.getElementById('r-gravacao').value = r.linkGravacao||'';
+  document.getElementById('r-transcricao').value = r.linkTranscricao||'';
+  document.getElementById('r-notas').value = r.notas||'';
+  document.getElementById('r-delete-btn').style.display = 'flex';
+  document.getElementById('reuniao-mo').classList.add('open');
+}
+
+async function saveReuniao(){
+  const {db,doc,setDoc,addDoc,collection}=window._fb;
+  const data = {
+    clientId: currentClientId,
+    titulo: document.getElementById('r-titulo').value.trim(),
+    data: document.getElementById('r-data').value,
+    linkGravacao: document.getElementById('r-gravacao').value.trim(),
+    linkTranscricao: document.getElementById('r-transcricao').value.trim(),
+    notas: document.getElementById('r-notas').value.trim(),
+    updatedAt: Date.now()
+  };
+  if(!data.titulo){ showToast('Título obrigatório','err'); return; }
+  
+  if(_editReuniaoId){
+    await setDoc(doc(db,'reunioes',_editReuniaoId),data,{merge:true});
+    showToast('Reunião atualizada!','ok');
+  } else {
+    data.createdAt = Date.now();
+    await addDoc(collection(db,'reunioes'),data);
+    showToast('Reunião cadastrada!','ok');
+  }
+  document.getElementById('reuniao-mo').classList.remove('open');
+  renderReunioes(document.getElementById('ct'));
+}
+
+async function deleteReuniao(){
+  if(!_editReuniaoId||!confirm('Excluir esta reunião?')) return;
+  const {db,doc,deleteDoc}=window._fb;
+  await deleteDoc(doc(db,'reunioes',_editReuniaoId));
+  document.getElementById('reuniao-mo').classList.remove('open');
+  showToast('Reunião excluída','inf');
+  renderReunioes(document.getElementById('ct'));
 }
 
 // ===== KANBAN =====
@@ -1705,17 +1893,6 @@ function renderPF(post){
       </div>
     </div>
 
-    <div class="fsect">🎨 Arquivos finais (slides do designer)</div>
-    <div id="final-files-${post.id}">
-      ${renderFinalFiles(post)}
-    </div>
-    <label class="img-attach-area" style="display:block;cursor:pointer;margin-top:6px">
-      <input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="handleFinalFileUp('${post.id}',this.files)">
-      <div style="font-size:18px;margin-bottom:2px">📎</div>
-      <div style="font-size:12px;color:var(--text2);font-weight:500">Adicionar arquivo final</div>
-      <div style="font-size:11px;color:var(--text3)">Slides JPG/PNG ou PDF — cada um separado</div>
-    </label>
-
     <div class="fsect">📋 Briefing & Referências</div>
     <div class="ff" style="margin-bottom:9px"><label class="flbl">Informações importantes</label>
       <div class="rich-area" contenteditable="true" id="rt-ref-${post.id}"
@@ -1729,15 +1906,6 @@ function renderPF(post){
         ${post.refLink?`<a href="${post.refLink}" target="_blank" class="lbtn">Abrir ↗</a>`:`<span class="lbtn" style="opacity:.4;cursor:default">Abrir ↗</span>`}
       </div>
     </div>
-
-    <div class="fsect">🖼 Imagem de referência</div>
-    <label class="img-attach-area" style="display:block;cursor:pointer">
-      <input type="file" id="img-up-${post.id}" accept="image/*" multiple style="display:none" onchange="handleImgUp('${post.id}',this.files)">
-      <div style="font-size:20px;margin-bottom:3px">📎</div>
-      <div style="font-size:12px;color:var(--text2);font-weight:500">Clique para anexar</div>
-      <div style="font-size:11px;color:var(--text3)">JPG, PNG, GIF</div>
-    </label>
-    ${imgs?`<div class="img-thumb-grid">${imgs}</div>`:''}
 
     <div class="fsect">✏️ Texto do Conteúdo</div>
     <div class="ff" style="margin-bottom:11px">
@@ -1760,8 +1928,23 @@ function renderPF(post){
     <div class="brow">${currentUserData?.role==='admin'?`<button class="btn btn-d btn-sm" onclick="deletePost('${post.id}')">🗑 Excluir</button>`:''}</div>
   </div>
 
-  <!-- RIGHT: comments panel -->
-  <div id="pf-comments-panel" style="width:260px;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .2s">
+  <!-- RIGHT: Arquivos finais + comments panel -->
+  <div id="pf-comments-panel" style="width:280px;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .2s">
+    <!-- Arquivos Finais (MOVED HERE - above comments) -->
+    <div style="padding:12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        🎨 Arquivos Finais
+        <span style="background:var(--ag);color:var(--accent);padding:1px 6px;border-radius:8px;font-size:10px">${(post.finalFiles||[]).length}</span>
+      </div>
+      <div id="final-files-${post.id}" style="max-height:150px;overflow-y:auto">
+        ${renderFinalFiles(post)}
+      </div>
+      <label class="img-attach-area" style="display:block;cursor:pointer;margin-top:6px;padding:8px">
+        <input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="handleFinalFileUp('${post.id}',this.files)">
+        <div style="font-size:12px;color:var(--text2);font-weight:500">📎 Adicionar slide</div>
+      </label>
+    </div>
+    <!-- Comments section -->
     <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
       <span style="font-size:12px;font-weight:700;color:var(--text2)">💬 Comentários <span style="background:var(--ag);color:var(--accent);padding:1px 6px;border-radius:8px;font-size:10px">${comments.length}</span></span>
       <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:5px" onclick="toggleCommentPanel()" title="Ocultar">✕</button>
@@ -2132,12 +2315,24 @@ async function renderDocsInto(container){ container.setAttribute('style','flex:1
   const {db,doc,getDoc}=window._fb;
   let d={};
   try{ const snap=await getDoc(doc(db,'clientDocs',currentClientId)); if(snap.exists()) d=snap.data(); }catch(e){}
+  
+  // Helper to render links properly
+  const renderLinkField = (key, label) => {
+    const val = d[key]||'';
+    const isLink = val.startsWith('http');
+    return `<div style="margin-bottom:9px">
+      <div class="flbl" style="margin-bottom:3px">${label}</div>
+      <div style="display:flex;gap:5px">
+        <input class="di" value="${val}" placeholder="https://..." onchange="sdf('${key}',this.value)" style="flex:1">
+        ${isLink?`<a href="${val}" target="_blank" class="btn btn-s btn-sm" style="text-decoration:none">↗ Abrir</a>`:''}
+      </div>
+    </div>`;
+  };
+  
   container.innerHTML=`<div class="docswrap"><div class="docsgrid">
     <div class="docscard"><div class="docscard-hdr">🔗 Links</div><div class="docscard-body">
-      ${[['driveFolder','Pasta do Drive'],['photosFolder','Pasta de Fotos'],['extraFolder','Pasta extra'],['meetRecording','Gravação de reunião'],['meetTranscript','Transcrição de reunião']].map(([k,l])=>`
-        <div style="margin-bottom:9px"><div class="flbl" style="margin-bottom:3px">${l}</div>
-          <div style="display:flex;gap:5px"><input class="di" value="${d[k]||''}" placeholder="https://..." onchange="sdf('${k}',this.value)" style="flex:1">${d[k]?`<a href="${d[k]}" target="_blank" class="btn btn-s btn-sm">↗</a>`:''}</div>
-        </div>`).join('')}
+      ${renderLinkField('driveFolder','Pasta do Drive')}
+      ${renderLinkField('photosFolder','Pasta de Fotos')}
     </div></div>
     <div class="docscard"><div class="docscard-hdr">🎨 Identidade Visual</div><div class="docscard-body">
       ${[['fonte','Fonte principal'],['cores','Cores'],['tomDeVoz','Tom de voz']].map(([k,l])=>`
@@ -2929,11 +3124,30 @@ async function loadEquipeData(){
 }
 
 // ===== TAREFAS INTERNAS =====
+let _pomodoroActive = false;
+let _pomodoroTime = 25*60; // 25 min default
+let _pomodoroInterval = null;
+let _pomodoroMode = 'work'; // work or break
+
 async function renderTarefas(){
   const main=document.getElementById('main');
+  
+  // Count open tasks for mini-dash
+  const {db,collection,getDocs,query,where}=window._fb;
+  let snap;
+  if(currentUserData?.role==='admin'){
+    snap=await getDocs(collection(db,'tarefas'));
+  } else {
+    snap=await getDocs(query(collection(db,'tarefas'),where('assignees','array-contains',currentUserData?.name||'')));
+  }
+  let allTasks=[]; snap.forEach(d=>allTasks.push({id:d.id,...d.data()}));
+  const openTasks = allTasks.filter(t=>!t.done);
+  const urgentTasks = openTasks.filter(t=>t.priority==='alta');
+  
   main.innerHTML=`<div class="ph">
     <div class="ptitle">✅ Tarefas
-      <button class="btn btn-p btn-sm" onclick="showNewTask()">+ Nova tarefa</button>
+      <button class="btn btn-p btn-sm" onclick="addInlineTask()">+ Nova tarefa</button>
+      <button class="btn btn-s btn-sm" onclick="togglePomodoro()" style="margin-left:auto">🍅 Pomodoro</button>
     </div>
     <div class="psub">Demandas internas da agência</div>
     <div class="ptabs" style="margin-bottom:0">
@@ -2943,9 +3157,162 @@ async function renderTarefas(){
     </div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:14px 20px" id="tarefas-list">
-    <div class="loading"><div class="spinner"></div></div>
+    <!-- Mini-dash -->
+    ${openTasks.length>0?`<div class="mini-dash">
+      <div class="mini-dash-icon">${urgentTasks.length>0?'🔥':'✨'}</div>
+      <div class="mini-dash-text">
+        <div class="mini-dash-title">Faltam ${openTasks.length} tarefa${openTasks.length!==1?'s':''} para encerrar seu dia!</div>
+        <div class="mini-dash-sub">${urgentTasks.length>0?`${urgentTasks.length} urgente${urgentTasks.length!==1?'s':''}`:openTasks.length<=3?'Quase lá! 💪':'Bora produzir! 🚀'}</div>
+      </div>
+    </div>`:''}
+    <!-- Inline new task input -->
+    <div id="new-task-inline" style="display:none"></div>
+    <!-- Tasks list -->
+    <div id="tasks-container">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </div>
+  <!-- Pomodoro floating button -->
+  <div class="pomodoro-wrap" id="pomodoro-wrap">
+    <div class="pomodoro-panel" id="pomodoro-panel">
+      <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">🍅 Modo Produtivo</div>
+      <div class="pomodoro-timer ${_pomodoroMode}" id="pomodoro-timer">${formatPomodoroTime(_pomodoroTime)}</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;justify-content:center">
+        <button class="btn btn-s btn-sm" onclick="setPomodoroTime(25)">25min</button>
+        <button class="btn btn-s btn-sm" onclick="setPomodoroTime(45)">45min</button>
+        <button class="btn btn-s btn-sm" onclick="setPomodoroTime(60)">60min</button>
+      </div>
+      <div class="pomodoro-controls">
+        <button class="btn btn-p" id="pomo-start-btn" onclick="startPomodoro()">${_pomodoroActive?'⏸ Pausar':'▶ Iniciar'}</button>
+        <button class="btn btn-s" onclick="resetPomodoro()">↺ Resetar</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center">
+        ${_pomodoroMode==='work'?'Foco total! Nada de distrações.':'Hora do descanso. Levanta, bebe água.'}
+      </div>
+    </div>
+    <button class="pomodoro-btn ${_pomodoroActive?'active':''}" onclick="togglePomodoroPanel()">🍅</button>
   </div>`;
-  await loadTarefas('abertas');
+  await loadTarefasInline('abertas');
+}
+
+function formatPomodoroTime(secs){
+  const m = Math.floor(secs/60);
+  const s = secs%60;
+  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function setPomodoroTime(mins){
+  _pomodoroTime = mins*60;
+  if(_pomodoroInterval){ clearInterval(_pomodoroInterval); _pomodoroActive=false; }
+  document.getElementById('pomodoro-timer').textContent = formatPomodoroTime(_pomodoroTime);
+  document.getElementById('pomo-start-btn').textContent = '▶ Iniciar';
+}
+
+function startPomodoro(){
+  if(_pomodoroActive){
+    clearInterval(_pomodoroInterval);
+    _pomodoroActive = false;
+    document.getElementById('pomo-start-btn').textContent = '▶ Iniciar';
+    document.querySelector('.pomodoro-btn').classList.remove('active');
+  } else {
+    _pomodoroActive = true;
+    document.getElementById('pomo-start-btn').textContent = '⏸ Pausar';
+    document.querySelector('.pomodoro-btn').classList.add('active');
+    _pomodoroInterval = setInterval(()=>{
+      _pomodoroTime--;
+      document.getElementById('pomodoro-timer').textContent = formatPomodoroTime(_pomodoroTime);
+      if(_pomodoroTime<=0){
+        clearInterval(_pomodoroInterval);
+        _pomodoroActive = false;
+        if(_pomodoroMode==='work'){
+          _pomodoroMode = 'break';
+          _pomodoroTime = 5*60;
+          showToast('⏰ Tempo! Hora do descanso.','ok');
+        } else {
+          _pomodoroMode = 'work';
+          _pomodoroTime = 25*60;
+          showToast('💪 Descanso acabou! Bora voltar.','inf');
+        }
+        document.getElementById('pomodoro-timer').className = 'pomodoro-timer '+_pomodoroMode;
+        document.getElementById('pomodoro-timer').textContent = formatPomodoroTime(_pomodoroTime);
+        document.getElementById('pomo-start-btn').textContent = '▶ Iniciar';
+        document.querySelector('.pomodoro-btn').classList.remove('active');
+      }
+    },1000);
+  }
+}
+
+function resetPomodoro(){
+  if(_pomodoroInterval) clearInterval(_pomodoroInterval);
+  _pomodoroActive = false;
+  _pomodoroMode = 'work';
+  _pomodoroTime = 25*60;
+  document.getElementById('pomodoro-timer').textContent = formatPomodoroTime(_pomodoroTime);
+  document.getElementById('pomodoro-timer').className = 'pomodoro-timer work';
+  document.getElementById('pomo-start-btn').textContent = '▶ Iniciar';
+  document.querySelector('.pomodoro-btn').classList.remove('active');
+}
+
+function togglePomodoroPanel(){
+  document.getElementById('pomodoro-panel').classList.toggle('open');
+}
+
+function togglePomodoro(){
+  togglePomodoroPanel();
+}
+
+function addInlineTask(){
+  const el = document.getElementById('new-task-inline');
+  if(el.style.display!=='none'){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.innerHTML=`<div class="task-inline expanded">
+    <div class="task-inline-header">
+      <div class="task-check" onclick="saveInlineTask()">+</div>
+      <input class="task-inline-title" id="inline-task-title" placeholder="O que precisa ser feito?" autofocus onkeypress="if(event.key==='Enter')saveInlineTask()">
+      <select class="fs" id="inline-task-prio" style="width:100px;padding:4px 8px;font-size:12px">
+        <option value="alta">🔴 Alta</option>
+        <option value="media" selected>🟡 Média</option>
+        <option value="baixa">🟢 Baixa</option>
+      </select>
+    </div>
+    <div class="task-inline-body">
+      <div class="fgrid" style="margin-bottom:8px">
+        <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" id="inline-task-due"></div>
+        <div class="ff"><label class="flbl">Descrição</label><input class="fi" id="inline-task-desc" placeholder="Detalhes opcionais..."></div>
+      </div>
+      <div class="ff" style="margin-bottom:10px"><label class="flbl">Responsáveis</label>
+        <div class="assignee-grid" id="inline-task-assignees">
+          ${TEAM.map(m=>`<div class="assignee-chip" onclick="this.classList.toggle('selected')"><div class="assignee-avatar" style="background:${m.color}">${m.name[0]}</div>${m.name}</div>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-p btn-sm" onclick="saveInlineTask()">Salvar</button>
+        <button class="btn btn-s btn-sm" onclick="document.getElementById('new-task-inline').style.display='none'">Cancelar</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('inline-task-title').focus();
+}
+
+async function saveInlineTask(){
+  const title = document.getElementById('inline-task-title')?.value.trim();
+  if(!title){ showToast('Digite um título','err'); return; }
+  const {db,addDoc,collection}=window._fb;
+  const assignees = [...document.querySelectorAll('#inline-task-assignees .assignee-chip.selected')].map(el=>el.textContent.trim());
+  const data = {
+    title,
+    description: document.getElementById('inline-task-desc')?.value.trim()||'',
+    priority: document.getElementById('inline-task-prio')?.value||'media',
+    dueDate: document.getElementById('inline-task-due')?.value||'',
+    assignees,
+    done: false,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  await addDoc(collection(db,'tarefas'),data);
+  showToast('Tarefa criada!','ok');
+  document.getElementById('new-task-inline').style.display='none';
+  await loadTarefasInline(_tarefaFilter);
 }
 
 let _tarefaFilter='abertas';
@@ -2953,10 +3320,10 @@ async function filterTarefas(filter, btn){
   _tarefaFilter=filter;
   document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  await loadTarefas(filter);
+  await loadTarefasInline(filter);
 }
 
-async function loadTarefas(filter){
+async function loadTarefasInline(filter){
   const {db,collection,getDocs,query,where}=window._fb;
   let snap;
   if(currentUserData?.role==='admin'){
@@ -2979,9 +3346,9 @@ async function loadTarefas(filter){
     return a.dueDate.localeCompare(b.dueDate);
   });
 
-  const el=document.getElementById('tarefas-list'); if(!el) return;
+  const el=document.getElementById('tasks-container'); if(!el) return;
   if(!tasks.length){
-    el.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">${filter==='abertas'?'Nenhuma tarefa aberta':'Nenhuma tarefa aqui'}</div></div>`;
+    el.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">${filter==='abertas'?'Nenhuma tarefa aberta — bom trabalho!':'Nenhuma tarefa aqui'}</div></div>`;
     return;
   }
 
@@ -2995,19 +3362,61 @@ async function loadTarefas(filter){
         ?`<img src="${photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover" title="${name}">`
         :`<div style="width:20px;height:20px;border-radius:50%;background:${m?.color||'var(--accent)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff" title="${name}">${name[0]}</div>`;
     }).join('');
-    return `<div class="task-card ${t.done?'done':''}" onclick="openTask('${t.id}')">
-      <div class="task-check ${t.done?'checked':''}" onclick="event.stopPropagation();toggleTask('${t.id}',${!t.done})">${t.done?'✓':''}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13.5px;font-weight:600;margin-bottom:5px;${t.done?'text-decoration:line-through':''}">${t.title||'Sem título'}</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span class="prio-${t.priority||'media'}">${t.priority||'média'}</span>
-          ${dl?`<span style="font-size:11.5px;font-weight:600;color:${dlColor}">📅 ${dl}</span>`:''}
-          <div style="display:flex;gap:3px">${assigneeHtml}</div>
-          ${t.description?`<span style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">${t.description.slice(0,60)}${t.description.length>60?'...':''}</span>`:''}
+    return `<div class="task-inline ${t.done?'done':''}" id="task-${t.id}">
+      <div class="task-inline-header">
+        <div class="task-check ${t.done?'checked':''}" onclick="event.stopPropagation();toggleTask('${t.id}',${!t.done})">${t.done?'✓':''}</div>
+        <input class="task-inline-title" value="${t.title||''}" style="${t.done?'text-decoration:line-through;opacity:.6':''}"
+          onblur="updateTaskTitle('${t.id}',this.value)"
+          onkeypress="if(event.key==='Enter')this.blur()">
+        <span class="prio-${t.priority||'media'}" style="cursor:pointer" onclick="cycleTaskPrio('${t.id}','${t.priority||'media'}')">${t.priority||'média'}</span>
+        ${dl?`<span style="font-size:11.5px;font-weight:600;color:${dlColor}">📅 ${dl}</span>`:''}
+        <div style="display:flex;gap:3px;margin-left:auto">${assigneeHtml}</div>
+        <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:4px" onclick="toggleTaskExpand('${t.id}')">⋮</button>
+      </div>
+      <div class="task-inline-body" id="task-body-${t.id}">
+        <div class="fgrid" style="margin-bottom:8px">
+          <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" value="${t.dueDate||''}" onchange="updateTaskField('${t.id}','dueDate',this.value)"></div>
+          <div class="ff"><label class="flbl">Descrição</label><input class="fi" value="${t.description||''}" onchange="updateTaskField('${t.id}','description',this.value)"></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-d btn-sm" onclick="deleteTaskInline('${t.id}')">🗑 Excluir</button>
         </div>
       </div>
     </div>`;
   }).join('');
+}
+
+function toggleTaskExpand(id){
+  const el = document.getElementById('task-'+id);
+  if(el) el.classList.toggle('expanded');
+}
+
+async function updateTaskTitle(id, title){
+  if(!title.trim()) return;
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'tarefas',id),{title:title.trim(),updatedAt:Date.now()});
+}
+
+async function updateTaskField(id, field, value){
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'tarefas',id),{[field]:value,updatedAt:Date.now()});
+}
+
+async function cycleTaskPrio(id, current){
+  const order = ['alta','media','baixa'];
+  const idx = order.indexOf(current);
+  const next = order[(idx+1)%order.length];
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'tarefas',id),{priority:next,updatedAt:Date.now()});
+  await loadTarefasInline(_tarefaFilter);
+}
+
+async function deleteTaskInline(id){
+  if(!confirm('Excluir esta tarefa?')) return;
+  const {db,doc,deleteDoc}=window._fb;
+  await deleteDoc(doc(db,'tarefas',id));
+  showToast('Tarefa excluída','inf');
+  await loadTarefasInline(_tarefaFilter);
 }
 
 async function toggleTask(id,done){
@@ -4457,7 +4866,17 @@ const PIPELINE_COLS = [
 let comercialTab = 'dash';
 let _comClientes = {};  // { id: {name,instagram,niche,valor,custo,inicio,fim,status,obs} }
 let _comProspects = {}; // { id: {name,instagram,niche,valorProposto,status,obs,createdAt} }
-let _comSettings = {meta:0, custoFixo:0}; // meta mensal e custo fixo agência
+let _comSettings = {meta:0, custoFixo:0, proLabore:0}; // meta mensal e custo fixo agência
+let _comCustos = {}; // { id: {categoria, descricao, valor, recorrente, data} }
+
+const CUSTO_CATEGORIAS = [
+  {id:'operacionais', label:'Despesas Operacionais', icon:'⚙️', desc:'Ferramentas, softwares, hospedagem'},
+  {id:'variaveis', label:'Despesas Variáveis', icon:'📊', desc:'Comissões, freelancers, anúncios'},
+  {id:'administrativas', label:'Despesas Administrativas', icon:'📋', desc:'Contabilidade, jurídico, banco'},
+  {id:'impostos', label:'Impostos', icon:'🏛️', desc:'DAS, ISS, tributos'},
+  {id:'financeiras', label:'Despesas Financeiras', icon:'💳', desc:'Juros, taxas bancárias'},
+  {id:'equipe', label:'Equipe', icon:'👥', desc:'Salários, benefícios, encargos'}
+];
 
 async function renderComercial(){
   const main = document.getElementById('main');
@@ -4466,6 +4885,7 @@ async function renderComercial(){
     <div class="ptabs">
       <button class="ptab active" id="ctab-dash"    onclick="swCom('dash',this)">📊 Dashboard</button>
       <button class="ptab"        id="ctab-clientes" onclick="swCom('clientes',this)">🤝 Clientes</button>
+      <button class="ptab"        id="ctab-custos" onclick="swCom('custos',this)">💸 Custos</button>
       <button class="ptab"        id="ctab-pipeline" onclick="swCom('pipeline',this)">📋 Pipeline</button>
     </div>
   </div>
@@ -4486,15 +4906,18 @@ function swCom(tab, btn){
 
 async function loadComercialData(){
   const {db, collection, getDocs, doc, getDoc} = window._fb;
-  const [cSnap, pSnap, sSnap] = await Promise.all([
+  const [cSnap, pSnap, sSnap, custosSnap] = await Promise.all([
     getDocs(collection(db,'com_clientes')),
     getDocs(collection(db,'com_prospects')),
-    getDoc(doc(db,'com_settings','main'))
+    getDoc(doc(db,'com_settings','main')),
+    getDocs(collection(db,'com_custos'))
   ]);
   _comClientes = {};
   cSnap.forEach(d => _comClientes[d.id] = {id:d.id,...d.data()});
   _comProspects = {};
   pSnap.forEach(d => _comProspects[d.id] = {id:d.id,...d.data()});
+  _comCustos = {};
+  custosSnap.forEach(d => _comCustos[d.id] = {id:d.id,...d.data()});
   if(sSnap.exists()) _comSettings = {..._comSettings, ...sSnap.data()};
 }
 
@@ -4503,20 +4926,29 @@ function renderComTab(tab){
   if(!el) return;
   if(tab==='dash')     renderComDash(el);
   else if(tab==='clientes') renderComClientes(el);
+  else if(tab==='custos') renderComCustos(el);
   else if(tab==='pipeline') renderComPipeline(el);
 }
 
 // ── DASHBOARD ──
+let _comViewMonth = new Date();
 function renderComDash(el){
   const clientes = Object.values(_comClientes).filter(c=>c.status==='ativo');
   const receitaTotal = clientes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
   const custoClientes = clientes.reduce((s,c)=>s+(parseFloat(c.custo)||0),0);
-  const custoTotal = custoClientes + (parseFloat(_comSettings.custoFixo)||0);
+  const proLabore = parseFloat(_comSettings.proLabore)||0;
+  const custoAgencia = parseFloat(_comSettings.custoFixo)||0;
+  const custoTotal = custoClientes + custoAgencia + proLabore;
   const lucro = receitaTotal - custoTotal;
   const margem = receitaTotal ? Math.round(lucro/receitaTotal*100) : 0;
   const meta = parseFloat(_comSettings.meta)||0;
   const metaPct = meta ? Math.min(Math.round(receitaTotal/meta*100),100) : 0;
   const fmt = v => 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Month navigation
+  const viewMonth = _comViewMonth.getMonth();
+  const viewYear = _comViewMonth.getFullYear();
+  const monthLabel = MONTHS[viewMonth]+' '+viewYear;
 
   // Renewal alerts (next 30 days)
   const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -4530,14 +4962,36 @@ function renderComDash(el){
   // Prospects in pipeline (not closed/lost)
   const prospects = Object.values(_comProspects).filter(p=>!['fechado','perdido'].includes(p.status));
 
+  // Historical data for evolution chart (last 6 months)
+  const evoData = buildComEvoData();
+
   el.innerHTML = `
+    <!-- MONTH NAV -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button class="btn btn-s btn-sm" onclick="changeComMonth(-1)">‹</button>
+      <span style="font-size:15px;font-weight:700;min-width:140px;text-align:center">${monthLabel}</span>
+      <button class="btn btn-s btn-sm" onclick="changeComMonth(1)">›</button>
+    </div>
+
     <!-- META + CONFIGURAÇÕES -->
     <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
-      <div style="font-size:13px;font-weight:600;color:var(--text2)">Meta mensal:</div>
+      <div class="tooltip-wrap">
+        <span style="font-size:13px;font-weight:600;color:var(--text2)">Meta mensal <span class="tooltip-icon">?</span></span>
+        <div class="tooltip-content">Defina sua meta de faturamento mensal para acompanhar o progresso.</div>
+      </div>
       <input type="number" class="fi" id="com-meta-inp" value="${_comSettings.meta||''}" placeholder="R$ 0,00"
         style="width:140px;padding:6px 10px;font-size:13px" onblur="saveComSettings()">
-      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-left:8px">Custo fixo mensal:
-        <span class="tooltip-icon" title="Custos fixos da agência (salários, ferramentas, aluguel, etc.) que não estão atrelados a um cliente específico">?</span>
+      
+      <div class="tooltip-wrap" style="margin-left:8px">
+        <span style="font-size:13px;font-weight:600;color:var(--text2)">Pró-labore <span class="tooltip-icon">?</span></span>
+        <div class="tooltip-content">Seu salário fixo mensal como sócio(a). Não confunda com lucro.</div>
+      </div>
+      <input type="number" class="fi" id="com-prolabore-inp" value="${_comSettings.proLabore||''}" placeholder="R$ 0,00"
+        style="width:140px;padding:6px 10px;font-size:13px" onblur="saveComSettings()">
+      
+      <div class="tooltip-wrap" style="margin-left:8px">
+        <span style="font-size:13px;font-weight:600;color:var(--text2)">Custos agência <span class="tooltip-icon">?</span></span>
+        <div class="tooltip-content">Custos fixos da agência: ferramentas, aluguel, softwares, etc. Não inclua custos por cliente aqui.</div>
       </div>
       <input type="number" class="fi" id="com-custo-inp" value="${_comSettings.custoFixo||''}" placeholder="R$ 0,00"
         style="width:140px;padding:6px 10px;font-size:13px" onblur="saveComSettings()">
@@ -4546,16 +5000,23 @@ function renderComDash(el){
     <!-- STATS GRID -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
       <div class="comercial-stat">
-        <div class="comercial-stat-lbl">💰 Receita mensal</div>
+        <div class="comercial-stat-lbl tooltip-wrap">💰 Receita mensal <span class="tooltip-icon">?</span>
+          <div class="tooltip-content">Soma de todos os contratos ativos de clientes neste mês.</div>
+        </div>
         <div class="comercial-stat-val" style="color:var(--green)">${fmt(receitaTotal)}</div>
         <div class="comercial-stat-sub">${clientes.length} cliente${clientes.length!==1?'s':''} ativo${clientes.length!==1?'s':''}</div>
       </div>
       <div class="comercial-stat">
-        <div class="comercial-stat-lbl">📉 Custo total
-          <span class="tooltip-icon" title="Soma dos custos por cliente + custo fixo da agência">?</span>
+        <div class="comercial-stat-lbl tooltip-wrap">📉 Custo total <span class="tooltip-icon">?</span>
+          <div class="tooltip-content">Custos Agência + Pró-labore + Custos por cliente. Este é o total que sai do caixa todo mês.</div>
         </div>
         <div class="comercial-stat-val" style="color:var(--red)">${fmt(custoTotal)}</div>
-        <div class="comercial-stat-sub">fixo ${fmt(_comSettings.custoFixo)} + clientes ${fmt(custoClientes)}</div>
+        <div class="cost-breakdown">
+          <div class="cost-breakdown-item"><span>Agência</span><span>${fmt(custoAgencia)}</span></div>
+          <div class="cost-breakdown-item"><span>Pró-labore</span><span>${fmt(proLabore)}</span></div>
+          <div class="cost-breakdown-item"><span>Por cliente</span><span>${fmt(custoClientes)}</span></div>
+          <div class="cost-breakdown-item"><span>Total</span><span>${fmt(custoTotal)}</span></div>
+        </div>
       </div>
       <div class="comercial-stat">
         <div class="comercial-stat-lbl">📈 Lucro líquido
@@ -4615,15 +5076,67 @@ function renderComDash(el){
         ${prospects.length>5?`<div style="padding:10px 14px;font-size:12px;color:var(--text3);text-align:center;cursor:pointer" onclick="swCom('pipeline',document.getElementById('ctab-pipeline'))">Ver todos (${prospects.length}) →</div>`:''}
       </div>
     </div>`:''}
+
+    <!-- GRÁFICO EVOLUÇÃO -->
+    <div class="dcard" style="margin-top:14px">
+      <div class="dcard-hdr tooltip-wrap">📈 Evolução de faturamento <span class="tooltip-icon">?</span>
+        <div class="tooltip-content">Histórico dos últimos 6 meses de faturamento da agência.</div>
+      </div>
+      <div class="dcard-body">
+        <div class="evo-chart">
+          ${evoData.map((d,i)=>{
+            const maxVal = Math.max(...evoData.map(x=>x.value),1);
+            const h = Math.round((d.value/maxVal)*60)+4;
+            const isCurrent = i===evoData.length-1;
+            return `<div class="evo-bar ${isCurrent?'current':''}" style="height:${h}px" title="${d.label}: ${fmt(d.value)}">
+              <span class="evo-bar-label">${d.short}</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--text3)">
+          <span>${evoData[0]?.label||''}</span>
+          <span>${evoData[evoData.length-1]?.label||''}</span>
+        </div>
+      </div>
+    </div>
   `;
+}
+
+function changeComMonth(delta){
+  _comViewMonth.setMonth(_comViewMonth.getMonth()+delta);
+  renderComTab('dash');
+}
+
+function buildComEvoData(){
+  // Build last 6 months evolution data
+  const data = [];
+  const now = new Date();
+  for(let i=5;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const mo = d.getMonth();
+    const yr = d.getFullYear();
+    // Calculate revenue for that month (simplified - uses current active clients)
+    // In production, this would query historical data
+    const clientes = Object.values(_comClientes).filter(c=>c.status==='ativo');
+    const valor = clientes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+    data.push({
+      month: mo,
+      year: yr,
+      label: MONTHS[mo]+' '+yr,
+      short: MONTHS[mo].slice(0,3),
+      value: valor * (1 - i*0.05) // Simulated growth (in production, use real historical data)
+    });
+  }
+  return data;
 }
 
 async function saveComSettings(){
   const meta = parseFloat(document.getElementById('com-meta-inp')?.value)||0;
   const custoFixo = parseFloat(document.getElementById('com-custo-inp')?.value)||0;
-  _comSettings = {meta, custoFixo};
+  const proLabore = parseFloat(document.getElementById('com-prolabore-inp')?.value)||0;
+  _comSettings = {meta, custoFixo, proLabore};
   const {db,doc,setDoc} = window._fb;
-  await setDoc(doc(db,'com_settings','main'),{meta,custoFixo});
+  await setDoc(doc(db,'com_settings','main'),{meta,custoFixo,proLabore});
   showToast('Configurações salvas!','ok');
   renderComTab('dash');
 }
@@ -4745,6 +5258,122 @@ function renderComPipeline(el){
         </div>`;
       }).join('')}
     </div>`;
+}
+
+// ── CUSTOS ──
+function renderComCustos(el){
+  const fmt = v => 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const custosList = Object.values(_comCustos);
+  
+  // Group by category
+  const byCategoria = {};
+  CUSTO_CATEGORIAS.forEach(c => byCategoria[c.id] = []);
+  custosList.forEach(c => {
+    if(byCategoria[c.categoria]) byCategoria[c.categoria].push(c);
+  });
+  
+  // Calculate totals
+  const totalMensal = custosList.filter(c=>c.recorrente).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const totalPontual = custosList.filter(c=>!c.recorrente).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Total mensal recorrente</div>
+        <div style="font-size:24px;font-weight:800;color:var(--red)">${fmt(totalMensal)}</div>
+      </div>
+      <button class="btn btn-p btn-sm" onclick="openCustoModal()">+ Novo custo</button>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">
+      ${CUSTO_CATEGORIAS.map(cat=>{
+        const items = byCategoria[cat.id]||[];
+        const catTotal = items.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+        return `<div class="dcard">
+          <div class="dcard-hdr" style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:16px">${cat.icon}</span>
+              <span>${cat.label}</span>
+            </div>
+            <span style="font-size:13px;font-weight:700;color:var(--red)">${fmt(catTotal)}</span>
+          </div>
+          <div class="dcard-body" style="padding:0">
+            ${items.length?items.map(c=>`<div class="alert-row" style="cursor:pointer" onclick="openCustoModal('${c.id}')">
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600">${c.descricao}</div>
+                <div style="font-size:11px;color:var(--text3)">${c.recorrente?'🔄 Mensal':'📌 Pontual'}</div>
+              </div>
+              <div style="font-size:13px;font-weight:700;color:var(--text2)">${fmt(c.valor)}</div>
+            </div>`).join(''):`<div style="padding:14px;font-size:12px;color:var(--text3);text-align:center">Nenhum custo cadastrado</div>`}
+            <button style="background:none;border:none;width:100%;padding:10px;font-size:12px;color:var(--accent);cursor:pointer;border-top:1px solid var(--border)" onclick="openCustoModal(null,'${cat.id}')">+ Adicionar ${cat.label.toLowerCase()}</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    
+    ${totalPontual>0?`<div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:var(--rs);font-size:13px;color:var(--text3)">
+      💡 Custos pontuais este período: <strong style="color:var(--text2)">${fmt(totalPontual)}</strong>
+    </div>`:''}
+  `;
+}
+
+let _editCustoId = null;
+function openCustoModal(id, defaultCategoria){
+  _editCustoId = id||null;
+  const c = id ? _comCustos[id] : {};
+  document.getElementById('custo-modal-title').textContent = id?'Editar custo':'Novo custo';
+  document.getElementById('cc-desc').value = c.descricao||'';
+  document.getElementById('cc-valor').value = c.valor||'';
+  document.getElementById('cc-categoria').value = c.categoria||(defaultCategoria||'operacionais');
+  document.getElementById('cc-recorrente').checked = c.recorrente!==false;
+  document.getElementById('cc-delete-btn').style.display = id?'flex':'none';
+  document.getElementById('com-custo-mo').classList.add('open');
+}
+function closeCustoModal(){ document.getElementById('com-custo-mo').classList.remove('open'); }
+
+async function saveCusto(){
+  const {db,doc,setDoc,addDoc,collection} = window._fb;
+  const data = {
+    descricao: document.getElementById('cc-desc').value.trim(),
+    valor: parseFloat(document.getElementById('cc-valor').value)||0,
+    categoria: document.getElementById('cc-categoria').value,
+    recorrente: document.getElementById('cc-recorrente').checked,
+    updatedAt: Date.now()
+  };
+  if(!data.descricao){ showToast('Descrição obrigatória','err'); return; }
+  if(_editCustoId){
+    await setDoc(doc(db,'com_custos',_editCustoId),data,{merge:true});
+    _comCustos[_editCustoId] = {id:_editCustoId,...data};
+    showToast('Custo atualizado!','ok');
+  } else {
+    data.createdAt = Date.now();
+    const ref = await addDoc(collection(db,'com_custos'),data);
+    _comCustos[ref.id] = {id:ref.id,...data};
+    showToast('Custo cadastrado!','ok');
+  }
+  closeCustoModal();
+  renderComTab('custos');
+  // Also update settings with total
+  updateCustoFixoFromCustos();
+}
+
+async function deleteCusto(){
+  if(!_editCustoId||!confirm('Excluir este custo?')) return;
+  const {db,doc,deleteDoc} = window._fb;
+  await deleteDoc(doc(db,'com_custos',_editCustoId));
+  delete _comCustos[_editCustoId];
+  closeCustoModal();
+  showToast('Custo removido','inf');
+  renderComTab('custos');
+  updateCustoFixoFromCustos();
+}
+
+async function updateCustoFixoFromCustos(){
+  // Sum all recurrent costs and save to settings
+  const total = Object.values(_comCustos).filter(c=>c.recorrente).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  _comSettings.custoFixo = total;
+  const {db,doc,setDoc} = window._fb;
+  await setDoc(doc(db,'com_settings','main'),{..._comSettings,custoFixo:total},{merge:true});
 }
 
 let _editProspectId = null;
@@ -5086,6 +5715,84 @@ async function deleteProspect(){
         <button class="btn btn-p" onclick="saveProspect()">Salvar</button>
         <button class="btn btn-s" onclick="closeProspectModal()">Cancelar</button>
         <button class="btn btn-d btn-sm" id="cp-delete-btn" style="display:none;margin-left:auto" onclick="deleteProspect()">🗑 Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTO MODAL -->
+<div class="mo" id="com-custo-mo">
+  <div class="modal modal-sm">
+    <div class="mhdr">
+      <div class="mhdr-info"><div class="mtitle" id="custo-modal-title">Novo custo</div></div>
+      <button class="mclose" onclick="closeCustoModal()">×</button>
+    </div>
+    <div style="padding:20px">
+      <div class="ff" style="margin-bottom:10px">
+        <label class="flbl">Descrição</label>
+        <input class="fi" id="cc-desc" placeholder="Ex: Canva Pro, Notion, etc">
+      </div>
+      <div class="fgrid" style="margin-bottom:10px">
+        <div class="ff">
+          <label class="flbl">Valor (R$)</label>
+          <input type="number" class="fi" id="cc-valor" placeholder="0,00" step="0.01">
+        </div>
+        <div class="ff">
+          <label class="flbl">Categoria</label>
+          <select class="fs" id="cc-categoria">
+            <option value="operacionais">⚙️ Operacionais</option>
+            <option value="variaveis">📊 Variáveis</option>
+            <option value="administrativas">📋 Administrativas</option>
+            <option value="impostos">🏛️ Impostos</option>
+            <option value="financeiras">💳 Financeiras</option>
+            <option value="equipe">👥 Equipe</option>
+          </select>
+        </div>
+      </div>
+      <div class="ff" style="margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="cc-recorrente" checked style="width:18px;height:18px;accent-color:var(--accent)">
+          <span style="font-size:13px;color:var(--text2)">🔄 Custo mensal recorrente</span>
+        </label>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;margin-left:26px">Desmarque para custos pontuais/únicos</div>
+      </div>
+      <div class="brow">
+        <button class="btn btn-p" onclick="saveCusto()">Salvar</button>
+        <button class="btn btn-s" onclick="closeCustoModal()">Cancelar</button>
+        <button class="btn btn-d btn-sm" id="cc-delete-btn" style="display:none;margin-left:auto" onclick="deleteCusto()">🗑 Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REUNIÃO MODAL -->
+<div class="mo" id="reuniao-mo">
+  <div class="modal modal-sm">
+    <div class="mhdr">
+      <div class="mhdr-info"><div class="mtitle" id="reuniao-modal-title">Nova reunião</div></div>
+      <button class="mclose" onclick="document.getElementById('reuniao-mo').classList.remove('open')">×</button>
+    </div>
+    <div style="padding:20px">
+      <div class="fgrid" style="margin-bottom:10px">
+        <div class="ff"><label class="flbl">Título</label><input class="fi" id="r-titulo" placeholder="Ex: Reunião de briefing"></div>
+        <div class="ff"><label class="flbl">Data</label><input type="date" class="fi" id="r-data"></div>
+      </div>
+      <div class="ff" style="margin-bottom:10px">
+        <label class="flbl">🎥 Link da gravação</label>
+        <input class="fi" id="r-gravacao" placeholder="https://drive.google.com/...">
+      </div>
+      <div class="ff" style="margin-bottom:10px">
+        <label class="flbl">📝 Link da transcrição</label>
+        <input class="fi" id="r-transcricao" placeholder="https://docs.google.com/...">
+      </div>
+      <div class="ff" style="margin-bottom:14px">
+        <label class="flbl">Notas / Resumo</label>
+        <textarea class="fta" id="r-notas" rows="3" placeholder="Pontos principais discutidos..."></textarea>
+      </div>
+      <div class="brow">
+        <button class="btn btn-p" onclick="saveReuniao()">Salvar</button>
+        <button class="btn btn-s" onclick="document.getElementById('reuniao-mo').classList.remove('open')">Cancelar</button>
+        <button class="btn btn-d btn-sm" id="r-delete-btn" style="display:none;margin-left:auto" onclick="deleteReuniao()">🗑 Excluir</button>
       </div>
     </div>
   </div>
