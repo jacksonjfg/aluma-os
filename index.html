@@ -1257,33 +1257,56 @@ async function renderGlobalKanban(container){
         <div class="kcol-cnt" style="margin-left:auto">${col.length}</div>
       </div>
       <div class="kcol-body">
-        ${col.map(p=>{
-          const cl=clients[p.clientId]; const color=cl?.color||'#8483ff';
-          const type=p.type||'Feed'; const tcls=type.toLowerCase().replace(' ','');
-          const assigneeHtml=(p.assignees||[]).map(aid=>{ const m=TEAM.find(t=>t.id===aid); return m?`<div class="kassignee-dot" style="background:${m.color}" title="${m.name}">${m.name[0]}</div>`:''; }).join('');
-          return `<div class="kcard gk-card" draggable="true" 
-            ondragstart="dragGlobalPack(event,'${p.id}')"
-            ondragend="endDragGlobalPack(event)"
-            onclick="currentClientId='${p.clientId}';openPack('${p.id}')">
-            <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
-              <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0"></span>
-              <span style="font-size:11px;font-weight:600;color:${color}">${cl?.name||'?'}</span>
-            </div>
-            <div class="kcard-title">${type}</div>
-            <div class="kcard-meta">
-              ${p.month?`<span class="ktag" style="background:rgba(96,165,250,.14);color:#60a5fa">${p.month}</span>`:''}
-              <span class="ktag tag-${tcls}">${type}</span>
-            </div>
-            <div class="kcard-footer">
-              <span class="kcard-posts">📝 ${p.postCount||0}</span>
-              ${p.dueDate?`<span style="font-size:10.5px;color:var(--text3)">📅 ${p.dueDate}</span>`:''}
-              <div class="kcard-assignees">${assigneeHtml}</div>
-            </div>
-          </div>`;
-        }).join('')}
+        ${col.map(pack=>renderGlobalCard(pack,s)).join('')}
       </div>
     </div>`;
   }).join('');
+}
+
+function renderGlobalCard(pack, statusObj){
+  const client = clients[pack.clientId];
+  const type = pack.type || 'Feed';
+  const s = statusObj || STATUSES.find(x=>x.id===pack.status) || STATUSES[0];
+  const statusColors = {planejamento:'251,146,60',copy:'96,165,250',design:'250,204,21',revisao:'244,114,182',pdf:'192,132,252',para_entregar:'249,115,22',entregue:'45,212,191',em_alteracoes:'255,82,82',agendamento:'129,140,248',concluido:'74,222,128'};
+  const rgb = statusColors[pack.status] || '132,131,255';
+  const solidBg = STATUS_SOLID[pack.status] || '#8483ff';
+  
+  // Assignee row — same as individual
+  const assigneeRow = (pack.assignees||[]).map(aid=>{
+    const m = TEAM.find(t=>t.id===aid); if(!m) return '';
+    const presEntry = Object.values(window._presence||{}).find(pr=>pr&&pr.name&&pr.name.toLowerCase().includes(m.name.toLowerCase()));
+    const isOnline = !!presEntry;
+    const tooltip = m.name + (isOnline?' • Online agora':'');
+    const photo = window._teamPhotos && window._teamPhotos[m.id];
+    const borderColor = isOnline ? '#4ade80' : 'rgba(255,255,255,0.15)';
+    const av = photo
+      ? `<img src="${photo}" style="width:20px;height:20px;object-fit:cover;border-radius:50%;border:2px solid ${borderColor}" title="${tooltip}">`
+      : `<div style="width:20px;height:20px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;border:2px solid ${borderColor}" title="${tooltip}">${m.name[0]}</div>`;
+    const dot = isOnline ? `<span style="width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0"></span>` : '';
+    return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--text2)">${av}${m.name}${dot}</span>`;
+  }).join('');
+
+  // Due date formatting
+  const dueLine = pack.dueDate ? (()=>{
+    const dl = smartDate(pack.dueDate);
+    const dc = dl==='hoje' ? 'var(--red)' : dl==='amanhã' ? 'var(--orange)' : 'var(--text3)';
+    return `<div style="display:flex;align-items:center;gap:5px;margin-top:5px;font-size:11px;font-weight:600;color:${dc}">📅 ${dl}</div>`;
+  })() : '';
+
+  return `<div class="kcard gk-card" draggable="true"
+    ondragstart="dragGlobalPack(event,'${pack.id}')"
+    ondragend="endDragGlobalPack(event)"
+    onclick="currentClientId='${pack.clientId}';openPack('${pack.id}')"
+    style="background:rgba(${rgb},0.07);border:1.5px solid rgba(${rgb},0.5)">
+    <div class="kcard-title" style="margin-bottom:8px">${type} — ${client?.name||'?'}</div>
+    ${pack.month?`<div onclick="event.stopPropagation()" style="margin-bottom:4px"><div class="month-pill-wrap"><button class="mpill" onclick="toggleGlobalMDD('${pack.id}')">${pack.month} ▾</button><div class="mdd hidden" id="gmdd-${pack.id}">${MONTHS.map(m=>`<div class="mdd-item ${pack.month===m?'active':''}" onclick="setGlobalPackMonth('${pack.id}','${m}')">${m}</div>`).join('')}</div></div></div>`:''}
+    ${assigneeRow?`<div style="margin-bottom:4px">${assigneeRow}</div>`:''}
+    ${dueLine}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid rgba(${rgb},0.2)">
+      <span class="kcard-posts" style="font-size:10.5px">📝 ${pack.postCount||0} posts</span>
+      <span class="ktag" style="font-size:10px;background:${solidBg};color:${STATUS_TEXT[pack.status]||'#fff'};padding:2px 7px">${s.label}</span>
+    </div>
+  </div>`;
 }
 
 // Drag and drop handlers for global kanban
@@ -1305,6 +1328,21 @@ async function dropGlobalPack(e, newStatus){
   await updateDoc(doc(db,'packs',_draggedPackId),{status:newStatus,updatedAt:Date.now()});
   showToast('Status atualizado!','ok');
   _draggedPackId = null;
+  renderGlobalKanban(document.getElementById('todos-tab'));
+}
+
+// Toggle month dropdown for global kanban
+function toggleGlobalMDD(id){ 
+  const dd=document.getElementById('gmdd-'+id); 
+  const h=dd.classList.contains('hidden'); 
+  document.querySelectorAll('.mdd').forEach(d=>d.classList.add('hidden')); 
+  if(h) dd.classList.remove('hidden'); 
+}
+async function setGlobalPackMonth(id,m){
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'packs',id),{month:m});
+  document.querySelectorAll('.mdd').forEach(d=>d.classList.add('hidden'));
+  showToast('Mês atualizado!','ok');
   renderGlobalKanban(document.getElementById('todos-tab'));
 }
 
