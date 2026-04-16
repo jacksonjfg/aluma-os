@@ -938,7 +938,28 @@ async function loadUD(){
   const ini=currentUserData.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('user-av').textContent=ini;
   document.getElementById('user-name').textContent=currentUserData.name;
-  if(currentUserData.role==='admin'){ document.getElementById('btn-add-top').style.display='flex'; document.getElementById('btn-add-sb').style.display='flex'; }
+  if(currentUserData.role==='admin'){ 
+    document.getElementById('btn-add-top').style.display='flex'; 
+    document.getElementById('btn-add-sb').style.display='flex'; 
+  }
+  // Controle de acesso: esconde Tarefas e Comercial para não-admins
+  applyAccessControl();
+}
+
+function applyAccessControl(){
+  const isAdmin = currentUserData?.role === 'admin';
+  // Topbar tabs
+  document.querySelectorAll('.ttab').forEach(tab => {
+    if(tab.textContent.includes('Tarefas') || tab.textContent.includes('Comercial')){
+      tab.style.display = isAdmin ? '' : 'none';
+    }
+  });
+  // Sidebar items
+  document.querySelectorAll('.sb-item').forEach(item => {
+    if(item.textContent.includes('Tarefas') || item.textContent.includes('Comercial')){
+      item.style.display = isAdmin ? '' : 'none';
+    }
+  });
 }
 
 async function initApp(){ await loadTeam(); await loadClients(); setView('dashboard'); initPresence(); }
@@ -1494,17 +1515,6 @@ function renderCard(pack){
 function dragStart(e,id){ dragPackId=id; e.dataTransfer.effectAllowed='move'; setTimeout(()=>document.getElementById('kc-'+id)?.classList.add('dragging'),0); }
 function dragEnd(e){ document.querySelectorAll('.kcard,.kcol').forEach(c=>c.classList.remove('dragging','drag-over')); }
 
-async function dropGlobalPack(e,toStatus){
-  e.preventDefault();
-  document.querySelectorAll('.gkcol').forEach(c=>c.classList.remove('drag-over'));
-  if(!dragPackId) return;
-  const p=packs[dragPackId]; if(!p) return;
-  const {db,doc,updateDoc}=window._fb;
-  p.status=toStatus; await updateDoc(doc(db,'packs',dragPackId),{status:toStatus});
-  dragPackId=null;
-  renderGlobalKanban(document.getElementById('todos-tab'));
-  showToast('Status atualizado!','ok');
-}
 async function dropPack(e,to){
   e.preventDefault(); document.querySelectorAll('.kcol').forEach(c=>c.classList.remove('drag-over'));
   if(!dragPackId) return;
@@ -3130,6 +3140,12 @@ let _pomodoroInterval = null;
 let _pomodoroMode = 'work'; // work or break
 
 async function renderTarefas(){
+  // Proteção: só admin acessa
+  if(currentUserData?.role !== 'admin'){
+    const main=document.getElementById('main');
+    main.innerHTML=`<div class="ph"><div class="ptitle">🔒 Acesso restrito</div><div class="psub">Esta área é exclusiva para administradores.</div></div>`;
+    return;
+  }
   const main=document.getElementById('main');
   
   // Count open tasks for mini-dash
@@ -3792,183 +3808,128 @@ async function exportRoteiros(packId,clientName,modalEl){
   modalEl.remove();
   showToast('Gerando roteiros...','inf');
 
-  const today=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
   const monthLabel=pack?.month||'';
+  
+  // Logo Aluma em base64
+  const ALUMA_LOGO = 'data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAH0AfQDASIAAhEBAxEB/8QAHAABAAMAAwEBAAAAAAAAAAAAAAQFBgMHCAEC/8QARRABAAEEAQMCBAAJCQQLAQAAAAECAwQFEQYSITFRBxNBYRQVIlJicYGRoQgWIzI2QnKCszN0sbIkNTdDc3WDksHC0eH/xAAbAQEAAgMBAQAAAAAAAAAAAAAAAQMCBAYFB//EAC0RAQACAQIDBwMEAwAAAAAAAAABAgMEEQUSIRMxQVFhcdEG4fAUIpGxQ6HB/9oADAMBEQCEQD/EABQAQAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A/VAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//9k=';
 
-  // Build HTML matching the Aluma template exactly
-  let html=`<html><head><meta charset="UTF-8">
+  // Build clean HTML for PDF - NO modal elements
+  let html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Roteiros ${monthLabel} - ${clientName}</title>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;padding:40px;}
-    .header{text-align:center;margin-bottom:32px;}
-    .logo{font-size:22px;font-weight:800;letter-spacing:-.5px;color:#8483ff;margin-bottom:4px;}
-    .logo span{color:#111;}
-    .doc-title{font-size:20px;font-weight:700;margin-bottom:2px;}
-    .doc-sub{font-size:13px;color:#888;}
-    table{width:100%;border-collapse:collapse;margin-bottom:32px;page-break-inside:avoid;}
-    th,td{border:1px solid #e0e0e0;padding:10px 14px;vertical-align:top;text-align:left;}
-    .video-hdr{background:#6d5acd;color:#fff;font-weight:700;font-size:13px;letter-spacing:.3px;}
-    .video-num{background:#6d5acd;color:#fff;font-weight:700;font-size:13px;min-width:80px;}
-    .ori-hdr{background:#ff6b35;color:#fff;font-weight:700;font-size:12px;}
-    .ori-cell{background:#fff3ee;font-size:12.5px;line-height:1.6;color:#c44b00;font-weight:600;}
-    .scene-num{font-weight:700;font-size:13px;color:#333;min-width:40px;text-align:center;}
-    .scene-text{font-size:13px;line-height:1.7;color:#222;}
-    .even{background:#fafafa;}
-    @media print{body{padding:20px;}table{page-break-inside:avoid;}}
-  </style></head><body>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 20mm; }
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      background: #fff; 
+      color: #1a1a2e; 
+      padding: 40px;
+      line-height: 1.6;
+    }
+    .header { 
+      text-align: center; 
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #8483ff;
+    }
+    .logo-img {
+      height: 50px;
+      margin-bottom: 8px;
+    }
+    .logo-text {
+      font-size: 28px;
+      font-weight: 800;
+      color: #8483ff;
+      margin-bottom: 4px;
+    }
+    .logo-text span {
+      color: #666;
+      font-weight: 400;
+      font-size: 14px;
+      margin-left: 8px;
+    }
+    .doc-title { 
+      font-size: 22px; 
+      font-weight: 700; 
+      color: #8483ff;
+      margin-top: 12px;
+    }
+    .roteiro-block {
+      margin-bottom: 40px;
+      page-break-inside: avoid;
+    }
+    .roteiro-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: linear-gradient(90deg, #8483ff22, transparent);
+      border-left: 4px solid #8483ff;
+      border-radius: 0 8px 8px 0;
+    }
+    .roteiro-content {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #333;
+      padding: 0 16px;
+      white-space: pre-wrap;
+    }
+    .divider {
+      height: 1px;
+      background: #e0e0e0;
+      margin: 30px 0;
+    }
+    @media print {
+      body { padding: 20px; }
+      .roteiro-block { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
   <div class="header">
-    <div class="logo">⚡aluma <span>MARKETING DE CONTEÚDO</span></div>
+    <div class="logo-text">⚡aluma <span>MARKETING DE CONTEÚDO</span></div>
     <div class="doc-title">Roteiros - ${clientName} | ${monthLabel}</div>
   </div>`;
 
-  selPosts.forEach((p,i)=>{
-    const videoNum=String(i+1).padStart(2,'0');
-    // Parse scenes from designBriefing — each non-empty paragraph = one scene
-    const rawText=p.designBriefing||p.references||'';
-    const paragraphs=rawText.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
-    // Check if already numbered (starts with digits)
-    const scenes=paragraphs.length>0?paragraphs:['(sem conteúdo)'];
-    const orientacoes=p.references&&p.designBriefing?p.references:'';
-    const videoTitle=(p.title||'Vídeo '+(i+1)).replace(/^Post \d+ - /,'').toUpperCase();
-
-    html+=`<table>
-      <tr><th class="video-num">VÍDEO ${videoNum}</th><th class="video-hdr">${videoTitle}</th></tr>
-      ${orientacoes?`<tr><td class="ori-hdr">Orientações</td><td class="ori-cell">${orientacoes}</td></tr>`:''}
-      ${scenes.map((scene,si)=>{
-        // Check if scene starts with a number, if so use that, else auto-number
-        const match=scene.match(/^(\d+)[\.\)\s]+(.+)/);
-        const num=match?match[1]:String(si+1).padStart(2,'0');
-        const text=match?match[2]:scene;
-        return `<tr class="${si%2===1?'even':''}"><td class="scene-num">${num}</td><td class="scene-text">${text}</td></tr>`;
-      }).join('')}
-    </table>`;
+  selPosts.forEach((p, i) => {
+    const videoNum = i + 1;
+    const title = p.title || 'Roteiro ' + videoNum;
+    // Use designBriefing as the script content
+    const content = (p.designBriefing || p.caption || '').trim() || '(sem conteúdo)';
+    
+    html += `
+  <div class="roteiro-block">
+    <div class="roteiro-title">Roteiro ${videoNum}: ${title.replace(/^Post \\d+ - /, '')}</div>
+    <div class="roteiro-content">${content.replace(/\n/g, '<br>')}</div>
+  </div>
+  ${i < selPosts.length - 1 ? '<div class="divider"></div>' : ''}`;
   });
 
-  html+=`
-<!-- TASK MODAL -->
-<div class="mo" id="task-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle" id="task-modal-title">Nova tarefa</div></div><button class="mclose" onclick="document.getElementById('task-mo').classList.remove('open')">×</button></div>
-    <div style="padding:20px">
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Título</label><input class="fi" id="t-title" placeholder="Ex: Gravar vídeos da Natália"></div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Descrição</label><textarea class="fta" id="t-desc" rows="2" placeholder="Detalhes..."></textarea></div>
-      <div class="fgrid" style="margin-bottom:12px">
-        <div class="ff"><label class="flbl">Prioridade</label>
-          <select class="fs" id="t-priority">
-            <option value="alta">🔴 Alta</option>
-            <option value="media" selected>🟡 Média</option>
-            <option value="baixa">🟢 Baixa</option>
-          </select>
-        </div>
-        <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" id="t-due"></div>
-      </div>
-      <div class="ff" style="margin-bottom:14px"><label class="flbl">Responsáveis</label>
-        <div class="assignee-grid" id="t-assignees"></div>
-      </div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveTask()">Salvar</button>
-        <button class="btn btn-s" onclick="document.getElementById('task-mo').classList.remove('open')">Cancelar</button>
-        <button class="btn btn-d btn-sm" id="t-delete-btn" style="display:none;margin-left:auto" onclick="deleteTask()">🗑 Excluir</button>
-      </div>
-    </div>
-  </div>
-</div>
+  html += `
+</body>
+</html>`;
 
-
-<!-- COMERCIAL: CLIENTE MODAL -->
-<div class="mo" id="com-cliente-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr">
-      <div class="mhdr-info"><div class="mtitle" id="ccl-modal-title">Novo cliente</div></div>
-      <button class="mclose" onclick="closeComClienteModal()">×</button>
-    </div>
-    <div style="padding:20px;overflow-y:auto;max-height:80vh">
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Nome</label><input class="fi" id="ccl-name" placeholder="Nome do cliente"></div>
-        <div class="ff"><label class="flbl">@ Instagram</label><input class="fi" id="ccl-instagram" placeholder="@handle"></div>
-      </div>
-      <div class="ff" style="margin-bottom:10px"><label class="flbl">Nicho</label><input class="fi" id="ccl-niche" placeholder="Ex: Dentista, Advogado..."></div>
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Valor do contrato (R$/mês)</label><input type="number" class="fi" id="ccl-valor" placeholder="0,00"></div>
-        <div class="ff"><label class="flbl">Custo operacional (R$/mês) <span class="tooltip-icon" title="Quanto custa atender este cliente (horas da equipe, ferramentas específicas, etc.)">?</span></label><input type="number" class="fi" id="ccl-custo" placeholder="0,00"></div>
-      </div>
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Início do contrato</label><input type="date" class="fi" id="ccl-inicio"></div>
-        <div class="ff"><label class="flbl">Término do contrato</label><input type="date" class="fi" id="ccl-fim"></div>
-      </div>
-      <div class="ff" style="margin-bottom:10px">
-        <label class="flbl">Status</label>
-        <select class="fs" id="ccl-status">
-          <option value="ativo">✅ Ativo</option>
-          <option value="pausado">⏸ Pausado</option>
-          <option value="encerrado">❌ Encerrado</option>
-        </select>
-      </div>
-      <div class="ff" style="margin-bottom:14px"><label class="flbl">Observações</label><textarea class="fta" id="ccl-obs" rows="2" placeholder="Notas sobre o cliente..."></textarea></div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveComCliente()">Salvar</button>
-        <button class="btn btn-s" onclick="closeComClienteModal()">Cancelar</button>
-        <button class="btn btn-d btn-sm" id="ccl-delete-btn" style="display:none;margin-left:auto" onclick="deleteComCliente()">🗑 Excluir</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- COMERCIAL: PROSPECT MODAL -->
-<div class="mo" id="com-prospect-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr">
-      <div class="mhdr-info"><div class="mtitle" id="cp-modal-title">Novo prospect</div></div>
-      <button class="mclose" onclick="closeProspectModal()">×</button>
-    </div>
-    <div style="padding:20px">
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Nome</label><input class="fi" id="cp-name" placeholder="Nome ou empresa"></div>
-        <div class="ff"><label class="flbl">@ Instagram</label><input class="fi" id="cp-instagram" placeholder="@handle"></div>
-      </div>
-      <div class="fgrid" style="margin-bottom:10px">
-        <div class="ff"><label class="flbl">Nicho</label><input class="fi" id="cp-niche" placeholder="Ex: Médico, Restaurante..."></div>
-        <div class="ff"><label class="flbl">Valor proposto (R$/mês)</label><input type="number" class="fi" id="cp-valor" placeholder="0,00"></div>
-      </div>
-      <div class="ff" style="margin-bottom:10px">
-        <label class="flbl">Etapa do pipeline</label>
-        <select class="fs" id="cp-status">
-          <option value="prospeccao">Prospecção</option>
-          <option value="contato">Contato</option>
-          <option value="proposta">Proposta</option>
-          <option value="negociacao">Negociação</option>
-          <option value="fechado">✅ Fechado</option>
-          <option value="perdido">❌ Perdido</option>
-        </select>
-      </div>
-      <div class="ff" style="margin-bottom:14px"><label class="flbl">Observações</label><textarea class="fta" id="cp-obs" rows="2" placeholder="Notas, próximos passos..."></textarea></div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveProspect()">Salvar</button>
-        <button class="btn btn-s" onclick="closeProspectModal()">Cancelar</button>
-        <button class="btn btn-d btn-sm" id="cp-delete-btn" style="display:none;margin-left:auto" onclick="deleteProspect()">🗑 Excluir</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-</body></html>`;
-
-  const w=window.open('','_blank');
-  if(!w){ showToast('Permita pop-ups para gerar o roteiro','err'); return; }
-  w.document.write(html); w.document.clos
-// ===== RELATÓRIO MENSAL =====
-
-
-
-
-
-
-
-
-
-e();
-  setTimeout(()=>w.print(),700);
-  showToast('Roteiro pronto!','ok');
+  // Open in new window and trigger print
+  const w = window.open('', '_blank');
+  if (!w) { 
+    showToast('Permita pop-ups para gerar o roteiro', 'err'); 
+    return; 
+  }
+  w.document.write(html);
+  w.document.close();
+  
+  // Set document title for PDF filename
+  w.document.title = 'Roteiros ' + monthLabel + ' - ' + clientName;
+  
+  setTimeout(() => {
+    w.print();
+  }, 500);
+  
+  showToast('Roteiro pronto!', 'ok');
 }
 
 async function saveOrientacoes(text){
@@ -4879,6 +4840,12 @@ const CUSTO_CATEGORIAS = [
 ];
 
 async function renderComercial(){
+  // Proteção: só admin acessa
+  if(currentUserData?.role !== 'admin'){
+    const main = document.getElementById('main');
+    main.innerHTML=`<div class="ph"><div class="ptitle">🔒 Acesso restrito</div><div class="psub">Esta área é exclusiva para administradores.</div></div>`;
+    return;
+  }
   const main = document.getElementById('main');
   main.innerHTML = `<div class="ph">
     <div class="ptitle">💼 Comercial</div>
