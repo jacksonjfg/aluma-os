@@ -948,15 +948,15 @@ async function loadUD(){
 
 function applyAccessControl(){
   const isAdmin = currentUserData?.role === 'admin';
-  // Topbar tabs
+  // Topbar tabs - só Comercial é restrito
   document.querySelectorAll('.ttab').forEach(tab => {
-    if(tab.textContent.includes('Tarefas') || tab.textContent.includes('Comercial')){
+    if(tab.textContent.includes('Comercial')){
       tab.style.display = isAdmin ? '' : 'none';
     }
   });
-  // Sidebar items
+  // Sidebar items - só Comercial é restrito
   document.querySelectorAll('.sb-item').forEach(item => {
-    if(item.textContent.includes('Tarefas') || item.textContent.includes('Comercial')){
+    if(item.textContent.includes('Comercial')){
       item.style.display = isAdmin ? '' : 'none';
     }
   });
@@ -2329,12 +2329,12 @@ async function renderDocsInto(container){ container.setAttribute('style','flex:1
   // Helper to render links properly
   const renderLinkField = (key, label) => {
     const val = d[key]||'';
-    const isLink = val.startsWith('http');
+    const isLink = val && val.length > 0 && (val.startsWith('http://') || val.startsWith('https://'));
     return `<div style="margin-bottom:9px">
       <div class="flbl" style="margin-bottom:3px">${label}</div>
       <div style="display:flex;gap:5px">
         <input class="di" value="${val}" placeholder="https://..." onchange="sdf('${key}',this.value)" style="flex:1">
-        ${isLink?`<a href="${val}" target="_blank" class="btn btn-s btn-sm" style="text-decoration:none">↗ Abrir</a>`:''}
+        ${isLink?`<a href="${val}" target="_blank" class="btn btn-s btn-sm" style="text-decoration:none;white-space:nowrap">↗ Abrir</a>`:`<span class="btn btn-s btn-sm" style="opacity:0.4;cursor:default;white-space:nowrap">↗ Abrir</span>`}
       </div>
     </div>`;
   };
@@ -3140,12 +3140,6 @@ let _pomodoroInterval = null;
 let _pomodoroMode = 'work'; // work or break
 
 async function renderTarefas(){
-  // Proteção: só admin acessa
-  if(currentUserData?.role !== 'admin'){
-    const main=document.getElementById('main');
-    main.innerHTML=`<div class="ph"><div class="ptitle">🔒 Acesso restrito</div><div class="psub">Esta área é exclusiva para administradores.</div></div>`;
-    return;
-  }
   const main=document.getElementById('main');
   
   // Count open tasks for mini-dash
