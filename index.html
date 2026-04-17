@@ -1074,7 +1074,7 @@ async function renderDashboard(){
   const main=document.getElementById('main');
   const fn=(currentUserData?.name||'').split(' ')[0];
   main.innerHTML=`<div class="ph">
-    <div class="dash-greet"><div class="dash-greet-title">Excelente trabalho, <span>${fn}</span>! ðŸ‘‹</div><div class="dash-verse">${(()=>{const v=getDailyVerse();return `"${v.text}" <span>${v.ref}</span>`})()}</div></div>
+    <div class="dash-greet"><div class="dash-greet-title">Excelente trabalho, <span>${fn}</span>! &#128075;</div><div class="dash-verse">${(()=>{const v=getDailyVerse();return `"${v.text}" <span>${v.ref}</span>`})()}</div></div>
     <div class="dash-mnav">
       <button class="calnav-btn" onclick="changeDM(-1)">‹</button>
       <div class="dash-mlbl" id="dm-lbl"></div>
