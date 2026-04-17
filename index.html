@@ -1160,8 +1160,19 @@ async function renderDashData(){
   const tomorrowBase=addDays(todayBase,1);
   const weekBase=addDays(todayBase,7);
   const finalStatuses=['entregue','agendamento','concluido'];
-  const packDemandItems=mP
-    .filter(p=>p.dueDate&&!finalStatuses.includes(p.status))
+  const currentMember=TEAM.find(member=>{
+    const userName=(currentUserData?.name||'').toLowerCase();
+    const userEmail=(currentUserData?.email||currentUser?.email||'').toLowerCase();
+    const memberName=(member.name||'').toLowerCase();
+    return member.id===currentUserData?.teamId ||
+      member.id===currentUserData?.memberId ||
+      userName.includes(memberName) ||
+      userEmail.includes(member.id) ||
+      userEmail.includes(memberName.split(' ')[0]);
+  }) || TEAM.find(member=>member.id==='jackson'&&((currentUserData?.name||'').toLowerCase().includes('jackson')||(currentUser?.email||'').toLowerCase().includes('jackson')));
+  const personalMemberId=currentMember?.id||'';
+  const packDemandItems=AP
+    .filter(p=>p.dueDate&&!finalStatuses.includes(p.status)&&(p.assignees||[]).includes(personalMemberId))
     .map(p=>({pack:p,due:parseDueDate(p.dueDate)}))
     .filter(x=>x.due)
     .sort((a,b)=>a.due-b.due);
@@ -1171,7 +1182,7 @@ async function renderDashData(){
     const client=clients[p.clientId]||{};
     const dueTxt=smartDate(p.dueDate);
     const dueColor=item.due<todayBase?'var(--red)':dueTxt==='hoje'?'var(--orange)':'var(--text3)';
-    return `<button type="button" onclick="currentClientId='${p.clientId}';openPack('${p.id}')" style="width:100%;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 10px;cursor:pointer;display:flex;gap:9px;align-items:flex-start">
+    return `<button type="button" onclick="currentClientId='${p.clientId}';openPack('${p.id}')" style="width:100%;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 11px;cursor:pointer;display:flex;gap:9px;align-items:flex-start">
       <span style="width:8px;height:8px;border-radius:99px;background:${STATUS_SOLID[p.status]||'var(--accent)'};margin-top:6px;flex-shrink:0"></span>
       <span style="min-width:0;flex:1">
         <span style="display:block;font-size:12.5px;font-weight:750;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.type||'Pack'} — ${client.name||'Cliente'}</span>
@@ -1185,27 +1196,21 @@ async function renderDashData(){
   };
   const demandSection=(title,items,empty)=>`<div>
     <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:0 0 7px">${title}</div>
-    <div style="display:flex;flex-direction:column;gap:7px">${items.length?items.map(demandCard).join(''):`<div style="font-size:12px;color:var(--text3);padding:9px 10px;background:var(--bg3);border:1px dashed var(--border);border-radius:8px">${empty}</div>`}</div>
+    <div style="display:flex;flex-direction:column;gap:7px">${items.length?items.map(demandCard).join(''):`<div style="font-size:12px;color:var(--text3);padding:10px 11px;background:var(--bg3);border:1px dashed var(--border);border-radius:8px">${empty}</div>`}</div>
   </div>`;
-  const demandHtml=TEAM.map(member=>{
-    const mine=packDemandItems.filter(item=>(item.pack.assignees||[]).includes(member.id));
-    const todayItems=mine.filter(item=>item.due<tomorrowBase);
-    const upcomingItems=mine.filter(item=>item.due>=tomorrowBase&&item.due<=weekBase).slice(0,5);
-    if(!todayItems.length&&!upcomingItems.length) return '';
-    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:11px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-        <div style="display:flex;align-items:center;gap:9px;min-width:0">
-          <div style="width:28px;height:28px;border-radius:50%;background:${member.color||'var(--accent)'};color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">${(member.name||'?').charAt(0).toUpperCase()}</div>
-          <div style="min-width:0">
-            <div style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${member.name}</div>
-            <div style="font-size:11px;color:var(--text3)">${todayItems.length} hoje · ${upcomingItems.length} próximas</div>
-          </div>
-        </div>
+  const personalTodayItems=packDemandItems.filter(item=>item.due<tomorrowBase);
+  const personalUpcomingItems=packDemandItems.filter(item=>item.due>=tomorrowBase&&item.due<=weekBase).slice(0,8);
+  const demandHtml=personalMemberId?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:9px;min-width:0">
+      <div style="width:30px;height:30px;border-radius:50%;background:${currentMember?.color||'var(--accent)'};color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">${(currentMember?.name||currentUserData?.name||'?').charAt(0).toUpperCase()}</div>
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Minhas demandas</div>
+        <div style="font-size:11px;color:var(--text3)">${personalTodayItems.length} hoje · ${personalUpcomingItems.length} próximas</div>
       </div>
-      ${demandSection('Demandas do dia',todayItems,'Nada para hoje')}
-      ${demandSection('Próximas demandas',upcomingItems,'Nada nos próximos 7 dias')}
-    </div>`;
-  }).filter(Boolean).join('')||`<div style="height:100%;min-height:160px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text3);font-size:13px;background:var(--bg2);border:1px dashed var(--border);border-radius:10px;padding:18px">Nenhuma demanda com responsável e data de entrega nos próximos dias.</div>`;
+    </div>
+    ${demandSection('Demandas do dia',personalTodayItems,'Nada para hoje')}
+    ${demandSection('Próximas demandas',personalUpcomingItems,'Nada nos próximos 7 dias')}
+  </div>`:`<div style="height:100%;min-height:160px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text3);font-size:13px;background:var(--bg2);border:1px dashed var(--border);border-radius:10px;padding:18px">Não encontrei seu usuário vinculado a um membro da equipe.</div>`;
 
   inner.innerHTML=`
     <!-- TOP: indicadores + demandas da equipe -->
@@ -1247,8 +1252,8 @@ async function renderDashData(){
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;min-height:318px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px">
           <div>
-            <div style="font-size:13px;font-weight:850;color:var(--text)">Resumo de demandas da equipe</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Baseado na data de entrega do pack e no responsável</div>
+            <div style="font-size:13px;font-weight:850;color:var(--text)">Minhas demandas</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">Baseado na data de entrega dos packs atribuídos a você</div>
           </div>
           <span style="font-size:10px;font-weight:800;color:var(--accent);background:rgba(132,131,255,.12);border:1px solid rgba(132,131,255,.25);border-radius:999px;padding:5px 8px">Hoje + 7 dias</span>
         </div>
@@ -2783,15 +2788,15 @@ async function genClientPDF(packId,clientName,modalEl){
     @media print{
       .page{page-break-after:always;}
       body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .pdf-print-actions{position:fixed;top:14px;right:14px;z-index:9999}
-      .pdf-print-actions button{border:0;border-radius:8px;background:#8483ff;color:#fff;font-weight:800;padding:11px 15px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+      .pdf-print-actions{position:fixed;right:22px;bottom:22px;z-index:9999;display:flex;align-items:center;justify-content:center}
+      .pdf-print-actions button{border:1px solid rgba(255,255,255,.22);border-radius:999px;background:linear-gradient(135deg,#8483ff,#6d5dfc);color:#fff;font-weight:850;padding:13px 18px;cursor:pointer;box-shadow:0 14px 34px rgba(20,18,55,.28);display:inline-flex;align-items:center;gap:9px;font-family:Segoe UI,Arial,sans-serif;font-size:14px;letter-spacing:.01em}.pdf-print-actions button::before{content:"📄";font-size:16px}.pdf-print-actions button:hover{transform:translateY(-1px);box-shadow:0 18px 38px rgba(20,18,55,.34)}
       @media print{.pdf-print-actions{display:none}}
     }`;
 
   // Nome do arquivo para salvamento
   const pdfFileName = `Conteúdos ${pack?.month || ''} - ${clientName}`;
 
-  let html=`<html><head><meta charset="UTF-8"><title>${pdfFileName}</title><style>${css}</style></head><body><div class="pdf-print-actions"><button onclick="window.print()">Salvar PDF / Imprimir</button></div>`;
+  let html=`<html><head><meta charset="UTF-8"><title>${pdfFileName}</title><style>${css}</style></head><body><div class="pdf-print-actions"><button onclick="window.print()">Salvar PDF</button></div>`;
 
   // ── PAGE 1: COVER com background da Aluma ──
   html+=`<div class="page cover">
@@ -5932,7 +5937,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js').catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=5').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
