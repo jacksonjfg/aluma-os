@@ -1148,62 +1148,113 @@ async function renderDashData(){
     if(mgSnap.exists()) magicDate=mgSnap.data()[mn]||'';
   }catch(e){}
 
-  inner.innerHTML=`
-    <!-- TOP ROW: 3 columns -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
-
-      <!-- COL 1: MAGIC NUMBER (vermelho) -->
-      <div style="background:linear-gradient(135deg,rgba(132,131,255,0.15),rgba(132,131,255,0.05));border:1.5px solid rgba(132,131,255,0.3);border-radius:var(--r);padding:18px 20px">
-        <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">✨ Magic Number</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Data de entrega — ${mn} ${yr}</div>
-        <div style="font-size:44px;font-weight:800;letter-spacing:-2px;color:var(--text);line-height:1;margin-bottom:6px">
-          ${magicDate?formatMagicDate(magicDate):'—'}
-        </div>
-        ${magicDate?`<div style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:5px">${daysUntilMagic(magicDate)}</div>`:''}
-        <div style="margin-top:12px;display:flex;gap:6px">
-          <button class="btn btn-s btn-sm" onclick="document.getElementById('magic-input-${mo}-${yr}').showPicker?.()??document.getElementById('magic-input-${mo}-${yr}').click()" style="font-size:11px">
-            ${magicDate?'✏️ Alterar':'📅 Definir'}
-          </button>
-          ${magicDate?`<button class="btn btn-d btn-sm" onclick="saveMagicNumber('${mn}','')" style="font-size:11px">Remover</button>`:''}
-        </div>
-        <input type="date" id="magic-input-${mo}-${yr}" value="${magicDate||''}" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="saveMagicNumber('${mn}',this.value)">
-      </div>
-
-      <!-- COL 2: POSTS DO MÊS (azul) -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;justify-content:center">
-        <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:14px">📦 Posts ${mn}</div>
-        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
-          <div style="font-size:48px;font-weight:800;letter-spacing:-2px;line-height:1;color:var(--text)">${mPs.length}</div>
-          <div style="font-size:14px;color:var(--text3)">no total</div>
-        </div>
-        <div style="font-size:13px;color:var(--green);font-weight:600">${mPs.filter(p=>p.status==='concluido').length} finalizados</div>
-        <div style="margin-top:10px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:${mPs.length?Math.round(mPs.filter(p=>p.status==='concluido').length/mPs.length*100):0}%;background:var(--green);border-radius:2px;transition:width .6s"></div>
-        </div>
-      </div>
-
-      <!-- COL 3: ANDAMENTO DA PAUTA (amarelo) -->
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative">
-        <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;align-self:flex-start">📊 Andamento da pauta</div>
-        ${(()=>{
-          // % of packs with status "entregue" this month
-          const entregues=mP.filter(p=>p.status==='entregue').length;
-          const pct=mP.length?Math.round(entregues/mP.length*100):0;
-          const r=54; const circ=2*Math.PI*r;
-          const dash=pct/100*circ;
-          const celebrate=pct>=100;
-          return `<div style="position:relative;width:120px;height:120px;margin:0 auto 8px">
-            <svg width="120" height="120" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="10"/>
-              <circle cx="60" cy="60" r="${r}" fill="none" stroke="${celebrate?'#4ade80':'var(--accent)'}" stroke-width="10"
-                stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}"
-                stroke-linecap="round" style="transition:stroke-dasharray .6s"/>
-            </svg>
-            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">${pct}%</div>
+  const parseDueDate=(value)=>{
+    if(!value) return null;
+    const parts=String(value).split('-').map(Number);
+    if(parts.length<3||!parts[0]||!parts[1]||!parts[2]) return null;
+    return new Date(parts[0],parts[1]-1,parts[2]);
+  };
+  const dayStart=(d)=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+  const todayBase=dayStart(new Date());
+  const tomorrowBase=addDays(todayBase,1);
+  const weekBase=addDays(todayBase,7);
+  const finalStatuses=['entregue','agendamento','concluido'];
+  const packDemandItems=mP
+    .filter(p=>p.dueDate&&!finalStatuses.includes(p.status))
+    .map(p=>({pack:p,due:parseDueDate(p.dueDate)}))
+    .filter(x=>x.due)
+    .sort((a,b)=>a.due-b.due);
+  const statusLabel=(id)=>(STATUSES.find(s=>s.id===id)||{}).label||id||'';
+  const demandCard=(item)=>{
+    const p=item.pack;
+    const client=clients[p.clientId]||{};
+    const dueTxt=smartDate(p.dueDate);
+    const dueColor=item.due<todayBase?'var(--red)':dueTxt==='hoje'?'var(--orange)':'var(--text3)';
+    return `<button type="button" onclick="currentClientId='${p.clientId}';openPack('${p.id}')" style="width:100%;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 10px;cursor:pointer;display:flex;gap:9px;align-items:flex-start">
+      <span style="width:8px;height:8px;border-radius:99px;background:${STATUS_SOLID[p.status]||'var(--accent)'};margin-top:6px;flex-shrink:0"></span>
+      <span style="min-width:0;flex:1">
+        <span style="display:block;font-size:12.5px;font-weight:750;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.type||'Pack'} — ${client.name||'Cliente'}</span>
+        <span style="display:flex;align-items:center;gap:7px;margin-top:3px;font-size:11px;color:var(--text3);flex-wrap:wrap">
+          <span style="color:${dueColor};font-weight:700">${dueTxt}</span>
+          <span>${statusLabel(p.status)}</span>
+          <span>${p.postCount||0} posts</span>
+        </span>
+      </span>
+    </button>`;
+  };
+  const demandSection=(title,items,empty)=>`<div>
+    <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:0 0 7px">${title}</div>
+    <div style="display:flex;flex-direction:column;gap:7px">${items.length?items.map(demandCard).join(''):`<div style="font-size:12px;color:var(--text3);padding:9px 10px;background:var(--bg3);border:1px dashed var(--border);border-radius:8px">${empty}</div>`}</div>
+  </div>`;
+  const demandHtml=TEAM.map(member=>{
+    const mine=packDemandItems.filter(item=>(item.pack.assignees||[]).includes(member.id));
+    const todayItems=mine.filter(item=>item.due<tomorrowBase);
+    const upcomingItems=mine.filter(item=>item.due>=tomorrowBase&&item.due<=weekBase).slice(0,5);
+    if(!todayItems.length&&!upcomingItems.length) return '';
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:11px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="display:flex;align-items:center;gap:9px;min-width:0">
+          <div style="width:28px;height:28px;border-radius:50%;background:${member.color||'var(--accent)'};color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">${(member.name||'?').charAt(0).toUpperCase()}</div>
+          <div style="min-width:0">
+            <div style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${member.name}</div>
+            <div style="font-size:11px;color:var(--text3)">${todayItems.length} hoje · ${upcomingItems.length} próximas</div>
           </div>
-          <div style="font-size:11px;color:var(--text3);text-align:center">${entregues} de ${mP.length} packs entregues</div>
-          ${celebrate?`<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:4px;text-align:center">🎉 Magic Number batido!</div>`:''}`;
-        })()}
+        </div>
+      </div>
+      ${demandSection('Demandas do dia',todayItems,'Nada para hoje')}
+      ${demandSection('Próximas demandas',upcomingItems,'Nada nos próximos 7 dias')}
+    </div>`;
+  }).filter(Boolean).join('')||`<div style="height:100%;min-height:160px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text3);font-size:13px;background:var(--bg2);border:1px dashed var(--border);border-radius:10px;padding:18px">Nenhuma demanda com responsável e data de entrega nos próximos dias.</div>`;
+
+  inner.innerHTML=`
+    <!-- TOP: indicadores + demandas da equipe -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px;margin-bottom:16px;align-items:stretch">
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start">
+        <div style="background:linear-gradient(135deg,rgba(132,131,255,0.15),rgba(132,131,255,0.05));border:1.5px solid rgba(132,131,255,0.3);border-radius:var(--r);padding:16px 18px;min-height:154px">
+          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">✨ Magic Number</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Data de entrega — ${mn} ${yr}</div>
+          <div style="font-size:40px;font-weight:800;letter-spacing:-1px;color:var(--text);line-height:1;margin-bottom:6px">${magicDate?formatMagicDate(magicDate):'—'}</div>
+          ${magicDate?`<div style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:5px">${daysUntilMagic(magicDate)}</div>`:''}
+          <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-s btn-sm" onclick="document.getElementById('magic-input-${mo}-${yr}').showPicker?.()??document.getElementById('magic-input-${mo}-${yr}').click()" style="font-size:11px">${magicDate?'✏️ Alterar':'📅 Definir'}</button>
+            ${magicDate?`<button class="btn btn-d btn-sm" onclick="saveMagicNumber('${mn}','')" style="font-size:11px">Remover</button>`:''}
+          </div>
+          <input type="date" id="magic-input-${mo}-${yr}" value="${magicDate||''}" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="saveMagicNumber('${mn}',this.value)">
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;min-height:154px;display:flex;flex-direction:column;justify-content:center">
+          <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:14px">📦 Posts ${mn}</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+            <div style="font-size:44px;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--text)">${mPs.length}</div>
+            <div style="font-size:14px;color:var(--text3)">no total</div>
+          </div>
+          <div style="font-size:13px;color:var(--green);font-weight:600">${mPs.filter(p=>p.status==='concluido').length} finalizados</div>
+          <div style="margin-top:10px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${mPs.length?Math.round(mPs.filter(p=>p.status==='concluido').length/mPs.length*100):0}%;background:var(--green);border-radius:2px;transition:width .6s"></div>
+          </div>
+        </div>
+
+        <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;display:flex;align-items:center;gap:18px;min-height:150px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:9px">📊 Andamento da pauta</div>
+            ${(()=>{const entregues=mP.filter(p=>p.status==='entregue').length;const pct=mP.length?Math.round(entregues/mP.length*100):0;return `<div style="font-size:13px;color:var(--text3)">${entregues} de ${mP.length} packs entregues</div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-top:12px"><div style="height:100%;width:${pct}%;background:${pct>=100?'#4ade80':'var(--accent)'};border-radius:4px;transition:width .6s"></div></div>${pct>=100?`<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:8px">🎉 Magic Number batido!</div>`:''}`})()}
+          </div>
+          ${(()=>{const entregues=mP.filter(p=>p.status==='entregue').length;const pct=mP.length?Math.round(entregues/mP.length*100):0;const r=43;const circ=2*Math.PI*r;const dash=pct/100*circ;return `<div style="position:relative;width:100px;height:100px;flex-shrink:0"><svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="9"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${pct>=100?'#4ade80':'var(--accent)'}" stroke-width="9" stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">${pct}%</div></div>`})()}
+        </div>
+      </div>
+
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;min-height:318px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px">
+          <div>
+            <div style="font-size:13px;font-weight:850;color:var(--text)">Resumo de demandas da equipe</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">Baseado na data de entrega do pack e no responsável</div>
+          </div>
+          <span style="font-size:10px;font-weight:800;color:var(--accent);background:rgba(132,131,255,.12);border:1px solid rgba(132,131,255,.25);border-radius:999px;padding:5px 8px">Hoje + 7 dias</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;max-height:420px;overflow:auto;padding-right:2px">
+          ${demandHtml}
+        </div>
       </div>
     </div>
 
@@ -2732,12 +2783,15 @@ async function genClientPDF(packId,clientName,modalEl){
     @media print{
       .page{page-break-after:always;}
       body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .pdf-print-actions{position:fixed;top:14px;right:14px;z-index:9999}
+      .pdf-print-actions button{border:0;border-radius:8px;background:#8483ff;color:#fff;font-weight:800;padding:11px 15px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+      @media print{.pdf-print-actions{display:none}}
     }`;
 
   // Nome do arquivo para salvamento
   const pdfFileName = `Conteúdos ${pack?.month || ''} - ${clientName}`;
 
-  let html=`<html><head><meta charset="UTF-8"><title>${pdfFileName}</title><style>${css}</style></head><body>`;
+  let html=`<html><head><meta charset="UTF-8"><title>${pdfFileName}</title><style>${css}</style></head><body><div class="pdf-print-actions"><button onclick="window.print()">Salvar PDF / Imprimir</button></div>`;
 
   // ── PAGE 1: COVER com background da Aluma ──
   html+=`<div class="page cover">
@@ -2824,8 +2878,8 @@ async function genClientPDF(packId,clientName,modalEl){
     Promise.all([...imgLoads,fontLoad]).then(done);
     setTimeout(done,2500);
   });
-  w.focus(); w.print();
-  showToast('PDF pronto!','ok');
+  w.focus();
+  showToast('PDF aberto em nova aba','ok');
 }
 
 
