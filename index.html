@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -694,6 +694,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
       <button class="ttab" onclick="setView('tarefas')">✅ Tarefas</button>
       <button class="ttab" onclick="setView('pauta')">📅 Pauta</button>
       <button class="ttab" onclick="setView('comercial')">💼 Comercial</button>
+      <button class="ttab" onclick="setView('perfilAluma')">⚡ Perfil Aluma</button>
     </div>
     <div class="tright">
       <button class="tbtn" id="btn-add-top" style="display:none" onclick="showAddClient()">＋</button>
@@ -736,6 +737,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
         <button class="sb-item" onclick="setView('tarefas')"><span>✅</span>Tarefas</button>
         <button class="sb-item" onclick="setView('pauta')"><span>📅</span>Pauta</button>
         <button class="sb-item" onclick="setView('comercial')"><span>💼</span>Comercial</button>
+        <button class="sb-item" onclick="setView('perfilAluma')"><span>⚡</span>Perfil Aluma</button>
       </div>
       <div class="sb-sect" style="padding-bottom:2px"><div class="sb-lbl">Clientes</div></div>
       <div class="sb-clients" id="sb-clients"><div class="loading"><div class="spinner"></div></div></div>
@@ -1007,13 +1009,13 @@ function applyAccessControl(){
   const isAdmin = currentUserData?.role === 'admin';
   // Topbar tabs - só Comercial é restrito
   document.querySelectorAll('.ttab').forEach(tab => {
-    if(tab.textContent.includes('Comercial')){
+    if(tab.textContent.includes('Comercial') || tab.textContent.includes('Perfil Aluma')){
       tab.style.display = isAdmin ? '' : 'none';
     }
   });
   // Sidebar items - só Comercial é restrito
   document.querySelectorAll('.sb-item').forEach(item => {
-    if(item.textContent.includes('Comercial')){
+    if(item.textContent.includes('Comercial') || item.textContent.includes('Perfil Aluma')){
       item.style.display = isAdmin ? '' : 'none';
     }
   });
@@ -1050,7 +1052,7 @@ async function loadCnt(cid){
 // ===== VIEWS =====
 function setView(view,cid){
   document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('active'));
-  const map={dashboard:0,todos:1,calendario:2,equipe:3,tarefas:4};
+  const map={dashboard:0,todos:1,calendario:2,equipe:3,tarefas:4,pauta:5,comercial:6,perfilAluma:7};
   const tabs=document.querySelectorAll('.ttab');
   if(map[view]!==undefined) tabs[map[view]]?.classList.add('active');
   currentView=view; if(cid) currentClientId=cid;
@@ -1062,6 +1064,7 @@ function setView(view,cid){
   else if(view==='tarefas') renderTarefas();
   else if(view==='pauta') renderPauta();
   else if(view==='comercial') renderComercial();
+  else if(view==='perfilAluma') renderPerfilAluma();
 }
 
 function openClient(cid){
@@ -2775,7 +2778,8 @@ async function genClientPDF(packId,clientName,modalEl){
     .slides-wrap.n1{grid-template-columns:1fr;max-width:400px;}
     .slides-wrap.n2{grid-template-columns:repeat(2,1fr);max-width:550px;}
     .slides-wrap.n3{grid-template-columns:repeat(3,1fr);max-width:700px;}
-    .slides-wrap.n4,.slides-wrap.n5,.slides-wrap.n6,.slides-wrap.n7,.slides-wrap.n8,.slides-wrap.n9,.slides-wrap.n10,.slides-wrap.n11,.slides-wrap.n12{grid-template-columns:repeat(4,1fr);}
+    .slides-wrap.n4,.slides-wrap.n5,.slides-wrap.n6,.slides-wrap.n7,.slides-wrap.n8{grid-template-columns:repeat(4,1fr);}
+    .slides-wrap.n9,.slides-wrap.n10,.slides-wrap.n11,.slides-wrap.n12{grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,auto);max-width:900px;}
     .slide{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:6px;border:1px solid #eee;}
     .static-wrap{max-width:450px;}
     .static-wrap .slide{aspect-ratio:4/5;width:100%;max-height:600px;}
@@ -3642,7 +3646,7 @@ async function deleteTaskInline(id){
 async function toggleTask(id,done){
   const {db,doc,updateDoc}=window._fb;
   await updateDoc(doc(db,'tarefas',id),{done,updatedAt:Date.now()});
-  await loadTarefas(_tarefaFilter);
+  await loadTarefasInline(_tarefaFilter);
 }
 
 function openTask(id){
@@ -3717,7 +3721,7 @@ async function saveTask(){
     showToast('Tarefa criada!','ok');
   }
   document.getElementById('task-mo').classList.remove('open');
-  await loadTarefas(_tarefaFilter);
+  await loadTarefasInline(_tarefaFilter);
 }
 
 async function deleteTask(){
@@ -3726,7 +3730,7 @@ async function deleteTask(){
   await deleteDoc(doc(db,'tarefas',_editTaskId));
   document.getElementById('task-mo').classList.remove('open');
   showToast('Tarefa excluída','inf');
-  await loadTarefas(_tarefaFilter);
+  await loadTarefasInline(_tarefaFilter);
 }
 
 // ===== MÉTRICAS & MARCOS =====
@@ -4984,6 +4988,262 @@ async function renderMetricas(container){
   }
 }
 
+// ===== PERFIL ALUMA =====
+let alumaTab = 'conteudos';
+let alumaCalDate = new Date();
+let _alumaContents = {};
+let _alumaDocs = {};
+const ALUMA_CONTENT_STATUSES = [
+  { id: 'ideia', label: 'Ideia', color: '#60a5fa' },
+  { id: 'andamento', label: 'Em andamento', color: '#facc15' },
+  { id: 'concluido', label: 'Concluido', color: '#4ade80' }
+];
+
+function alumaEsc(value){
+  return String(value || '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+async function renderPerfilAluma(){
+  if(currentUserData?.role !== 'admin'){
+    document.getElementById('main').innerHTML = `<div class="empty">Area exclusiva para administradores.</div>`;
+    return;
+  }
+  document.getElementById('main').innerHTML = `
+    <div class="ph">
+      <div>
+        <h1>Perfil Aluma</h1>
+        <div class="muted">Conteudos, calendario e documentos internos da agencia</div>
+      </div>
+      <button class="btn btn-p" onclick="openAlumaContent()">+ Novo conteudo</button>
+    </div>
+    <div class="ptabs" style="padding:0 20px">
+      <button class="ptab ${alumaTab==='conteudos'?'active':''}" onclick="swAluma('conteudos',this)">Conteudos</button>
+      <button class="ptab ${alumaTab==='calendario'?'active':''}" onclick="swAluma('calendario',this)">Calendario</button>
+      <button class="ptab ${alumaTab==='docs'?'active':''}" onclick="swAluma('docs',this)">Documentos</button>
+    </div>
+    <div id="aluma-content" style="flex:1;overflow:auto;padding:14px 20px 24px"></div>`;
+  await loadAlumaData();
+  renderAlumaTab(alumaTab);
+}
+
+function swAluma(tab, btn){
+  alumaTab = tab;
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+  btn?.classList.add('active');
+  renderAlumaTab(tab);
+}
+
+async function loadAlumaData(){
+  const {db,collection,getDocs,doc,getDoc}=window._fb;
+  _alumaContents = {};
+  const snap = await getDocs(collection(db,'aluma_contents'));
+  snap.forEach(d=>_alumaContents[d.id]={id:d.id,...d.data()});
+  const docsSnap = await getDoc(doc(db,'aluma_settings','docs'));
+  _alumaDocs = docsSnap.exists() ? docsSnap.data() : {};
+}
+
+function renderAlumaTab(tab){
+  const el = document.getElementById('aluma-content');
+  if(!el) return;
+  if(tab === 'calendario') renderAlumaCalendar(el);
+  else if(tab === 'docs') renderAlumaDocs(el);
+  else renderAlumaConteudos(el);
+}
+
+function renderAlumaConteudos(el){
+  const items = Object.values(_alumaContents).sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999') || (b.createdAt||0)-(a.createdAt||0));
+  el.innerHTML = `
+    <div class="pipeline-board" style="grid-template-columns:repeat(3,minmax(220px,1fr));align-items:start">
+      ${ALUMA_CONTENT_STATUSES.map(st=>{
+        const colItems = items.filter(c=>(c.status||'ideia')===st.id);
+        return `
+          <div class="pipeline-col">
+            <div class="pipeline-col-hdr" style="border-top:4px solid ${st.color}">
+              <span>${st.label}</span><b>${colItems.length}</b>
+            </div>
+            <div class="pipeline-body">
+              ${colItems.length ? colItems.map(c=>renderAlumaCard(c)).join('') : `<div class="empty-mini">Nenhum conteudo aqui</div>`}
+              <button class="add-card" onclick="openAlumaContent(null,'${st.id}')">+ Adicionar</button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderAlumaCard(c){
+  const preview = c.caption || c.content || c.referenceLink || '';
+  return `
+    <div class="pipeline-card" onclick="openAlumaContent('${c.id}')">
+      <div class="pipeline-card-title">${alumaEsc(c.title || 'Sem titulo')}</div>
+      <div class="muted" style="font-size:12px;margin-top:4px">${alumaEsc(c.format || 'Conteudo')}${c.dueDate ? ' - '+smartDate(c.dueDate) : ''}</div>
+      ${preview ? `<div style="font-size:12px;color:var(--text3);margin-top:8px;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${alumaEsc(preview)}</div>` : ''}
+    </div>`;
+}
+
+function openAlumaContent(id=null,status='ideia'){
+  const c = id ? (_alumaContents[id] || {}) : {status};
+  const statusOptions = ALUMA_CONTENT_STATUSES.map(st=>`<option value="${st.id}" ${(c.status||status||'ideia')===st.id?'selected':''}>${st.label}</option>`).join('');
+  const html = `
+    <div class="mo open" id="aluma-content-mo">
+      <div class="modal" style="max-width:820px">
+        <div class="mhdr">
+          <div>
+            <div class="mtitle">${id ? 'Editar conteudo' : 'Novo conteudo'}</div>
+            <div class="mmeta">Perfil Aluma</div>
+          </div>
+          <button class="x" onclick="closeAlumaContentModal()">x</button>
+        </div>
+        <div class="mbody">
+          <div class="grid2">
+            <div><label class="lbl">Titulo</label><input class="inp" id="aluma-title" value="${alumaEsc(c.title)}" placeholder="Ex: Bastidores da agencia"></div>
+            <div><label class="lbl">Status</label><select class="inp" id="aluma-status">${statusOptions}</select></div>
+            <div><label class="lbl">Data</label><input class="inp" id="aluma-date" type="date" value="${alumaEsc(c.dueDate)}"></div>
+            <div><label class="lbl">Formato</label><input class="inp" id="aluma-format" value="${alumaEsc(c.format)}" placeholder="Feed, Reels, Stories..."></div>
+          </div>
+          <label class="lbl">Link de referencia</label>
+          <input class="inp" id="aluma-ref" value="${alumaEsc(c.referenceLink)}" placeholder="https://...">
+          <label class="lbl">Texto do conteudo</label>
+          <textarea class="inp" id="aluma-text" style="min-height:130px;white-space:pre-wrap" placeholder="Escreva o conteudo aqui...">${alumaEsc(c.content)}</textarea>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px">
+            <label class="lbl" style="margin:0">Legenda padrao</label>
+            <button class="btn btn-s btn-sm" onclick="copyAlumaCaption()">Copiar</button>
+          </div>
+          <textarea class="inp" id="aluma-caption" style="min-height:120px;white-space:pre-wrap" placeholder="Legenda padrao...">${alumaEsc(c.caption)}</textarea>
+        </div>
+        <div class="mfoot">
+          ${id ? `<button class="btn btn-d" onclick="deleteAlumaContent('${id}')">Excluir</button>` : '<span></span>'}
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-s" onclick="closeAlumaContentModal()">Cancelar</button>
+            <button class="btn btn-p" onclick="saveAlumaContent(${id ? `'${id}'` : 'null'})">Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function closeAlumaContentModal(){
+  document.getElementById('aluma-content-mo')?.remove();
+}
+
+async function saveAlumaContent(id=null){
+  const {db,collection,addDoc,doc,updateDoc}=window._fb;
+  const data = {
+    title: document.getElementById('aluma-title')?.value?.trim() || 'Sem titulo',
+    status: document.getElementById('aluma-status')?.value || 'ideia',
+    dueDate: document.getElementById('aluma-date')?.value || '',
+    format: document.getElementById('aluma-format')?.value?.trim() || '',
+    referenceLink: document.getElementById('aluma-ref')?.value?.trim() || '',
+    content: document.getElementById('aluma-text')?.value || '',
+    caption: document.getElementById('aluma-caption')?.value || '',
+    updatedAt: Date.now()
+  };
+  if(id) await updateDoc(doc(db,'aluma_contents',id), data);
+  else await addDoc(collection(db,'aluma_contents'), {...data, createdAt: Date.now()});
+  closeAlumaContentModal();
+  await loadAlumaData();
+  renderAlumaTab(alumaTab);
+  showToast('Conteudo salvo!','ok');
+}
+
+async function deleteAlumaContent(id){
+  if(!confirm('Excluir este conteudo?')) return;
+  const {db,doc,deleteDoc}=window._fb;
+  await deleteDoc(doc(db,'aluma_contents',id));
+  closeAlumaContentModal();
+  await loadAlumaData();
+  renderAlumaTab(alumaTab);
+  showToast('Conteudo excluido.','ok');
+}
+
+function copyAlumaCaption(){
+  const text = document.getElementById('aluma-caption')?.value || '';
+  const done = ()=>showToast('Legenda copiada!','ok');
+  if(navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  else fallbackCopy(text,done);
+}
+
+function renderAlumaCalendar(el){
+  const y = alumaCalDate.getFullYear();
+  const m = alumaCalDate.getMonth();
+  const monthTitle = alumaCalDate.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const first = new Date(y,m,1);
+  const last = new Date(y,m+1,0);
+  const startPad = first.getDay();
+  const items = Object.values(_alumaContents).filter(c=>c.dueDate);
+  const cells = [];
+  for(let i=0;i<startPad;i++) cells.push(`<div></div>`);
+  for(let d=1; d<=last.getDate(); d++){
+    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayItems = items.filter(c=>c.dueDate===iso);
+    cells.push(`
+      <div style="min-height:112px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg2);padding:8px">
+        <div style="font-weight:800;font-size:12px;margin-bottom:6px">${d}</div>
+        ${dayItems.map(c=>`<button class="btn btn-s btn-sm" style="width:100%;justify-content:flex-start;margin-bottom:5px;overflow:hidden;text-overflow:ellipsis" onclick="openAlumaContent('${c.id}')">${alumaEsc(c.title||'Conteudo')}</button>`).join('')}
+      </div>`);
+  }
+  el.innerHTML = `
+    <div class="card" style="padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <button class="btn btn-s" onclick="changeAlumaCal(-1)">‹</button>
+        <h2 style="margin:0;text-transform:capitalize">${monthTitle}</h2>
+        <button class="btn btn-s" onclick="changeAlumaCal(1)">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px;color:var(--text3);font-size:11px;font-weight:800;text-align:center">
+        <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sab</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">${cells.join('')}</div>
+    </div>`;
+}
+
+function changeAlumaCal(delta){
+  alumaCalDate = new Date(alumaCalDate.getFullYear(), alumaCalDate.getMonth()+delta, 1);
+  renderAlumaCalendar(document.getElementById('aluma-content'));
+}
+
+function renderAlumaDocs(el){
+  el.innerHTML = `
+    <div class="docsgrid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="docscard">
+        <h3>Links e referencias</h3>
+        <label class="lbl">Pasta Drive</label>
+        <input class="inp" id="aluma-doc-drive" value="${alumaEsc(_alumaDocs.driveLink)}" placeholder="https://...">
+        <label class="lbl">Manual / identidade visual</label>
+        <input class="inp" id="aluma-doc-brand" value="${alumaEsc(_alumaDocs.brandGuide)}" placeholder="https://...">
+        <label class="lbl">Links importantes</label>
+        <textarea class="inp" id="aluma-doc-links" style="min-height:120px;white-space:pre-wrap">${alumaEsc(_alumaDocs.references)}</textarea>
+      </div>
+      <div class="docscard">
+        <h3>Observacoes internas</h3>
+        <label class="lbl">Anotacoes</label>
+        <textarea class="inp" id="aluma-doc-notes" style="min-height:240px;white-space:pre-wrap">${alumaEsc(_alumaDocs.notes)}</textarea>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px">
+      <button class="btn btn-p" onclick="saveAlumaDocs()">Salvar documentos</button>
+    </div>`;
+}
+
+async function saveAlumaDocs(){
+  const {db,doc,setDoc}=window._fb;
+  const data = {
+    driveLink: document.getElementById('aluma-doc-drive')?.value?.trim() || '',
+    brandGuide: document.getElementById('aluma-doc-brand')?.value?.trim() || '',
+    references: document.getElementById('aluma-doc-links')?.value || '',
+    notes: document.getElementById('aluma-doc-notes')?.value || '',
+    updatedAt: Date.now()
+  };
+  await setDoc(doc(db,'aluma_settings','docs'), data, {merge:true});
+  _alumaDocs = data;
+  showToast('Documentos salvos!','ok');
+}
+
+
 // ===== COMERCIAL =====
 const PIPELINE_COLS = [
   {id:'prospeccao', label:'Prospecção',  color:'#60a5fa'},
@@ -5939,7 +6199,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=6').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=8').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
