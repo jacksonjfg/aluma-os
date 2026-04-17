@@ -3973,11 +3973,11 @@ async function exportRoteiros(packId,clientName,modalEl){
   <title>Roteiros ${esc(monthLabel)} - ${esc(clientName)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    @page { size: A4 portrait; margin: 24mm; }
+    @page { size: A4 portrait; margin: 28mm 30mm; }
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #1a1a2e; line-height: 1.6; }
     .print-actions { position: fixed; top: 14px; right: 14px; z-index: 20; }
     .print-actions button { border: 0; border-radius: 8px; background: #8483ff; color: #fff; font-weight: 700; padding: 10px 14px; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.16); }
-    .roteiro-page { min-height: calc(297mm - 48mm); page-break-after: always; padding: 0; }
+    .roteiro-page { min-height: calc(297mm - 56mm); page-break-after: always; padding: 0 8mm; }
     .roteiro-page:last-child { page-break-after: auto; }
     .header { text-align: center; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 2px solid #8483ff; }
     .logo-img { width: 170px; height: auto; display: block; margin: 0 auto 12px; }
@@ -3988,7 +3988,7 @@ async function exportRoteiros(packId,clientName,modalEl){
     .meta-label { display: block; margin-bottom: 4px; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #8483ff; }
     .meta-text { font-size: 13px; line-height: 1.65; color: #333; white-space: pre-wrap; overflow-wrap: anywhere; }
     .meta-text a { color: #6261db; text-decoration: underline; }
-    .roteiro-content { font-size: 14px; line-height: 1.8; color: #333; padding: 0 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .roteiro-content { font-size: 14px; line-height: 1.8; color: #333; padding: 0 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
     @media print {
       .print-actions { display: none; }
       .roteiro-page { page-break-after: always; break-after: page; }
