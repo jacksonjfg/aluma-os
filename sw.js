@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'aluma-os-v1';
+const CACHE_NAME = 'aluma-os-v2';
 const APP_SHELL = [
   './',
   './index.html',

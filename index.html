@@ -3973,12 +3973,13 @@ async function exportRoteiros(packId,clientName,modalEl){
   <title>Roteiros ${esc(monthLabel)} - ${esc(clientName)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    @page { size: A4 portrait; margin: 28mm 30mm; }
+    @page { size: A4 portrait; margin: 12mm; }
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #1a1a2e; line-height: 1.6; }
     .print-actions { position: fixed; top: 14px; right: 14px; z-index: 20; }
     .print-actions button { border: 0; border-radius: 8px; background: #8483ff; color: #fff; font-weight: 700; padding: 10px 14px; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.16); }
-    .roteiro-page { min-height: calc(297mm - 56mm); page-break-after: always; padding: 0 8mm; }
+    .roteiro-page { min-height: calc(297mm - 24mm); page-break-after: always; padding: 0; }
     .roteiro-page:last-child { page-break-after: auto; }
+    .roteiro-inner { width: 100%; max-width: 150mm; margin: 0 auto; padding: 0 4mm; }
     .header { text-align: center; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 2px solid #8483ff; }
     .logo-img { width: 170px; height: auto; display: block; margin: 0 auto 12px; }
     .doc-title { font-size: 18px; font-weight: 700; color: #8483ff; }
@@ -4014,6 +4015,7 @@ async function exportRoteiros(packId,clientName,modalEl){
 
     html += `
   <section class="roteiro-page">
+    <div class="roteiro-inner">
     <div class="header">
       <img class="logo-img" src="${ALUMA_LOGO}" alt="Aluma Marketing de Conteúdo">
       <div class="doc-title">Roteiros - ${esc(clientName)} | ${esc(monthLabel)}</div>
@@ -4021,6 +4023,7 @@ async function exportRoteiros(packId,clientName,modalEl){
     <div class="roteiro-title">Roteiro ${String(videoNum).padStart(2,'0')}: ${cleanTitle(title)}</div>
     ${meta}
     <div class="roteiro-content">${withBreaks(content)}</div>
+    </div>
   </section>`;
   });
 
