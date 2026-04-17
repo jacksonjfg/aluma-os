@@ -1932,15 +1932,39 @@ function renderRichText(text){
   });
 }
 function getRichText(el){
-  let html=el.innerHTML||'';
-  html=html.replace(/<br\s*\/?>/gi,'\n');
-  html=html.replace(/<div>/gi,'\n');
-  html=html.replace(/<\/div>/gi,'');
-  html=html.replace(/<[^>]+>/g,'');
-  html=html.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ');
-  return html.trim();
+  if(!el) return '';
+  const text=('innerText' in el ? el.innerText : (el.textContent||''));
+  return text.replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
 }
 function autoLinkify(el){}
+function syncCurrentRichDraft(){
+  if(!currentPostId || !posts[currentPostId]) return;
+  [
+    ['references','rt-ref-'+currentPostId],
+    ['designBriefing','rt-brief-'+currentPostId],
+    ['caption','rt-caption-'+currentPostId]
+  ].forEach(([field,id])=>{
+    const el=document.getElementById(id);
+    if(el) posts[currentPostId][field]=getRichText(el);
+  });
+}
+async function saveCurrentRichDraft(){
+  if(!currentPostId || !posts[currentPostId]) return;
+  syncCurrentRichDraft();
+  const {db,doc,updateDoc}=window._fb;
+  const p=posts[currentPostId];
+  await updateDoc(doc(db,'posts',currentPostId),{
+    references:p.references||'',
+    designBriefing:p.designBriefing||'',
+    caption:p.caption||''
+  });
+}
+async function spfAndRender(field,value){
+  await saveCurrentRichDraft();
+  await spf(field,value);
+  renderPF(posts[currentPostId]);
+  renderPostsList();
+}
 const EMOJI_SET=['😀','😁','😊','😍','😉','😎','🤩','👏','🙌','💜','✨','🔥','✅','📌','📍','🎯','🚀','💡','📝','📅','⏰','📣','💬','❤️'];
 function richToolbar(targetId,withCopy=false){
   const pickerId='emoji-'+targetId;
@@ -2012,7 +2036,7 @@ function renderPF(post){
     <div class="fgrid" style="margin-bottom:10px">
       <div class="ff"><label class="flbl">Data e hora</label>
         <div class="time-field-wrap">
-          <input type="datetime-local" class="fi" id="pf-dt-${post.id}" value="${post.postDate||''}" onchange="spf('postDate',this.value);renderPF(posts[currentPostId])">
+          <input type="datetime-local" class="fi" id="pf-dt-${post.id}" value="${post.postDate||''}" onchange="spfAndRender('postDate',this.value)">
           <div style="position:relative">
             <button class="time-preset-btn" onclick="toggleTDD('${post.id}')" type="button">⏱</button>
             <div class="tdd hidden" id="tdd-${post.id}">
@@ -2021,7 +2045,7 @@ function renderPF(post){
           </div>
         </div>
       </div>
-      <div class="ff"><label class="flbl">Formato</label><select class="fs" onchange="spf('format',this.value);renderPF(posts[currentPostId])">${FORMATS.map(f=>`<option ${post.format===f?'selected':''}>${f}</option>`).join('')}</select></div>
+      <div class="ff"><label class="flbl">Formato</label><select class="fs" onchange="spfAndRender('format',this.value)">${FORMATS.map(f=>`<option ${post.format===f?'selected':''}>${f}</option>`).join('')}</select></div>
       <div class="ff"><label class="flbl">Funil</label><select class="fs" onchange="spf('funnel',this.value)"><option value="">—</option>${FUNNEL.map(f=>`<option ${post.funnel===f?'selected':''}>${f}</option>`).join('')}</select></div>
       <div class="ff" style="grid-column:1/-1"><label class="flbl">Link do post publicado</label>
         <div class="lwrap"><input class="fi" type="url" value="${post.postLink||''}" placeholder="https://instagram.com/p/..." onchange="spfR('postLink',this.value)">
@@ -2262,7 +2286,7 @@ async function addCommentImg(pid,files){
 // ===== SAVE HELPERS =====
 function updTitle(t){ spfDirect(currentPostId,'title',t.trim()); renderPostsList(); }
 async function spf(field,value){ if(!currentPostId) return; await spfDirect(currentPostId,field,value); }
-async function spfR(field,value){ await spf(field,value); renderPF(posts[currentPostId]); }
+async function spfR(field,value){ await saveCurrentRichDraft(); await spf(field,value); renderPF(posts[currentPostId]); }
 async function spfDirect(pid,field,value){
   const {db,doc,updateDoc}=window._fb;
   posts[pid][field]=value;
@@ -3920,6 +3944,7 @@ async function gerarRoteiros(packId){
 }
 
 async function exportRoteiros(packId,clientName,modalEl){
+  await saveCurrentRichDraft();
   const pack=packs[packId];
   const selIds=[...modalEl.querySelectorAll('#rot-list input:checked')].map(cb=>cb.getAttribute('data-pid'));
   if(!selIds.length){ showToast('Selecione ao menos um post','err'); return; }
@@ -3932,97 +3957,77 @@ async function exportRoteiros(packId,clientName,modalEl){
   // Logo Aluma em base64
   const ALUMA_LOGO = 'data:image/png;base64,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';
 
-  // Build clean HTML for PDF - NO modal elements
+  const esc=(value)=>String(value||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const withBreaks=(value)=>esc(value).replace(/\n/g,'<br>');
+  const cleanTitle=(value)=>esc(String(value||'').replace(/^Post \d+ -\s*/, '').trim());
+  const asHref=(value)=>{
+    const raw=String(value||'').trim();
+    if(!raw) return '';
+    return /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
+  };
+
   let html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Roteiros ${monthLabel} - ${clientName}</title>
+  <title>Roteiros ${esc(monthLabel)} - ${esc(clientName)}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    @page { size: A4 portrait; margin: 20mm; }
-    body { 
-      font-family: 'Segoe UI', Arial, sans-serif; 
-      background: #fff; 
-      color: #1a1a2e; 
-      padding: 40px;
-      line-height: 1.6;
-    }
-    .header { 
-      text-align: center; 
-      margin-bottom: 40px;
-      padding-bottom: 20px;
-      border-bottom: 2px solid #8483ff;
-    }
-    .logo-img {
-      width: 190px;
-      height: auto;
-      display: block;
-      margin: 0 auto 14px;
-    }
-    .doc-title { 
-      font-size: 22px; 
-      font-weight: 700; 
-      color: #8483ff;
-      margin-top: 12px;
-    }
-    .roteiro-block {
-      margin-bottom: 40px;
-      page-break-inside: avoid;
-    }
-    .roteiro-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1a1a2e;
-      margin-bottom: 16px;
-      padding: 12px 16px;
-      background: linear-gradient(90deg, #8483ff22, transparent);
-      border-left: 4px solid #8483ff;
-      border-radius: 0 8px 8px 0;
-    }
-    .roteiro-content {
-      font-size: 14px;
-      line-height: 1.8;
-      color: #333;
-      padding: 0 16px;
-      white-space: pre-wrap;
-    }
-    .divider {
-      height: 1px;
-      background: #e0e0e0;
-      margin: 30px 0;
-    }
+    @page { size: A4 portrait; margin: 18mm; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #1a1a2e; line-height: 1.6; }
+    .print-actions { position: fixed; top: 14px; right: 14px; z-index: 20; }
+    .print-actions button { border: 0; border-radius: 8px; background: #8483ff; color: #fff; font-weight: 700; padding: 10px 14px; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.16); }
+    .roteiro-page { min-height: calc(297mm - 36mm); page-break-after: always; padding: 0; }
+    .roteiro-page:last-child { page-break-after: auto; }
+    .header { text-align: center; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 2px solid #8483ff; }
+    .logo-img { width: 170px; height: auto; display: block; margin: 0 auto 12px; }
+    .doc-title { font-size: 18px; font-weight: 700; color: #8483ff; }
+    .roteiro-title { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 14px; padding: 12px 16px; background: linear-gradient(90deg, #8483ff22, transparent); border-left: 4px solid #8483ff; border-radius: 0 8px 8px 0; }
+    .meta-box { margin: 0 0 18px; padding: 12px 16px; border: 1px solid #e8e8f5; border-radius: 8px; background: #fafafe; }
+    .meta-item + .meta-item { margin-top: 12px; }
+    .meta-label { display: block; margin-bottom: 4px; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #8483ff; }
+    .meta-text { font-size: 13px; line-height: 1.65; color: #333; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .meta-text a { color: #6261db; text-decoration: underline; }
+    .roteiro-content { font-size: 14px; line-height: 1.8; color: #333; padding: 0 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
     @media print {
-      body { padding: 20px; }
-      .roteiro-block { page-break-inside: avoid; }
+      .print-actions { display: none; }
+      .roteiro-page { page-break-after: always; break-after: page; }
+      .roteiro-page:last-child { page-break-after: auto; break-after: auto; }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <img class="logo-img" src="${ALUMA_LOGO}" alt="Aluma Marketing de Conteúdo">
-    <div class="doc-title">Roteiros - ${clientName} | ${monthLabel}</div>
-  </div>`;
+  <div class="print-actions"><button onclick="window.print()">Salvar PDF / Imprimir</button></div>`;
 
   selPosts.forEach((p, i) => {
     const videoNum = i + 1;
     const title = p.title || 'Roteiro ' + videoNum;
-    // Use designBriefing as the script content
     const content = (p.designBriefing || p.caption || '').trim() || '(sem conteúdo)';
-    
+    const info = (p.references || '').trim();
+    const link = (p.refLink || '').trim();
+    const linkHref = asHref(link);
+    const meta = info || link ? `
+    <div class="meta-box">
+      ${info ? `<div class="meta-item"><span class="meta-label">Informações importantes</span><div class="meta-text">${withBreaks(info)}</div></div>` : ''}
+      ${link ? `<div class="meta-item"><span class="meta-label">Link de referência</span><div class="meta-text"><a href="${esc(linkHref)}" target="_blank">${esc(link)}</a></div></div>` : ''}
+    </div>` : '';
+
     html += `
-  <div class="roteiro-block">
-    <div class="roteiro-title">Roteiro ${videoNum}: ${title.replace(/^Post \\d+ - /, '')}</div>
-    <div class="roteiro-content">${content.replace(/\n/g, '<br>')}</div>
-  </div>
-  ${i < selPosts.length - 1 ? '<div class="divider"></div>' : ''}`;
+  <section class="roteiro-page">
+    <div class="header">
+      <img class="logo-img" src="${ALUMA_LOGO}" alt="Aluma Marketing de Conteúdo">
+      <div class="doc-title">Roteiros - ${esc(clientName)} | ${esc(monthLabel)}</div>
+    </div>
+    <div class="roteiro-title">Roteiro ${String(videoNum).padStart(2,'0')}: ${cleanTitle(title)}</div>
+    ${meta}
+    <div class="roteiro-content">${withBreaks(content)}</div>
+  </section>`;
   });
 
   html += `
 </body>
 </html>`;
 
-  // Open in new window and trigger print
   const w = window.open('', '_blank');
   if (!w) { 
     showToast('Permita pop-ups para gerar o roteiro', 'err'); 
@@ -4030,15 +4035,8 @@ async function exportRoteiros(packId,clientName,modalEl){
   }
   w.document.write(html);
   w.document.close();
-  
-  // Set document title for PDF filename
   w.document.title = 'Roteiros ' + monthLabel + ' - ' + clientName;
-  
-  setTimeout(() => {
-    w.print();
-  }, 500);
-  
-  showToast('Roteiro pronto!', 'ok');
+  showToast('Roteiro aberto em nova aba', 'ok');
 }
 
 async function saveOrientacoes(text){
