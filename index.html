@@ -300,9 +300,16 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .empty-title{font-size:14.5px;color:var(--text2);font-weight:700;letter-spacing:-.2px;}
 
 /* RICH TEXT AREA */
-.rich-area{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;line-height:1.55;min-height:60px;word-break:break-word;}
+.rich-area{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;line-height:1.55;min-height:60px;word-break:break-word;white-space:pre-wrap;}
 .rich-area:focus{border-color:var(--accent);}
 .rich-area a{color:var(--accent);text-decoration:underline;cursor:pointer;}
+.rich-tools{display:flex;align-items:center;gap:6px;margin-bottom:6px;position:relative;}
+.rich-tool-btn{height:26px;padding:0 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+.rich-tool-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--ag);}
+.emoji-picker{display:none;position:absolute;top:30px;left:0;z-index:40;width:218px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px;box-shadow:var(--shad);grid-template-columns:repeat(8,1fr);gap:4px;}
+.emoji-picker.open{display:grid;}
+.emoji-btn{width:22px;height:22px;border:0;background:transparent;border-radius:5px;font-size:16px;cursor:pointer;line-height:1;}
+.emoji-btn:hover{background:var(--bg4);}
 /* CALENDAR FIXED SIZE */
 .cal-d{height:110px !important;min-height:110px !important;max-height:110px !important;overflow:hidden;}
 .cal-post{flex-shrink:0;}
@@ -1896,6 +1903,43 @@ function getRichText(el){
   return html.trim();
 }
 function autoLinkify(el){}
+const EMOJI_SET=['😀','😁','😊','😍','😉','😎','🤩','👏','🙌','💜','✨','🔥','✅','📌','📍','🎯','🚀','💡','📝','📅','⏰','📣','💬','❤️'];
+function richToolbar(targetId,withCopy=false){
+  const pickerId='emoji-'+targetId;
+  return `<div class="rich-tools">
+    <button class="rich-tool-btn" type="button" onmousedown="event.preventDefault()" onclick="toggleEmojiPicker('${pickerId}')">Emoji</button>
+    ${withCopy?`<button class="rich-tool-btn" type="button" onclick="copyRichText('${targetId}')">Copiar</button>`:''}
+    <div class="emoji-picker" id="${pickerId}">${EMOJI_SET.map(e=>`<button class="emoji-btn" type="button" onmousedown="event.preventDefault()" onclick="insertEmoji('${targetId}','${e}');closeEmojiPickers()">${e}</button>`).join('')}</div>
+  </div>`;
+}
+function closeEmojiPickers(){ document.querySelectorAll('.emoji-picker.open').forEach(p=>p.classList.remove('open')); }
+function toggleEmojiPicker(id){
+  const picker=document.getElementById(id);
+  if(!picker) return;
+  const wasOpen=picker.classList.contains('open');
+  closeEmojiPickers();
+  if(!wasOpen) picker.classList.add('open');
+}
+function insertEmoji(targetId,emoji){
+  const el=document.getElementById(targetId);
+  if(!el) return;
+  el.focus();
+  if(document.queryCommandSupported&&document.queryCommandSupported('insertText')) document.execCommand('insertText',false,emoji);
+  else el.textContent=(el.textContent||'')+emoji;
+}
+function copyRichText(targetId){
+  const el=document.getElementById(targetId);
+  if(!el) return;
+  const text=getRichText(el);
+  const done=()=>showToast('Legenda copiada!','ok');
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done();
+}
 
 function renderPF(post){
   const el=document.getElementById('pm-content');
@@ -1969,6 +2013,7 @@ function renderPF(post){
 
     <div class="fsect">✏️ Texto do Conteúdo</div>
     <div class="ff" style="margin-bottom:11px">
+      ${richToolbar('rt-brief-'+post.id)}
       <div class="rich-area" contenteditable="true" id="rt-brief-${post.id}"
         onblur="spf('designBriefing',getRichText(this))"
         oninput="autoLinkify(this)"
@@ -1978,6 +2023,7 @@ function renderPF(post){
 
     <div class="fsect">💬 Legenda</div>
     <div class="ff" style="margin-bottom:14px">
+      ${richToolbar('rt-caption-'+post.id,true)}
       <div class="rich-area" contenteditable="true" id="rt-caption-${post.id}"
         onblur="spf('caption',getRichText(this))"
         oninput="autoLinkify(this)"
@@ -2344,7 +2390,7 @@ function showPV(pid){
       ${p.format?`<span class="ktag tag-${p.format.toLowerCase()}" style="font-size:11px">${p.format}</span>`:''}
       ${time?`<span style="font-size:12px;color:var(--text3)">📅 ${time}</span>`:''}
     </div>
-    ${p.caption?`<div class="pvs"><div class="pvlbl">Legenda</div><div class="pvtxt">${p.caption}</div></div>`:''}
+    ${p.caption?`<div class="pvs"><div class="pvlbl">Legenda</div><div class="pvtxt">${renderRichText(p.caption)}</div></div>`:''}
     ${p.postLink?`<div class="pvs"><a href="${p.postLink}" target="_blank" style="color:var(--accent);font-size:13px">📱 Ver post publicado ↗</a></div>`:''}
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn btn-p btn-sm" onclick="closePV();openClientAndPost('${p.clientId}','${p.packId||''}','${pid}')">📂 Abrir post</button>
@@ -3724,7 +3770,7 @@ async function renderApprovalPage(packId){
       ${p.postDate?`<div style="font-size:12px;color:#888;margin-bottom:12px">📅 ${new Date(p.postDate).toLocaleString('pt-BR',{weekday:'long',day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'})}</div>`:''}
       ${imgs.length?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${imgs.slice(0,6).map(src=>`<img src="${src}" style="width:100px;height:125px;object-fit:cover;border-radius:8px;border:1px solid #eee">`).join('')}</div>`:''}
       ${['Reels','TikTok'].includes(p.format)&&p.driveLink?`<a href="${p.driveLink}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#0a0a14;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:14px">▶ Assistir ao Vídeo</a>`:''}
-      ${p.caption?`<div style="background:#f8f8fc;border-radius:8px;padding:12px 14px;font-size:13.5px;line-height:1.7;color:#333;margin-bottom:14px;white-space:pre-wrap">${p.caption}</div>`:''}
+      ${p.caption?`<div style="background:#f8f8fc;border-radius:8px;padding:12px 14px;font-size:13.5px;line-height:1.7;color:#333;margin-bottom:14px;white-space:pre-wrap">${renderRichText(p.caption)}</div>`:''}
       <!-- APPROVAL BUTTONS -->
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <button onclick="setPostApproval('${p.id}','aprovado',this)" id="apv-${p.id}-ok" style="flex:1;padding:9px;border-radius:8px;border:2px solid #e0e0e0;background:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:#888">✅ Aprovado</button>
