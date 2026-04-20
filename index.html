@@ -1079,7 +1079,7 @@ async function fetchVisibleTasks(){
   const snap = await getDocs(collection(db,'tarefas'));
   const tasks = [];
   snap.forEach(d=>tasks.push({id:d.id,...d.data()}));
-  return currentUserData?.role === 'admin' ? tasks : tasks.filter(canAccessTaskRecord);
+  return tasks;
 }
 function applyAccessControl(){
   const isAdmin = currentUserData?.role === 'admin';
@@ -1100,40 +1100,24 @@ function applyAccessControl(){
 async function initApp(){ await loadTeam(); await loadClients(); setView('dashboard'); initPresence(); }
 
 async function loadClients(){
-  const {db,collection,getDocs,query,where,doc,getDoc}=window._fb;
+  const {db,collection,getDocs,doc,getDoc}=window._fb;
   clients={};
-  if(currentUserData?.role === 'admin'){
+  try{
     const snap=await getDocs(collection(db,'clients'));
     snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
-    renderSidebar();
-    return;
-  }
-  let allPacks=[];
-  try{
-    const packSnap=await getDocs(collection(db,'packs'));
-    packSnap.forEach(d=>allPacks.push({id:d.id,...d.data()}));
-  }catch(err){ console.warn('loadClients packs:',err); }
-  try{
-    const clientSnap=await getDocs(collection(db,'clients'));
-    clientSnap.forEach(d=>{
-      const client={id:d.id,...d.data()};
-      const relatedPacks=allPacks.filter(p=>p.clientId===client.id);
-      if(canAccessClientRecord(client,relatedPacks)) clients[client.id]=client;
-    });
-  }catch(err){ console.warn('loadClients clients:',err); }
-  const visiblePacks=allPacks.filter(p=>arrayMatchesAccess(p.assignees||[]));
-  for(const cid of [...new Set(visiblePacks.map(p=>p.clientId).filter(Boolean))]){
-    if(clients[cid]) continue;
+  }catch(err){
+    console.warn('loadClients all clients blocked:', err);
     try{
-      const cs=await getDoc(doc(db,'clients',cid));
-      clients[cid]=cs.exists()?{id:cid,...cs.data()}:{id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'};
-    }catch(err){ clients[cid]={id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'}; }
-  }
-  if(!Object.keys(clients).length){
-    try{
-      const snap=await getDocs(query(collection(db,'clients'),where('members','array-contains',currentUser.uid)));
-      snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
-    }catch(err){ console.warn('loadClients fallback uid:',err); }
+      const packSnap=await getDocs(collection(db,'packs'));
+      const clientIds=[];
+      packSnap.forEach(d=>{ const cid=d.data()?.clientId; if(cid&&!clientIds.includes(cid)) clientIds.push(cid); });
+      for(const cid of clientIds){
+        try{
+          const cs=await getDoc(doc(db,'clients',cid));
+          clients[cid]=cs.exists()?{id:cid,...cs.data()}:{id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'};
+        }catch(e){ clients[cid]={id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'}; }
+      }
+    }catch(e){ console.warn('loadClients fallback packs blocked:', e); }
   }
   renderSidebar();
 }
@@ -1273,7 +1257,7 @@ async function renderDashData(){
   const currentMember=currentMemberProfile();
   const personalMemberId=currentMember?.id||'';
   const packDemandItems=AP
-    .filter(p=>p.dueDate&&!finalStatuses.includes(p.status)&&arrayMatchesAccess(p.assignees||[]))
+    .filter(p=>p.dueDate&&!finalStatuses.includes(p.status))
     .map(p=>({pack:p,due:parseDueDate(p.dueDate)}))
     .filter(x=>x.due)
     .sort((a,b)=>a.due-b.due);
@@ -1305,7 +1289,7 @@ async function renderDashData(){
     <div style="display:flex;align-items:center;gap:9px;min-width:0">
       <div style="width:30px;height:30px;border-radius:50%;background:${currentMember?.color||'var(--accent)'};color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">${(currentMember?.name||currentUserData?.name||'?').charAt(0).toUpperCase()}</div>
       <div style="min-width:0">
-        <div style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Minhas demandas</div>
+        <div style="font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Demandas em aberto</div>
         <div style="font-size:11px;color:var(--text3)">${personalTodayItems.length} hoje · ${personalUpcomingItems.length} próximas</div>
       </div>
     </div>
@@ -1353,8 +1337,8 @@ async function renderDashData(){
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;min-height:318px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px">
           <div>
-            <div style="font-size:13px;font-weight:850;color:var(--text)">Minhas demandas</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Baseado na data de entrega dos packs atribuídos a você</div>
+            <div style="font-size:13px;font-weight:850;color:var(--text)">Demandas em aberto</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">Baseado na data de entrega dos packs</div>
           </div>
           <span style="font-size:10px;font-weight:800;color:var(--accent);background:rgba(132,131,255,.12);border:1px solid rgba(132,131,255,.25);border-radius:999px;padding:5px 8px">Hoje + 7 dias</span>
         </div>
@@ -1459,7 +1443,6 @@ async function renderGlobalKanban(container){
   container.innerHTML=`<div class="kanban-outer"><div class="kanban-board" id="global-kb"><div class="loading"><div class="spinner"></div></div></div></div>`;
   const snap=await getDocs(collection(db,'packs'));
   let allP=[]; snap.forEach(d=>allP.push({id:d.id,...d.data()}));
-  if(currentUserData?.role !== 'admin') allP=allP.filter(p=>arrayMatchesAccess(p.assignees||[]) || canAccessClientRecord(clients[p.clientId]||{},[p]));
   const board=document.getElementById('global-kb'); if(!board) return;
   board.innerHTML=STATUSES.map(s=>{
     const col=allP.filter(p=>p.status===s.id);
@@ -6465,7 +6448,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=13').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=14').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
@@ -6473,6 +6456,7 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
 
 
 
