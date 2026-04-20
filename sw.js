@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'aluma-os-v9';
+﻿const CACHE_NAME = 'aluma-os-v12';
 const APP_SHELL = [
   './manifest.webmanifest',
   './icons/icon-192.png',
@@ -49,3 +49,4 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+

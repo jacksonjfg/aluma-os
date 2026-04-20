@@ -828,7 +828,25 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 <script>
 // VERSION: 20260413_142552
 // ===== INSTAGRAM API =====
-const INSTAGRAM_ACCESS_TOKEN = 'EAA8jGKmCX10BRDax8w3BjppqjAiz8BqyJeyEqGr7Km0B14TAxuijesoKdSXgU23BhvMYc9slomL1UPNhufZBcwteG9TNK3fQJSdHeywlxVPNmftKZCl6eFyTFHVnZBzwUBiwtPNn8I3nEFqnZBlo6T0uhZCuYIRpm91rUXzwXYbKWweOItqShrWVryoJ0pJFjWxtwbS5eeZCKQzv5IfMhhQXjXYxFdNxrT'; // Renovar a cada 60 dias no Graph API Explorer
+let INSTAGRAM_ACCESS_TOKEN = localStorage.getItem('aluma_instagram_token') || '';
+function getInstagramToken(){
+  return localStorage.getItem('aluma_instagram_token') || INSTAGRAM_ACCESS_TOKEN || '';
+}
+function configureInstagramToken(){
+  const token = prompt('Cole aqui um token novo da Meta/Instagram. Ele ficará salvo apenas neste navegador.');
+  if(token === null) return;
+  const clean = token.trim();
+  if(!clean){
+    localStorage.removeItem('aluma_instagram_token');
+    INSTAGRAM_ACCESS_TOKEN = '';
+    showToast('Token removido deste navegador','inf');
+    return;
+  }
+  localStorage.setItem('aluma_instagram_token', clean);
+  INSTAGRAM_ACCESS_TOKEN = clean;
+  showToast('Token atualizado neste navegador','ok');
+  if(typeof swCT === 'function') swCT('metricas');
+}
 const CLIENT_INSTAGRAM_MAP = {
   'Saulo Severo':     '17841445778218708',
   'Natália Brainer':  '17841408351718823',
@@ -1005,6 +1023,53 @@ async function loadUD(){
   applyAccessControl();
 }
 
+function accessNorm(value){
+  return String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function currentMemberProfile(){
+  const name = accessNorm(currentUserData?.name);
+  const email = accessNorm(currentUserData?.email || currentUser?.email);
+  const configuredIds = [currentUserData?.teamId,currentUserData?.memberId,currentUserData?.id].map(accessNorm).filter(Boolean);
+  return TEAM.find(m=>{
+    const mid = accessNorm(m.id);
+    const mname = accessNorm(m.name);
+    const first = mname.split(' ')[0];
+    return configuredIds.includes(mid) || name === mname || name.includes(mname) || (first && name.includes(first)) || email.includes(mid) || (first && email.includes(first));
+  }) || null;
+}
+function currentAccessKeys(){
+  const member = currentMemberProfile();
+  return [...new Set([
+    currentUser?.uid,
+    currentUser?.email,
+    currentUserData?.email,
+    currentUserData?.name,
+    currentUserData?.teamId,
+    currentUserData?.memberId,
+    currentUserData?.id,
+    member?.id,
+    member?.name
+  ].filter(Boolean).map(v=>String(v).trim()).filter(Boolean))];
+}
+function arrayMatchesAccess(values, keys=currentAccessKeys()){
+  const haystack = (values || []).map(accessNorm).filter(Boolean);
+  return keys.some(k=>haystack.includes(accessNorm(k)));
+}
+function canAccessClientRecord(client, relatedPacks=[]){
+  if(currentUserData?.role === 'admin') return true;
+  return arrayMatchesAccess(client?.members || []) || relatedPacks.some(p=>arrayMatchesAccess(p.assignees || []));
+}
+function canAccessTaskRecord(task){
+  if(currentUserData?.role === 'admin') return true;
+  return arrayMatchesAccess(task?.assignees || []);
+}
+async function fetchVisibleTasks(){
+  const {db,collection,getDocs}=window._fb;
+  const snap = await getDocs(collection(db,'tarefas'));
+  const tasks = [];
+  snap.forEach(d=>tasks.push({id:d.id,...d.data()}));
+  return currentUserData?.role === 'admin' ? tasks : tasks.filter(canAccessTaskRecord);
+}
 function applyAccessControl(){
   const isAdmin = currentUserData?.role === 'admin';
   // Topbar tabs - só Comercial é restrito
@@ -1025,9 +1090,30 @@ async function initApp(){ await loadTeam(); await loadClients(); setView('dashbo
 
 async function loadClients(){
   const {db,collection,getDocs,query,where}=window._fb;
-  let q=currentUserData.role==='admin'?collection(db,'clients'):query(collection(db,'clients'),where('members','array-contains',currentUser.uid));
-  const snap=await getDocs(q); clients={};
-  snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
+  clients={};
+  if(currentUserData?.role === 'admin'){
+    const snap=await getDocs(collection(db,'clients'));
+    snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
+    renderSidebar();
+    return;
+  }
+  try{
+    const [clientSnap, packSnap] = await Promise.all([
+      getDocs(collection(db,'clients')),
+      getDocs(collection(db,'packs'))
+    ]);
+    const allPacks=[];
+    packSnap.forEach(d=>allPacks.push({id:d.id,...d.data()}));
+    clientSnap.forEach(d=>{
+      const client={id:d.id,...d.data()};
+      const relatedPacks=allPacks.filter(p=>p.clientId===client.id);
+      if(canAccessClientRecord(client, relatedPacks)) clients[client.id]=client;
+    });
+  }catch(err){
+    console.warn('loadClients collaborator fallback:', err);
+    const snap=await getDocs(query(collection(db,'clients'),where('members','array-contains',currentUser.uid)));
+    snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
+  }
   renderSidebar();
 }
 
@@ -1246,9 +1332,9 @@ async function renderDashData(){
         <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;display:flex;align-items:center;gap:18px;min-height:150px">
           <div style="flex:1;min-width:0">
             <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:9px">📊 Andamento da pauta</div>
-            ${(()=>{const entregues=mP.filter(p=>p.status==='entregue').length;const pct=mP.length?Math.round(entregues/mP.length*100):0;return `<div style="font-size:13px;color:var(--text3)">${entregues} de ${mP.length} packs entregues</div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-top:12px"><div style="height:100%;width:${pct}%;background:${pct>=100?'#4ade80':'var(--accent)'};border-radius:4px;transition:width .6s"></div></div>${pct>=100?`<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:8px">🎉 Magic Number batido!</div>`:''}`})()}
+            ${(()=>{const entregues=mP.filter(p=>['entregue','em_alteracoes','agendamento','concluido'].includes(p.status)).length;const pct=mP.length?Math.round(entregues/mP.length*100):0;return `<div style="font-size:13px;color:var(--text3)">${entregues} de ${mP.length} packs entregues</div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-top:12px"><div style="height:100%;width:${pct}%;background:${pct>=100?'#4ade80':'var(--accent)'};border-radius:4px;transition:width .6s"></div></div>${pct>=100?`<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:8px">🎉 Magic Number batido!</div>`:''}`})()}
           </div>
-          ${(()=>{const entregues=mP.filter(p=>p.status==='entregue').length;const pct=mP.length?Math.round(entregues/mP.length*100):0;const r=43;const circ=2*Math.PI*r;const dash=pct/100*circ;return `<div style="position:relative;width:100px;height:100px;flex-shrink:0"><svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="9"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${pct>=100?'#4ade80':'var(--accent)'}" stroke-width="9" stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">${pct}%</div></div>`})()}
+          ${(()=>{const entregues=mP.filter(p=>['entregue','em_alteracoes','agendamento','concluido'].includes(p.status)).length;const pct=mP.length?Math.round(entregues/mP.length*100):0;const r=43;const circ=2*Math.PI*r;const dash=pct/100*circ;return `<div style="position:relative;width:100px;height:100px;flex-shrink:0"><svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="9"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${pct>=100?'#4ade80':'var(--accent)'}" stroke-width="9" stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">${pct}%</div></div>`})()}
         </div>
       </div>
 
@@ -1286,7 +1372,7 @@ async function renderDashData(){
           <div class="dcard-hdr">Entrega total (incl. alterações e agendamentos) — ${mn}</div>
           <div class="dcard-body">
             ${(()=>{
-              const fs=['entregue','agendamento','concluido'];
+              const fs=['entregue','em_alteracoes','agendamento','concluido'];
               return Object.values(cp).filter(cl=>cl.total>0).map(cl=>{
                 const cPacks=mP.filter(p=>p.clientId===cl.id);
                 const cFinal=cPacks.filter(p=>fs.includes(p.status)).length;
@@ -1319,7 +1405,7 @@ async function renderDashData(){
     </div>
     `;
     // Check magic number celebration
-    const entreguesPct=mP.length?Math.round(mP.filter(p=>p.status==='entregue').length/mP.length*100):0;
+    const entreguesPct=mP.length?Math.round(mP.filter(p=>['entregue','em_alteracoes','agendamento','concluido'].includes(p.status)).length/mP.length*100):0;
     const lastPct=parseInt(localStorage.getItem('_lastMagicPct_'+mn+'_'+yr)||'0');
     if(entreguesPct>=100&&lastPct<100&&mP.length>0){
       localStorage.setItem('_lastMagicPct_'+mn+'_'+yr,'100');
@@ -1440,11 +1526,19 @@ async function dropGlobalPack(e, newStatus){
   e.preventDefault();
   document.querySelectorAll('.gkcol').forEach(c=>c.classList.remove('drag-over'));
   if(!_draggedPackId) return;
+  const tab=document.getElementById('todos-tab');
+  const scrollEl=tab?.querySelector('.kanban-outer');
+  const keepLeft=scrollEl?.scrollLeft||0;
+  const keepTop=scrollEl?.scrollTop||0;
   const {db,doc,updateDoc}=window._fb;
   await updateDoc(doc(db,'packs',_draggedPackId),{status:newStatus,updatedAt:Date.now()});
   showToast('Status atualizado!','ok');
   _draggedPackId = null;
-  renderGlobalKanban(document.getElementById('todos-tab'));
+  await renderGlobalKanban(tab);
+  requestAnimationFrame(()=>{
+    const next=tab?.querySelector('.kanban-outer');
+    if(next){ next.scrollLeft=keepLeft; next.scrollTop=keepTop; }
+  });
 }
 
 // Toggle month dropdown for global kanban
@@ -3353,18 +3447,36 @@ let _pomodoroTime = 25*60; // 25 min default
 let _pomodoroInterval = null;
 let _pomodoroMode = 'work'; // work or break
 
+function taskMiniDashHtml(openTasks, urgentTasks){
+  return openTasks.length>0?`<div class="mini-dash" id="tasks-mini-dash">
+      <div class="mini-dash-icon">${urgentTasks.length>0?'🔥':'✨'}</div>
+      <div class="mini-dash-text">
+        <div class="mini-dash-title">Faltam ${openTasks.length} tarefa${openTasks.length!==1?'s':''} para encerrar seu dia!</div>
+        <div class="mini-dash-sub">${urgentTasks.length>0?`${urgentTasks.length} urgente${urgentTasks.length!==1?'s':''}`:openTasks.length<=3?'Quase lá! 💪':'Bora produzir! 🚀'}</div>
+      </div>
+    </div>`:'';
+}
+
+function updateTasksMiniDash(allTasks){
+  const openTasks=allTasks.filter(t=>!t.done);
+  const urgentTasks=openTasks.filter(t=>t.priority==='alta');
+  const html=taskMiniDashHtml(openTasks,urgentTasks);
+  const current=document.getElementById('tasks-mini-dash');
+  if(current){
+    if(html) current.outerHTML=html;
+    else current.remove();
+    return;
+  }
+  if(html){
+    const anchor=document.getElementById('new-task-inline');
+    if(anchor) anchor.insertAdjacentHTML('beforebegin',html);
+  }
+}
 async function renderTarefas(){
   const main=document.getElementById('main');
   
   // Count open tasks for mini-dash
-  const {db,collection,getDocs,query,where}=window._fb;
-  let snap;
-  if(currentUserData?.role==='admin'){
-    snap=await getDocs(collection(db,'tarefas'));
-  } else {
-    snap=await getDocs(query(collection(db,'tarefas'),where('assignees','array-contains',currentUserData?.name||'')));
-  }
-  let allTasks=[]; snap.forEach(d=>allTasks.push({id:d.id,...d.data()}));
+  let allTasks=await fetchVisibleTasks();
   const openTasks = allTasks.filter(t=>!t.done);
   const urgentTasks = openTasks.filter(t=>t.priority==='alta');
   
@@ -3382,7 +3494,7 @@ async function renderTarefas(){
   </div>
   <div style="flex:1;overflow-y:auto;padding:14px 20px" id="tarefas-list">
     <!-- Mini-dash -->
-    ${openTasks.length>0?`<div class="mini-dash">
+    ${openTasks.length>0?`<div class="mini-dash" id="tasks-mini-dash">
       <div class="mini-dash-icon">${urgentTasks.length>0?'🔥':'✨'}</div>
       <div class="mini-dash-text">
         <div class="mini-dash-title">Faltam ${openTasks.length} tarefa${openTasks.length!==1?'s':''} para encerrar seu dia!</div>
@@ -3485,6 +3597,32 @@ function togglePomodoro(){
   togglePomodoroPanel();
 }
 
+function taskDueISO(offsetDays=0){
+  const d = new Date();
+  d.setDate(d.getDate()+offsetDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function setTaskDueQuick(inputId, mode){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  if(mode === 'other'){
+    input.focus();
+    if(input.showPicker) input.showPicker();
+    return;
+  }
+  input.value = taskDueISO(Number(mode)||0);
+  input.dispatchEvent(new Event('change',{bubbles:true}));
+}
+function taskDueQuickHtml(inputId){
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+    <button type="button" class="btn btn-s btn-sm" onclick="setTaskDueQuick('${inputId}',0)">Hoje</button>
+    <button type="button" class="btn btn-s btn-sm" onclick="setTaskDueQuick('${inputId}',1)">Amanhã</button>
+    <button type="button" class="btn btn-s btn-sm" onclick="setTaskDueQuick('${inputId}','other')">Outro dia</button>
+  </div>`;
+}
 function addInlineTask(){
   const el = document.getElementById('new-task-inline');
   if(el.style.display!=='none'){ el.style.display='none'; return; }
@@ -3501,7 +3639,7 @@ function addInlineTask(){
     </div>
     <div class="task-inline-body">
       <div class="fgrid" style="margin-bottom:8px">
-        <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" id="inline-task-due"></div>
+        <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" id="inline-task-due">${taskDueQuickHtml('inline-task-due')}</div>
         <div class="ff"><label class="flbl">Descrição</label><input class="fi" id="inline-task-desc" placeholder="Detalhes opcionais..."></div>
       </div>
       <div class="ff" style="margin-bottom:10px"><label class="flbl">Responsáveis</label>
@@ -3548,14 +3686,8 @@ async function filterTarefas(filter, btn){
 }
 
 async function loadTarefasInline(filter){
-  const {db,collection,getDocs,query,where}=window._fb;
-  let snap;
-  if(currentUserData?.role==='admin'){
-    snap=await getDocs(collection(db,'tarefas'));
-  } else {
-    snap=await getDocs(query(collection(db,'tarefas'),where('assignees','array-contains',currentUserData?.name||'')));
-  }
-  let tasks=[]; snap.forEach(d=>tasks.push({id:d.id,...d.data()}));
+  let tasks=await fetchVisibleTasks();
+  updateTasksMiniDash(tasks);
 
   // Filter
   if(filter==='abertas') tasks=tasks.filter(t=>!t.done);
@@ -4624,7 +4756,7 @@ async function buildRelatorio(container){
     // Stats
     const totalPosts = monthPosts.length;
     const donePosts = monthPosts.filter(p=>p.status==='concluido').length;
-    const entregues = monthPacks.filter(p=>['entregue','agendamento','concluido'].includes(p.status)).length;
+    const entregues = monthPacks.filter(p=>['entregue','em_alteracoes','agendamento','concluido'].includes(p.status)).length;
     const byFormat = {};
     monthPosts.forEach(p=>{ const f=p.format||'Outro'; byFormat[f]=(byFormat[f]||0)+1; });
 
@@ -4734,7 +4866,7 @@ async function exportRelatorio(){
 
   const today = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
   const done = monthPosts.filter(p=>p.status==='concluido').length;
-  const entregues = monthPacks.filter(p=>['entregue','agendamento','concluido'].includes(p.status)).length;
+  const entregues = monthPacks.filter(p=>['entregue','em_alteracoes','agendamento','concluido'].includes(p.status)).length;
 
   const html = `<html><head><meta charset="UTF-8"><style>
     body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:32px;color:#111}
@@ -4859,10 +4991,11 @@ async function exportRelatorio(){
 
 // ===== INSTAGRAM METRICS =====
 async function renderMetricas(container){
-  container.setAttribute('style','flex:1;overflow-y:auto;display:block');
+  container.setAttribute('style','flex:1;overflow-y:auto;display:block;background:linear-gradient(180deg,rgba(132,131,255,.05),transparent 220px)');
   const client = clients[currentClientId];
+  const safe = value => String(value || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const num = value => Number(value || 0).toLocaleString('pt-BR');
 
-  // Try to find Instagram ID: from client record or from name map
   const igId = client?.instagramId || CLIENT_INSTAGRAM_MAP[client?.name] || '';
 
   if(!igId){
@@ -4877,14 +5010,15 @@ async function renderMetricas(container){
     return;
   }
 
-  if(!INSTAGRAM_ACCESS_TOKEN || INSTAGRAM_ACCESS_TOKEN === ''){
+  const token = getInstagramToken();
+  if(!token){
     container.innerHTML = `<div class="empty" style="padding:60px">
       <div class="empty-ico">🔑</div>
-      <div class="empty-title">Token não configurado</div>
-      <div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:400px">
-        Configure o token de acesso do Instagram no código.<br>
-        Gere um novo token em <strong>developers.facebook.com → Ferramentas → Explorador da Graph API</strong>
+      <div class="empty-title">Token da Meta não configurado</div>
+      <div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:430px">
+        Gere um token novo no Meta for Developers e salve aqui. O token fica apenas neste navegador.
       </div>
+      <button class="btn btn-p" style="margin-top:16px" onclick="configureInstagramToken()">🔑 Inserir token</button>
     </div>`;
     return;
   }
@@ -4892,96 +5026,83 @@ async function renderMetricas(container){
   container.innerHTML = '<div style="padding:20px"><div class="loading"><div class="spinner"></div> Buscando métricas...</div></div>';
 
   try{
-    const token = INSTAGRAM_ACCESS_TOKEN;
-    const res = await fetch(
-      'https://graph.facebook.com/v18.0/'+igId+'/media?fields=id,caption,timestamp,like_count,comments_count,media_type,permalink&limit=25&access_token='+token
-    );
+    const fields = 'id,caption,timestamp,like_count,comments_count,media_type,media_url,thumbnail_url,permalink';
+    const res = await fetch('https://graph.facebook.com/v18.0/'+igId+'/media?fields='+fields+'&limit=25&access_token='+encodeURIComponent(token));
     const data = await res.json();
     if(data.error) throw new Error(data.error.message);
 
     const posts = data.data || [];
     const totalLikes = posts.reduce((s,p)=>s+(p.like_count||0),0);
     const totalComments = posts.reduce((s,p)=>s+(p.comments_count||0),0);
-    const avgLikes = posts.length ? Math.round(totalLikes/posts.length) : 0;
-    const avgComments = posts.length ? Math.round(totalComments/posts.length) : 0;
-    const bestPost = posts.reduce((b,p)=>(p.like_count||0)>(b?.like_count||0)?p:b, posts[0]);
+    const totalInteractions = totalLikes + totalComments;
+    const avgInteractions = posts.length ? Math.round(totalInteractions/posts.length) : 0;
+    const bestPost = posts.reduce((best,p)=>((p.like_count||0)+(p.comments_count||0))>((best?.like_count||0)+(best?.comments_count||0))?p:best, posts[0]);
 
-    let h = '<div style="padding:16px 20px">';
-
-    // Header
-    h += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);display:flex;align-items:center;justify-content:center;font-size:22px">📸</div>
-      <div>
-        <div style="font-size:16px;font-weight:700">@${client.handle||client.name}</div>
-        <div style="font-size:11px;color:var(--text3)">Últimos ${posts.length} posts</div>
+    let h = '<div style="padding:18px 22px 24px">';
+    h += `<div style="display:flex;align-items:center;gap:13px;margin-bottom:18px">
+      <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);display:flex;align-items:center;justify-content:center;font-size:23px;color:#fff">📸</div>
+      <div style="min-width:0">
+        <div style="font-size:18px;font-weight:800;color:var(--text)">@${safe(client.handle||client.name)}</div>
+        <div style="font-size:12px;color:var(--text3)">Últimos ${posts.length} posts puxados do Meta</div>
       </div>
-      <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="swCT('metricas')">🔄 Atualizar</button>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn btn-s btn-sm" onclick="configureInstagramToken()">🔑 Token</button>
+        <button class="btn btn-s btn-sm" onclick="swCT('metricas')">🔄 Atualizar</button>
+      </div>
     </div>`;
 
-    // Stats
     h += `<div class="statsgrid" style="margin-bottom:16px">
-      <div class="statcard"><div class="stat-lbl">Total curtidas</div><div class="stat-val" style="color:#f472b6">${totalLikes.toLocaleString('pt-BR')}</div><div class="stat-sub">${posts.length} posts</div></div>
-      <div class="statcard"><div class="stat-lbl">Total comentários</div><div class="stat-val" style="color:#60a5fa">${totalComments.toLocaleString('pt-BR')}</div><div class="stat-sub">${posts.length} posts</div></div>
-      <div class="statcard"><div class="stat-lbl">Média curtidas</div><div class="stat-val" style="color:var(--accent)">${avgLikes}</div><div class="stat-sub">por post</div></div>
-      <div class="statcard"><div class="stat-lbl">Média comentários</div><div class="stat-val" style="color:var(--green)">${avgComments}</div><div class="stat-sub">por post</div></div>
+      <div class="statcard"><div class="stat-lbl">Interações</div><div class="stat-val" style="color:var(--accent)">${num(totalInteractions)}</div><div class="stat-sub">curtidas + comentários</div></div>
+      <div class="statcard"><div class="stat-lbl">Curtidas</div><div class="stat-val" style="color:#f472b6">${num(totalLikes)}</div><div class="stat-sub">${posts.length} posts</div></div>
+      <div class="statcard"><div class="stat-lbl">Comentários</div><div class="stat-val" style="color:#60a5fa">${num(totalComments)}</div><div class="stat-sub">${posts.length} posts</div></div>
+      <div class="statcard"><div class="stat-lbl">Média/post</div><div class="stat-val" style="color:var(--green)">${num(avgInteractions)}</div><div class="stat-sub">interações</div></div>
     </div>`;
 
-    // Best post
     if(bestPost){
-      h += `<div style="background:linear-gradient(135deg,rgba(132,131,255,.12),rgba(132,131,255,.04));border:1px solid rgba(132,131,255,.25);border-radius:var(--r);padding:14px 16px;margin-bottom:16px">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:8px">🏆 Melhor post</div>
-        <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="flex:1;font-size:13px;line-height:1.6;color:var(--text2)">${(bestPost.caption||'').slice(0,150)}${(bestPost.caption||'').length>150?'...':''}</div>
-          <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:26px;font-weight:800;color:var(--accent)">${bestPost.like_count||0}</div>
-            <div style="font-size:10px;color:var(--text3)">curtidas</div>
-          </div>
+      const cover = bestPost.thumbnail_url || bestPost.media_url || '';
+      h += `<div style="background:linear-gradient(135deg,rgba(132,131,255,.14),rgba(96,165,250,.05));border:1px solid rgba(132,131,255,.25);border-radius:12px;padding:14px;margin-bottom:18px;display:flex;gap:14px;align-items:center">
+        <div style="width:86px;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--bg3);flex-shrink:0">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3)">📷</div>`}</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:6px">🏆 Melhor conteúdo</div>
+          <div style="font-size:13px;line-height:1.55;color:var(--text2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${safe(bestPost.caption||'Sem legenda')}</div>
+          <a href="${bestPost.permalink}" target="_blank" style="display:inline-flex;margin-top:8px;color:var(--accent);font-size:12px;font-weight:700;text-decoration:none">Ver no Instagram ↗</a>
         </div>
-        <a href="${bestPost.permalink}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;color:var(--accent);font-size:12px;font-weight:600;text-decoration:none">Ver post ↗</a>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:28px;font-weight:900;color:var(--accent)">${num((bestPost.like_count||0)+(bestPost.comments_count||0))}</div>
+          <div style="font-size:10px;color:var(--text3)">interações</div>
+        </div>
       </div>`;
     }
 
-    // Posts table
-    h += `<div class="dcard"><div class="dcard-hdr">Últimos posts</div>
-      <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead><tr style="background:var(--bg3)">
-          <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Data</th>
-          <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px">Tipo</th>
-          <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px;max-width:300px">Legenda</th>
-          <th style="padding:8px 12px;text-align:center;color:var(--text3);font-size:10px">❤️</th>
-          <th style="padding:8px 12px;text-align:center;color:var(--text3);font-size:10px">💬</th>
-          <th style="padding:8px 12px;text-align:center;color:var(--text3);font-size:10px">🔗</th>
-        </tr></thead>
-        <tbody>`;
-    posts.forEach((p,i)=>{
+    h += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:12px">`;
+    posts.forEach(p=>{
+      const cover = p.thumbnail_url || p.media_url || '';
       const dt = new Date(p.timestamp).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
       const tipo = p.media_type==='VIDEO'?'Reels':p.media_type==='CAROUSEL_ALBUM'?'Carrossel':'Feed';
-      const tagClass = p.media_type==='VIDEO'?'reels':p.media_type==='CAROUSEL_ALBUM'?'carrossel':'feed';
-      h += `<tr style="border-top:1px solid var(--border)">
-        <td style="padding:8px 12px;white-space:nowrap;color:var(--text3)">${dt}</td>
-        <td style="padding:8px 12px"><span class="ktag tag-${tagClass}" style="font-size:10px">${tipo}</span></td>
-        <td style="padding:8px 12px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${(p.caption||'—').slice(0,60)}${(p.caption||'').length>60?'...':''}</td>
-        <td style="padding:8px 12px;text-align:center;font-weight:700;color:#f472b6">${p.like_count||0}</td>
-        <td style="padding:8px 12px;text-align:center;font-weight:700;color:#60a5fa">${p.comments_count||0}</td>
-        <td style="padding:8px 12px;text-align:center"><a href="${p.permalink}" target="_blank" style="color:var(--accent);font-weight:700">↗</a></td>
-      </tr>`;
+      h += `<a href="${p.permalink}" target="_blank" style="display:block;text-decoration:none;color:inherit;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(15,14,38,.05)">
+        <div style="aspect-ratio:1/1;background:var(--bg3);position:relative">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:28px">📷</div>`}<span style="position:absolute;left:8px;top:8px;background:rgba(10,10,20,.72);color:#fff;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800">${tipo}</span></div>
+        <div style="padding:10px 11px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--text3);font-weight:700">${dt}</span><span style="font-size:11px;color:var(--accent);font-weight:800">↗</span></div>
+          <div style="font-size:12px;line-height:1.45;color:var(--text2);height:34px;overflow:hidden">${safe(p.caption||'Sem legenda')}</div>
+          <div style="display:flex;gap:10px;margin-top:9px;font-size:12px;font-weight:800;color:var(--text)"><span>❤️ ${num(p.like_count)}</span><span>💬 ${num(p.comments_count)}</span></div>
+        </div>
+      </a>`;
     });
-    h += '</tbody></table></div></div>';
-    h += `<div style="margin-top:14px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);font-size:12px;color:var(--text3)">
-      ℹ️ Métricas de alcance e impressões exigem aprovação do Meta (em andamento). Por ora exibimos curtidas e comentários.
-    </div>`;
+    h += '</div>';
+    h += `<div style="margin-top:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)">ℹ️ Alcance e impressões dependem de permissões extras aprovadas pela Meta. Aqui aparecem os dados públicos liberados pela API.</div>`;
     h += '</div>';
     container.innerHTML = h;
 
   }catch(err){
-    container.innerHTML = `<div class="empty" style="padding:40px">
-      <div class="empty-ico">⚠️</div>
-      <div class="empty-title">Erro ao carregar métricas</div>
-      <div style="color:var(--text3);font-size:13px;margin-top:8px">${err.message}</div>
-      <div style="display:flex;gap:8px;margin-top:16px">
-        <button class="btn btn-p btn-sm" onclick="swCT('metricas')">🔄 Tentar novamente</button>
-        <button class="btn btn-s btn-sm" onclick="showEditClient()">⚙️ Verificar config</button>
+    const expired = /expired|session|token/i.test(err.message || '');
+    container.innerHTML = `<div class="empty" style="padding:50px">
+      <div class="empty-ico">${expired?'🔑':'⚠️'}</div>
+      <div class="empty-title">${expired?'Token da Meta expirou':'Erro ao carregar métricas'}</div>
+      <div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:460px">${expired?'Gere um token novo no Meta for Developers e atualize neste navegador.':safe(err.message)}</div>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-p btn-sm" onclick="configureInstagramToken()">🔑 Atualizar token</button>
+        <button class="btn btn-s btn-sm" onclick="swCT('metricas')">🔄 Tentar novamente</button>
+        <button class="btn btn-s btn-sm" onclick="showEditClient()">⚙️ Verificar cliente</button>
       </div>
     </div>`;
     console.error('renderMetricas:', err);
@@ -5091,6 +5212,8 @@ async function renderPerfilAluma(){
           <div class="aluma-sub">Conteúdos da agência sem misturar com clientes, demandas ou indicadores.</div>
         </div>
         <div class="aluma-actions">
+          <a class="btn btn-s" href="https://www.instagram.com/jack.freires/" target="_blank" style="text-decoration:none">Perfil Jack ↗</a>
+          <a class="btn btn-s" href="https://www.instagram.com/alumamkt/" target="_blank" style="text-decoration:none">Perfil Aluma ↗</a>
           <button class="btn btn-s" onclick="swAluma('calendario')">Calendário</button>
           <button class="btn btn-p" onclick="openAlumaContent()">+ Novo conteúdo</button>
         </div>
@@ -5178,8 +5301,8 @@ function renderAlumaCard(c){
     </div>`;
 }
 
-function openAlumaContent(id=null,status='ideia'){
-  const c = id ? (_alumaContents[id] || {}) : {status};
+function openAlumaContent(id=null,status='ideia',dueDate=''){
+  const c = id ? (_alumaContents[id] || {}) : {status,dueDate};
   const selectedStatus = alumaStatusId(c.status || status);
   const statusOptions = ALUMA_CONTENT_STATUSES.map(st=>`<option value="${st.id}" ${selectedStatus===st.id?'selected':''}>${st.label}</option>`).join('');
   const html = `
@@ -5315,6 +5438,7 @@ function renderAlumaCalendar(el){
             <div style="font-size:10px;color:${st.color};font-weight:850;margin-top:3px">${st.label}</div>
           </button>`;
         }).join('')}
+        <button class="aluma-add" style="padding:6px;font-size:12px" onclick="openAlumaContent(null,'programar','${iso}')">+ Novo</button>
       </div>`);
   }
   el.innerHTML = `
@@ -6167,7 +6291,7 @@ async function deleteProspect(){
             <option value="baixa">🟢 Baixa</option>
           </select>
         </div>
-        <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" id="t-due"></div>
+        <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" id="t-due"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button type="button" class="btn btn-s btn-sm" onclick="setTaskDueQuick('t-due',0)">Hoje</button><button type="button" class="btn btn-s btn-sm" onclick="setTaskDueQuick('t-due',1)">Amanhã</button><button type="button" class="btn btn-s btn-sm" onclick="setTaskDueQuick('t-due','other')">Outro dia</button></div></div>
       </div>
       <div class="ff" style="margin-bottom:14px"><label class="flbl">Responsáveis</label>
         <div class="assignee-grid" id="t-assignees"></div>
@@ -6340,7 +6464,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=9').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=12').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
@@ -6348,3 +6472,8 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
+
+
+
+
