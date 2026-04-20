@@ -829,23 +829,33 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 // VERSION: 20260413_142552
 // ===== INSTAGRAM API =====
 let INSTAGRAM_ACCESS_TOKEN = localStorage.getItem('aluma_instagram_token') || '';
-function getInstagramToken(){
-  return localStorage.getItem('aluma_instagram_token') || INSTAGRAM_ACCESS_TOKEN || '';
+async function getInstagramToken(){
+  try{
+    const {db,doc,getDoc}=window._fb;
+    const snap = await getDoc(doc(db,'settings','meta'));
+    const shared = snap.exists() ? (snap.data().instagramToken || '') : '';
+    if(shared){
+      INSTAGRAM_ACCESS_TOKEN = shared;
+      localStorage.setItem('aluma_instagram_token', shared);
+      return shared;
+    }
+  }catch(err){ console.warn('getInstagramToken shared:', err); }
+  const local = localStorage.getItem('aluma_instagram_token') || INSTAGRAM_ACCESS_TOKEN || '';
+  INSTAGRAM_ACCESS_TOKEN = local;
+  return local;
 }
-function configureInstagramToken(){
-  const token = prompt('Cole aqui um token novo da Meta/Instagram. Ele ficará salvo apenas neste navegador.');
+async function configureInstagramToken(){
+  const token = prompt('Cole aqui um token novo da Meta/Instagram. Ele será salvo para todos os computadores.');
   if(token === null) return;
   const clean = token.trim();
-  if(!clean){
-    localStorage.removeItem('aluma_instagram_token');
-    INSTAGRAM_ACCESS_TOKEN = '';
-    showToast('Token removido deste navegador','inf');
-    return;
-  }
-  localStorage.setItem('aluma_instagram_token', clean);
-  INSTAGRAM_ACCESS_TOKEN = clean;
-  showToast('Token atualizado neste navegador','ok');
-  if(typeof swCT === 'function') swCT('metricas');
+  try{
+    const {db,doc,setDoc}=window._fb;
+    await setDoc(doc(db,'settings','meta'),{instagramToken:clean,updatedAt:Date.now(),updatedBy:currentUserData?.name||currentUser?.email||''},{merge:true});
+    if(clean){ localStorage.setItem('aluma_instagram_token', clean); showToast('Token atualizado para toda a equipe','ok'); }
+    else { localStorage.removeItem('aluma_instagram_token'); showToast('Token compartilhado removido','inf'); }
+    INSTAGRAM_ACCESS_TOKEN = clean;
+    if(typeof swCT === 'function') swCT('metricas');
+  }catch(err){ console.error('configureInstagramToken:', err); showToast('Não consegui salvar o token no Firebase','err'); }
 }
 const CLIENT_INSTAGRAM_MAP = {
   'Saulo Severo':     '17841445778218708',
@@ -1053,7 +1063,8 @@ function currentAccessKeys(){
 }
 function arrayMatchesAccess(values, keys=currentAccessKeys()){
   const haystack = (values || []).map(accessNorm).filter(Boolean);
-  return keys.some(k=>haystack.includes(accessNorm(k)));
+  const needles = keys.map(accessNorm).filter(Boolean);
+  return needles.some(k=>haystack.some(v=>v===k || v.includes(k) || k.includes(v)));
 }
 function canAccessClientRecord(client, relatedPacks=[]){
   if(currentUserData?.role === 'admin') return true;
@@ -1089,7 +1100,7 @@ function applyAccessControl(){
 async function initApp(){ await loadTeam(); await loadClients(); setView('dashboard'); initPresence(); }
 
 async function loadClients(){
-  const {db,collection,getDocs,query,where}=window._fb;
+  const {db,collection,getDocs,query,where,doc,getDoc}=window._fb;
   clients={};
   if(currentUserData?.role === 'admin'){
     const snap=await getDocs(collection(db,'clients'));
@@ -1097,22 +1108,32 @@ async function loadClients(){
     renderSidebar();
     return;
   }
+  let allPacks=[];
   try{
-    const [clientSnap, packSnap] = await Promise.all([
-      getDocs(collection(db,'clients')),
-      getDocs(collection(db,'packs'))
-    ]);
-    const allPacks=[];
+    const packSnap=await getDocs(collection(db,'packs'));
     packSnap.forEach(d=>allPacks.push({id:d.id,...d.data()}));
+  }catch(err){ console.warn('loadClients packs:',err); }
+  try{
+    const clientSnap=await getDocs(collection(db,'clients'));
     clientSnap.forEach(d=>{
       const client={id:d.id,...d.data()};
       const relatedPacks=allPacks.filter(p=>p.clientId===client.id);
-      if(canAccessClientRecord(client, relatedPacks)) clients[client.id]=client;
+      if(canAccessClientRecord(client,relatedPacks)) clients[client.id]=client;
     });
-  }catch(err){
-    console.warn('loadClients collaborator fallback:', err);
-    const snap=await getDocs(query(collection(db,'clients'),where('members','array-contains',currentUser.uid)));
-    snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
+  }catch(err){ console.warn('loadClients clients:',err); }
+  const visiblePacks=allPacks.filter(p=>arrayMatchesAccess(p.assignees||[]));
+  for(const cid of [...new Set(visiblePacks.map(p=>p.clientId).filter(Boolean))]){
+    if(clients[cid]) continue;
+    try{
+      const cs=await getDoc(doc(db,'clients',cid));
+      clients[cid]=cs.exists()?{id:cid,...cs.data()}:{id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'};
+    }catch(err){ clients[cid]={id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'}; }
+  }
+  if(!Object.keys(clients).length){
+    try{
+      const snap=await getDocs(query(collection(db,'clients'),where('members','array-contains',currentUser.uid)));
+      snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
+    }catch(err){ console.warn('loadClients fallback uid:',err); }
   }
   renderSidebar();
 }
@@ -1249,19 +1270,10 @@ async function renderDashData(){
   const tomorrowBase=addDays(todayBase,1);
   const weekBase=addDays(todayBase,7);
   const finalStatuses=['entregue','agendamento','concluido'];
-  const currentMember=TEAM.find(member=>{
-    const userName=(currentUserData?.name||'').toLowerCase();
-    const userEmail=(currentUserData?.email||currentUser?.email||'').toLowerCase();
-    const memberName=(member.name||'').toLowerCase();
-    return member.id===currentUserData?.teamId ||
-      member.id===currentUserData?.memberId ||
-      userName.includes(memberName) ||
-      userEmail.includes(member.id) ||
-      userEmail.includes(memberName.split(' ')[0]);
-  }) || TEAM.find(member=>member.id==='jackson'&&((currentUserData?.name||'').toLowerCase().includes('jackson')||(currentUser?.email||'').toLowerCase().includes('jackson')));
+  const currentMember=currentMemberProfile();
   const personalMemberId=currentMember?.id||'';
   const packDemandItems=AP
-    .filter(p=>p.dueDate&&!finalStatuses.includes(p.status)&&(p.assignees||[]).includes(personalMemberId))
+    .filter(p=>p.dueDate&&!finalStatuses.includes(p.status)&&arrayMatchesAccess(p.assignees||[]))
     .map(p=>({pack:p,due:parseDueDate(p.dueDate)}))
     .filter(x=>x.due)
     .sort((a,b)=>a.due-b.due);
@@ -1446,7 +1458,8 @@ async function renderGlobalKanban(container){
   const {db,collection,getDocs}=window._fb;
   container.innerHTML=`<div class="kanban-outer"><div class="kanban-board" id="global-kb"><div class="loading"><div class="spinner"></div></div></div></div>`;
   const snap=await getDocs(collection(db,'packs'));
-  const allP=[]; snap.forEach(d=>allP.push({id:d.id,...d.data()}));
+  let allP=[]; snap.forEach(d=>allP.push({id:d.id,...d.data()}));
+  if(currentUserData?.role !== 'admin') allP=allP.filter(p=>arrayMatchesAccess(p.assignees||[]) || canAccessClientRecord(clients[p.clientId]||{},[p]));
   const board=document.getElementById('global-kb'); if(!board) return;
   board.innerHTML=STATUSES.map(s=>{
     const col=allP.filter(p=>p.status===s.id);
@@ -4990,125 +5003,113 @@ async function exportRelatorio(){
 }
 
 // ===== INSTAGRAM METRICS =====
+let metricDate = new Date();
+let _metricasCurrentPosts = [];
+let _metricasCurrentFiltered = [];
+
+function metricInsightValue(post, metric){
+  return Number((post?.metricValues && post.metricValues[metric]) || 0);
+}
+function metricInteractionScore(post){
+  return Number(post.like_count||0)+Number(post.comments_count||0)+metricInsightValue(post,'saved');
+}
+function sortMetricPosts(posts, sortKey){
+  const score={
+    interactions:p=>metricInteractionScore(p),
+    likes:p=>Number(p.like_count||0),
+    comments:p=>Number(p.comments_count||0),
+    saved:p=>metricInsightValue(p,'saved'),
+    recent:p=>new Date(p.timestamp||0).getTime()
+  };
+  const fn=score[sortKey]||score.interactions;
+  return [...posts].sort((a,b)=>fn(b)-fn(a));
+}
+async function fetchMetricPostsForClient(client, limit=30){
+  const igId = client?.instagramId || CLIENT_INSTAGRAM_MAP[client?.name] || '';
+  if(!igId) throw new Error('Instagram Business ID não configurado.');
+  const token = await getInstagramToken();
+  if(!token) throw new Error('Token da Meta não configurado.');
+  const fields = 'id,caption,timestamp,like_count,comments_count,media_type,media_url,thumbnail_url,permalink';
+  const res = await fetch('https://graph.facebook.com/v18.0/'+igId+'/media?fields='+fields+'&limit='+limit+'&access_token='+encodeURIComponent(token));
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message);
+  const posts = data.data || [];
+  await Promise.all(posts.map(async p=>{
+    p.metricValues = {saved:0};
+    try{
+      const r = await fetch('https://graph.facebook.com/v18.0/'+p.id+'/insights?metric=saved&access_token='+encodeURIComponent(token));
+      const d = await r.json();
+      const saved = d?.data?.find(x=>x.name==='saved')?.values?.[0]?.value;
+      p.metricValues.saved = Number(saved || 0);
+    }catch(e){}
+  }));
+  return posts;
+}
+function changeMetricMonth(delta){
+  metricDate.setMonth(metricDate.getMonth()+delta);
+  swCT('metricas');
+}
+function metricMatchesMonth(post){
+  const d=new Date(post.timestamp||0);
+  return d.getMonth()===metricDate.getMonth() && d.getFullYear()===metricDate.getFullYear();
+}
+async function exportMetricasPDF(){
+  const client=clients[currentClientId];
+  const posts=_metricasCurrentFiltered.length?_metricasCurrentFiltered:_metricasCurrentPosts;
+  if(!client || !posts.length){ showToast('Sem métricas para gerar relatório','err'); return; }
+  const monthName=MONTHS[metricDate.getMonth()];
+  const year=metricDate.getFullYear();
+  const top=sortMetricPosts(posts,'interactions').slice(0,3);
+  const totalLikes=posts.reduce((s,p)=>s+Number(p.like_count||0),0);
+  const totalComments=posts.reduce((s,p)=>s+Number(p.comments_count||0),0);
+  const totalSaves=posts.reduce((s,p)=>s+metricInsightValue(p,'saved'),0);
+  const totalInteractions=totalLikes+totalComments+totalSaves;
+  const esc=value=>String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const num=value=>Number(value||0).toLocaleString('pt-BR');
+  const clientPhoto=client.photo||'';
+  const card=(p,i)=>{ const cover=p.thumbnail_url||p.media_url||''; return `<div class="post"><div class="rank">#${i+1}</div><div class="thumb">${cover?`<img src="${cover}">`:'<span>📷</span>'}</div><div class="copy"><p>${esc(p.caption||'Sem legenda')}</p><div><b>❤️ ${num(p.like_count)}</b><b>💬 ${num(p.comments_count)}</b><b>🔖 ${num(metricInsightValue(p,'saved'))}</b></div></div></div>`; };
+  const html=`<!doctype html><html><head><meta charset="UTF-8"><title>Métricas ${esc(client.name)}</title><style>
+    *{box-sizing:border-box}body{margin:0;background:#080716;color:white;font-family:Inter,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}.slide{width:1920px;height:1080px;padding:72px 92px;background:radial-gradient(circle at 82% 8%,rgba(132,131,255,.34),transparent 33%),linear-gradient(135deg,#080716,#181633 62%,#070713);overflow:hidden;position:relative}.brand{font-size:44px;font-weight:950;letter-spacing:-1px}.brand span{color:#8483ff}.top{display:flex;justify-content:space-between;align-items:center}.client{display:flex;align-items:center;gap:22px}.avatar{width:108px;height:108px;border-radius:28px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}.client h1{font-size:48px;margin:0 0 7px}.client p{font-size:22px;color:#aaa6d8;margin:0}.title{margin-top:68px}.title small{font-size:18px;text-transform:uppercase;letter-spacing:7px;color:#8483ff;font-weight:900}.title h2{font-size:76px;line-height:1.03;margin:14px 0 0}.grid{display:grid;grid-template-columns:420px 1fr;gap:34px;margin-top:48px}.stats{display:grid;gap:16px}.stat{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:22px}.stat .n{font-size:52px;font-weight:950}.stat .l{font-size:16px;color:#aaa6d8;text-transform:uppercase;letter-spacing:2px;font-weight:850}.posts{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.post{background:white;color:#121126;border-radius:20px;overflow:hidden;min-height:472px;position:relative}.rank{position:absolute;top:16px;left:16px;background:#8483ff;color:white;border-radius:999px;padding:8px 13px;font-weight:950}.thumb{height:270px;background:#eeeef8;display:flex;align-items:center;justify-content:center;font-size:44px}.thumb img{width:100%;height:100%;object-fit:cover}.copy{padding:20px}.copy p{font-size:19px;line-height:1.35;height:104px;overflow:hidden;margin:0;color:#282742}.copy div{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px;color:#8483ff;font-size:20px}.actions{position:fixed;right:24px;bottom:24px;z-index:50}.actions button{border:0;border-radius:999px;background:#8483ff;color:white;padding:14px 22px;font-weight:850;box-shadow:0 14px 30px rgba(0,0,0,.24);cursor:pointer}@page{size:1920px 1080px;margin:0}@media print{.actions{display:none}}
+  </style></head><body><div class="actions"><button onclick="window.print()">Salvar PDF / Imprimir</button></div><main class="slide"><div class="top"><div class="brand"><span>⚡</span> aluma</div><div class="client"><div class="avatar">${clientPhoto?`<img src="${clientPhoto}">`:esc((client.name||'?').charAt(0))}</div><div><h1>${esc(client.name)}</h1><p>${monthName} ${year} · ${posts.length} publicações</p></div></div></div><section class="title"><small>Relatório de performance</small><h2>Top 3 conteúdos<br>e métricas do mês</h2></section><section class="grid"><div class="stats"><div class="stat"><div class="n">${num(totalInteractions)}</div><div class="l">Interações</div></div><div class="stat"><div class="n">${num(totalLikes)}</div><div class="l">Curtidas</div></div><div class="stat"><div class="n">${num(totalComments)}</div><div class="l">Comentários</div></div><div class="stat"><div class="n">${num(totalSaves)}</div><div class="l">Salvamentos</div></div></div><div class="posts">${top.map(card).join('')}</div></section></main></body></html>`;
+  const w=window.open('','_blank');
+  if(!w){ showToast('Permita pop-ups para gerar o relatório','err'); return; }
+  w.document.write(html); w.document.close();
+  showToast('Relatório aberto em nova aba','ok');
+}
 async function renderMetricas(container){
   container.setAttribute('style','flex:1;overflow-y:auto;display:block;background:linear-gradient(180deg,rgba(132,131,255,.05),transparent 220px)');
   const client = clients[currentClientId];
   const safe = value => String(value || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const num = value => Number(value || 0).toLocaleString('pt-BR');
-
   const igId = client?.instagramId || CLIENT_INSTAGRAM_MAP[client?.name] || '';
-
-  if(!igId){
-    container.innerHTML = `<div class="empty" style="padding:60px">
-      <div class="empty-ico">📊</div>
-      <div class="empty-title">Instagram não configurado</div>
-      <div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:360px">
-        Configure o Instagram Business ID nas configurações do cliente.
-      </div>
-      <button class="btn btn-p" style="margin-top:16px" onclick="showEditClient()">⚙️ Configurar cliente</button>
-    </div>`;
-    return;
-  }
-
-  const token = getInstagramToken();
-  if(!token){
-    container.innerHTML = `<div class="empty" style="padding:60px">
-      <div class="empty-ico">🔑</div>
-      <div class="empty-title">Token da Meta não configurado</div>
-      <div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:430px">
-        Gere um token novo no Meta for Developers e salve aqui. O token fica apenas neste navegador.
-      </div>
-      <button class="btn btn-p" style="margin-top:16px" onclick="configureInstagramToken()">🔑 Inserir token</button>
-    </div>`;
-    return;
-  }
-
-  container.innerHTML = '<div style="padding:20px"><div class="loading"><div class="spinner"></div> Buscando métricas...</div></div>';
-
+  if(!igId){ container.innerHTML=`<div class="empty" style="padding:60px"><div class="empty-ico">📊</div><div class="empty-title">Instagram não configurado</div><div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:360px">Configure o Instagram Business ID nas configurações do cliente.</div><button class="btn btn-p" style="margin-top:16px" onclick="showEditClient()">⚙️ Configurar cliente</button></div>`; return; }
+  const token = await getInstagramToken();
+  if(!token){ container.innerHTML=`<div class="empty" style="padding:60px"><div class="empty-ico">🔑</div><div class="empty-title">Token da Meta não configurado</div><div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:430px">Gere um token novo no Meta for Developers e salve aqui. Ele fica compartilhado para toda a equipe.</div><button class="btn btn-p" style="margin-top:16px" onclick="configureInstagramToken()">🔑 Configurar token</button></div>`; return; }
+  const limit=Number(localStorage.getItem('aluma_metric_limit')||30);
+  const sortKey=localStorage.getItem('aluma_metric_sort')||'interactions';
+  const period=localStorage.getItem('aluma_metric_period')||'latest';
+  container.innerHTML='<div style="padding:20px"><div class="loading"><div class="spinner"></div> Buscando métricas...</div></div>';
   try{
-    const fields = 'id,caption,timestamp,like_count,comments_count,media_type,media_url,thumbnail_url,permalink';
-    const res = await fetch('https://graph.facebook.com/v18.0/'+igId+'/media?fields='+fields+'&limit=25&access_token='+encodeURIComponent(token));
-    const data = await res.json();
-    if(data.error) throw new Error(data.error.message);
-
-    const posts = data.data || [];
-    const totalLikes = posts.reduce((s,p)=>s+(p.like_count||0),0);
-    const totalComments = posts.reduce((s,p)=>s+(p.comments_count||0),0);
-    const totalInteractions = totalLikes + totalComments;
-    const avgInteractions = posts.length ? Math.round(totalInteractions/posts.length) : 0;
-    const bestPost = posts.reduce((best,p)=>((p.like_count||0)+(p.comments_count||0))>((best?.like_count||0)+(best?.comments_count||0))?p:best, posts[0]);
-
-    let h = '<div style="padding:18px 22px 24px">';
-    h += `<div style="display:flex;align-items:center;gap:13px;margin-bottom:18px">
-      <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);display:flex;align-items:center;justify-content:center;font-size:23px;color:#fff">📸</div>
-      <div style="min-width:0">
-        <div style="font-size:18px;font-weight:800;color:var(--text)">@${safe(client.handle||client.name)}</div>
-        <div style="font-size:12px;color:var(--text3)">Últimos ${posts.length} posts puxados do Meta</div>
-      </div>
-      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-        <button class="btn btn-s btn-sm" onclick="configureInstagramToken()">🔑 Token</button>
-        <button class="btn btn-s btn-sm" onclick="swCT('metricas')">🔄 Atualizar</button>
-      </div>
-    </div>`;
-
-    h += `<div class="statsgrid" style="margin-bottom:16px">
-      <div class="statcard"><div class="stat-lbl">Interações</div><div class="stat-val" style="color:var(--accent)">${num(totalInteractions)}</div><div class="stat-sub">curtidas + comentários</div></div>
-      <div class="statcard"><div class="stat-lbl">Curtidas</div><div class="stat-val" style="color:#f472b6">${num(totalLikes)}</div><div class="stat-sub">${posts.length} posts</div></div>
-      <div class="statcard"><div class="stat-lbl">Comentários</div><div class="stat-val" style="color:#60a5fa">${num(totalComments)}</div><div class="stat-sub">${posts.length} posts</div></div>
-      <div class="statcard"><div class="stat-lbl">Média/post</div><div class="stat-val" style="color:var(--green)">${num(avgInteractions)}</div><div class="stat-sub">interações</div></div>
-    </div>`;
-
-    if(bestPost){
-      const cover = bestPost.thumbnail_url || bestPost.media_url || '';
-      h += `<div style="background:linear-gradient(135deg,rgba(132,131,255,.14),rgba(96,165,250,.05));border:1px solid rgba(132,131,255,.25);border-radius:12px;padding:14px;margin-bottom:18px;display:flex;gap:14px;align-items:center">
-        <div style="width:86px;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--bg3);flex-shrink:0">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3)">📷</div>`}</div>
-        <div style="min-width:0;flex:1">
-          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:6px">🏆 Melhor conteúdo</div>
-          <div style="font-size:13px;line-height:1.55;color:var(--text2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${safe(bestPost.caption||'Sem legenda')}</div>
-          <a href="${bestPost.permalink}" target="_blank" style="display:inline-flex;margin-top:8px;color:var(--accent);font-size:12px;font-weight:700;text-decoration:none">Ver no Instagram ↗</a>
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:28px;font-weight:900;color:var(--accent)">${num((bestPost.like_count||0)+(bestPost.comments_count||0))}</div>
-          <div style="font-size:10px;color:var(--text3)">interações</div>
-        </div>
-      </div>`;
-    }
-
-    h += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:12px">`;
-    posts.forEach(p=>{
-      const cover = p.thumbnail_url || p.media_url || '';
-      const dt = new Date(p.timestamp).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
-      const tipo = p.media_type==='VIDEO'?'Reels':p.media_type==='CAROUSEL_ALBUM'?'Carrossel':'Feed';
-      h += `<a href="${p.permalink}" target="_blank" style="display:block;text-decoration:none;color:inherit;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(15,14,38,.05)">
-        <div style="aspect-ratio:1/1;background:var(--bg3);position:relative">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:28px">📷</div>`}<span style="position:absolute;left:8px;top:8px;background:rgba(10,10,20,.72);color:#fff;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800">${tipo}</span></div>
-        <div style="padding:10px 11px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--text3);font-weight:700">${dt}</span><span style="font-size:11px;color:var(--accent);font-weight:800">↗</span></div>
-          <div style="font-size:12px;line-height:1.45;color:var(--text2);height:34px;overflow:hidden">${safe(p.caption||'Sem legenda')}</div>
-          <div style="display:flex;gap:10px;margin-top:9px;font-size:12px;font-weight:800;color:var(--text)"><span>❤️ ${num(p.like_count)}</span><span>💬 ${num(p.comments_count)}</span></div>
-        </div>
-      </a>`;
-    });
-    h += '</div>';
-    h += `<div style="margin-top:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)">ℹ️ Alcance e impressões dependem de permissões extras aprovadas pela Meta. Aqui aparecem os dados públicos liberados pela API.</div>`;
-    h += '</div>';
-    container.innerHTML = h;
-
-  }catch(err){
-    const expired = /expired|session|token/i.test(err.message || '');
-    container.innerHTML = `<div class="empty" style="padding:50px">
-      <div class="empty-ico">${expired?'🔑':'⚠️'}</div>
-      <div class="empty-title">${expired?'Token da Meta expirou':'Erro ao carregar métricas'}</div>
-      <div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:460px">${expired?'Gere um token novo no Meta for Developers e atualize neste navegador.':safe(err.message)}</div>
-      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center">
-        <button class="btn btn-p btn-sm" onclick="configureInstagramToken()">🔑 Atualizar token</button>
-        <button class="btn btn-s btn-sm" onclick="swCT('metricas')">🔄 Tentar novamente</button>
-        <button class="btn btn-s btn-sm" onclick="showEditClient()">⚙️ Verificar cliente</button>
-      </div>
-    </div>`;
-    console.error('renderMetricas:', err);
-  }
+    const posts=await fetchMetricPostsForClient(client,limit);
+    _metricasCurrentPosts=posts;
+    const filtered=period==='month'?posts.filter(metricMatchesMonth):posts;
+    const ordered=sortMetricPosts(filtered,sortKey);
+    _metricasCurrentFiltered=ordered;
+    const totalLikes=ordered.reduce((s,p)=>s+Number(p.like_count||0),0);
+    const totalComments=ordered.reduce((s,p)=>s+Number(p.comments_count||0),0);
+    const totalSaves=ordered.reduce((s,p)=>s+metricInsightValue(p,'saved'),0);
+    const totalInteractions=totalLikes+totalComments+totalSaves;
+    const bestPost=ordered[0];
+    let h='<div style="padding:18px 22px 24px">';
+    h+=`<div style="display:flex;align-items:center;gap:13px;margin-bottom:18px;flex-wrap:wrap"><div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);display:flex;align-items:center;justify-content:center;font-size:23px;color:#fff">📸</div><div style="min-width:0"><div style="font-size:18px;font-weight:800;color:var(--text)">@${safe(client.handle||client.name)}</div><div style="font-size:12px;color:var(--text3)">${period==='month'?MONTHS[metricDate.getMonth()]+' '+metricDate.getFullYear():'Últimas '+limit+' publicações'} · ${ordered.length} exibidas</div></div><div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-s btn-sm" onclick="changeMetricMonth(-1)">‹</button><button class="btn btn-s btn-sm" onclick="changeMetricMonth(1)">›</button><select class="fs" style="width:150px;padding:5px 8px;font-size:12px" onchange="localStorage.setItem('aluma_metric_period',this.value);swCT('metricas')"><option value="latest" ${period==='latest'?'selected':''}>Últimas</option><option value="month" ${period==='month'?'selected':''}>Mês selecionado</option></select><select class="fs" style="width:92px;padding:5px 8px;font-size:12px" onchange="localStorage.setItem('aluma_metric_limit',this.value);swCT('metricas')"><option value="20" ${limit===20?'selected':''}>20</option><option value="30" ${limit===30?'selected':''}>30</option><option value="40" ${limit===40?'selected':''}>40</option></select><select class="fs" style="width:150px;padding:5px 8px;font-size:12px" onchange="localStorage.setItem('aluma_metric_sort',this.value);swCT('metricas')"><option value="interactions" ${sortKey==='interactions'?'selected':''}>Interações</option><option value="likes" ${sortKey==='likes'?'selected':''}>Curtidas</option><option value="comments" ${sortKey==='comments'?'selected':''}>Comentários</option><option value="saved" ${sortKey==='saved'?'selected':''}>Salvamentos</option><option value="recent" ${sortKey==='recent'?'selected':''}>Recentes</option></select><button class="btn btn-p btn-sm" onclick="exportMetricasPDF()">📄 Gerar Relatório</button><button class="btn btn-s btn-sm" onclick="configureInstagramToken()">🔑 Token</button></div></div>`;
+    h+=`<div class="statsgrid" style="margin-bottom:16px"><div class="statcard"><div class="stat-lbl">Interações</div><div class="stat-val" style="color:var(--accent)">${num(totalInteractions)}</div><div class="stat-sub">curtidas + comentários + salvos</div></div><div class="statcard"><div class="stat-lbl">Curtidas</div><div class="stat-val" style="color:#f472b6">${num(totalLikes)}</div><div class="stat-sub">${ordered.length} posts</div></div><div class="statcard"><div class="stat-lbl">Comentários</div><div class="stat-val" style="color:#60a5fa">${num(totalComments)}</div><div class="stat-sub">${ordered.length} posts</div></div><div class="statcard"><div class="stat-lbl">Salvamentos</div><div class="stat-val" style="color:#facc15">${num(totalSaves)}</div><div class="stat-sub">quando liberado pela Meta</div></div></div>`;
+    if(bestPost){ const cover=bestPost.thumbnail_url||bestPost.media_url||''; h+=`<div style="background:linear-gradient(135deg,rgba(132,131,255,.14),rgba(96,165,250,.05));border:1px solid rgba(132,131,255,.25);border-radius:12px;padding:14px;margin-bottom:18px;display:flex;gap:14px;align-items:center"><div style="width:86px;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--bg3);flex-shrink:0">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3)">📷</div>`}</div><div style="min-width:0;flex:1"><div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:6px">🏆 Melhor conteúdo no filtro atual</div><div style="font-size:13px;line-height:1.55;color:var(--text2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${safe(bestPost.caption||'Sem legenda')}</div><a href="${bestPost.permalink}" target="_blank" style="display:inline-flex;margin-top:8px;color:var(--accent);font-size:12px;font-weight:700;text-decoration:none">Ver no Instagram ↗</a></div><div style="text-align:right;flex-shrink:0"><div style="font-size:28px;font-weight:900;color:var(--accent)">${num(metricInteractionScore(bestPost))}</div><div style="font-size:10px;color:var(--text3)">interações</div></div></div>`; }
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:12px">';
+    ordered.forEach(p=>{ const cover=p.thumbnail_url||p.media_url||''; const dt=new Date(p.timestamp).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}); const tipo=p.media_type==='VIDEO'?'Reels':p.media_type==='CAROUSEL_ALBUM'?'Carrossel':'Feed'; h+=`<a href="${p.permalink}" target="_blank" style="display:block;text-decoration:none;color:inherit;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(15,14,38,.05)"><div style="aspect-ratio:1/1;background:var(--bg3);position:relative">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:28px">📷</div>`}<span style="position:absolute;left:8px;top:8px;background:rgba(10,10,20,.72);color:#fff;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800">${tipo}</span></div><div style="padding:10px 11px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--text3);font-weight:700">${dt}</span><span style="font-size:11px;color:var(--accent);font-weight:800">↗</span></div><div style="font-size:12px;line-height:1.45;color:var(--text2);height:34px;overflow:hidden">${safe(p.caption||'Sem legenda')}</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:9px;font-size:12px;font-weight:800;color:var(--text)"><span>❤️ ${num(p.like_count)}</span><span>💬 ${num(p.comments_count)}</span><span>🔖 ${num(metricInsightValue(p,'saved'))}</span></div></div></a>`; });
+    h+='</div><div style="margin-top:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)">ℹ️ Salvamentos dependem de permissão de insights do Meta. Se a Meta não liberar, aparecem como 0.</div></div>';
+    container.innerHTML=h;
+  }catch(err){ const expired=/expired|session|token/i.test(err.message||''); container.innerHTML=`<div class="empty" style="padding:50px"><div class="empty-ico">${expired?'🔑':'⚠️'}</div><div class="empty-title">${expired?'Token da Meta expirou':'Erro ao carregar métricas'}</div><div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:460px">${expired?'Gere um token novo no Meta for Developers e atualize para toda a equipe.':safe(err.message)}</div><div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center"><button class="btn btn-p btn-sm" onclick="configureInstagramToken()">🔑 Atualizar token</button><button class="btn btn-s btn-sm" onclick="swCT('metricas')">🔄 Tentar novamente</button><button class="btn btn-s btn-sm" onclick="showEditClient()">⚙️ Verificar cliente</button></div></div>`; console.error('renderMetricas:',err); }
 }
-
 // ===== PERFIL ALUMA =====
 let alumaTab = 'conteudos';
 let alumaCalDate = new Date();
@@ -6464,7 +6465,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=12').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=13').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
@@ -6472,6 +6473,12 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
+
+
+
+
+
 
 
 
