@@ -201,6 +201,16 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .img-thumb{position:relative;width:72px;height:72px;}
 .img-thumb img{width:100%;height:100%;object-fit:cover;border-radius:5px;border:1px solid var(--border);}
 .img-thumb-del{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.post-visual-panel{background:linear-gradient(135deg,rgba(132,131,255,.10),rgba(132,131,255,.03));border:1px solid rgba(132,131,255,.22);border-radius:12px;padding:12px;margin:0 0 14px}
+.post-visual-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.post-visual-title{font-size:12px;font-weight:850;color:var(--text);display:flex;align-items:center;gap:6px}
+.post-visual-actions{display:flex;gap:6px;flex-wrap:wrap}
+.post-visual-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.post-visual-card{position:relative;aspect-ratio:4/5;border-radius:9px;overflow:hidden;background:var(--bg3);border:1px solid var(--border);cursor:pointer}
+.post-visual-card img{width:100%;height:100%;object-fit:cover;display:block}
+.post-visual-badge{position:absolute;left:7px;top:7px;background:rgba(10,10,20,.78);color:#fff;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:850}
+.post-visual-empty{font-size:12px;color:var(--text3);padding:12px;border:1px dashed var(--border);border-radius:9px;background:var(--bg3);text-align:center}
+.media-viewer-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:800;cursor:pointer}
 /* COMMENTS */
 .comment-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:200px;overflow-y:auto;}
 .comment-item{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;}
@@ -493,6 +503,10 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
   /* Post form — single column */
   .fgrid { grid-template-columns: 1fr !important; }
   #pf-comments-panel { display: none !important; } /* hide comment panel on mobile by default */
+  .post-visual-panel{margin-left:-2px;margin-right:-2px;padding:10px}
+  .post-visual-grid{display:flex;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory;padding-bottom:4px}
+  .post-visual-card{min-width:74vw;max-width:74vw;scroll-snap-align:start;aspect-ratio:4/5}
+  #pf-left{padding:14px 12px!important}
 
   /* Post view overlay */
   .pvo { padding: 10px; }
@@ -2152,6 +2166,54 @@ function fallbackCopy(text,done){
   document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done();
 }
 
+function postMediaItems(post){
+  const finals=(post.finalFiles||[]).map((f,i)=>({group:'final',idx:i,label:'Slide '+(i+1),name:f.name||'Slide '+(i+1),src:f.url||f.data||''}));
+  const refs=(post.images||[]).map((src,i)=>({group:'refs',idx:i,label:'Ref '+(i+1),name:'Referência '+(i+1),src}));
+  return [...finals,...refs].filter(x=>x.src);
+}
+function renderPostVisualGallery(post){
+  const items=postMediaItems(post);
+  const cards=items.map((it,i)=>`<div class="post-visual-card" onclick="openPostMedia('${post.id}',${i})" title="${it.name}"><img src="${it.src}"><span class="post-visual-badge">${it.label}</span></div>`).join('');
+  return `<div class="post-visual-panel">
+    <div class="post-visual-head">
+      <div class="post-visual-title">🖼 Imagens do conteúdo <span style="background:var(--ag);color:var(--accent);padding:1px 7px;border-radius:999px;font-size:10px">${items.length}</span></div>
+      <div class="post-visual-actions">
+        <label class="btn btn-s btn-sm" style="cursor:pointer">+ Referência<input type="file" accept="image/*" multiple style="display:none" onchange="handleImgUp('${post.id}',this.files)"></label>
+        <label class="btn btn-s btn-sm" style="cursor:pointer">+ Slide final<input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="handleFinalFileUp('${post.id}',this.files)"></label>
+      </div>
+    </div>
+    ${items.length?`<div class="post-visual-grid">${cards}</div>`:`<div class="post-visual-empty">Nenhuma imagem anexada ainda. Adicione os slides finais ou referências visuais aqui.</div>`}
+  </div>`;
+}
+function openPostMedia(pid, startIdx=0){
+  const post=posts[pid]; if(!post) return;
+  const items=postMediaItems(post); if(!items[startIdx]) return;
+  let cur=startIdx;
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:700;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;gap:12px';
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  const render=()=>{
+    const item=items[cur];
+    ov.innerHTML=`<div style="position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#fff;z-index:2">
+      <div style="font-size:13px;font-weight:800;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 12px">${item.label} · ${cur+1}/${items.length}</div>
+      <button class="media-viewer-btn" onclick="this.closest('[data-viewer]').remove()">Fechar</button>
+    </div>
+    <img src="${item.src}" style="max-width:96vw;max-height:78vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.45)">
+    <div style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap">
+      <button class="media-viewer-btn" id="media-prev">‹</button>
+      <a class="media-viewer-btn" href="${item.src}" target="_blank" style="text-decoration:none">Abrir original</a>
+      <button class="media-viewer-btn" id="media-next">›</button>
+    </div>`;
+    ov.setAttribute('data-viewer','1');
+    ov.querySelector('#media-prev').onclick=e=>{ e.stopPropagation(); cur=(cur-1+items.length)%items.length; render(); };
+    ov.querySelector('#media-next').onclick=e=>{ e.stopPropagation(); cur=(cur+1)%items.length; render(); };
+  };
+  render(); document.body.appendChild(ov);
+}
+function openImgFull(pid, idx){
+  const finalCount=(posts[pid]?.finalFiles||[]).length;
+  openPostMedia(pid, finalCount+idx);
+}
 function renderPF(post){
   const el=document.getElementById('pm-content');
   const idx=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0)).findIndex(p=>p.id===post.id)+1;
@@ -2180,6 +2242,8 @@ function renderPF(post){
       ${post.postDate?`<span style="font-size:12px;color:var(--text3)">📅 ${new Date(post.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
       ${post.format?`<span class="ktag tag-${post.format.toLowerCase()}" style="font-size:11px">${post.format}</span>`:''}
     </div>
+
+    ${renderPostVisualGallery(post)}
 
     <div class="fsect">📊 Campos</div>
     <div class="fgrid" style="margin-bottom:10px">
@@ -4989,19 +5053,16 @@ async function exportRelatorio(){
 let metricDate = new Date();
 let _metricasCurrentPosts = [];
 let _metricasCurrentFiltered = [];
+let _metricasSelectedPosts = new Set();
 
-function metricInsightValue(post, metric){
-  return Number((post?.metricValues && post.metricValues[metric]) || 0);
-}
 function metricInteractionScore(post){
-  return Number(post.like_count||0)+Number(post.comments_count||0)+metricInsightValue(post,'saved');
+  return Number(post.like_count||0)+Number(post.comments_count||0);
 }
 function sortMetricPosts(posts, sortKey){
   const score={
     interactions:p=>metricInteractionScore(p),
     likes:p=>Number(p.like_count||0),
     comments:p=>Number(p.comments_count||0),
-    saved:p=>metricInsightValue(p,'saved'),
     recent:p=>new Date(p.timestamp||0).getTime()
   };
   const fn=score[sortKey]||score.interactions;
@@ -5016,44 +5077,53 @@ async function fetchMetricPostsForClient(client, limit=30){
   const res = await fetch('https://graph.facebook.com/v18.0/'+igId+'/media?fields='+fields+'&limit='+limit+'&access_token='+encodeURIComponent(token));
   const data = await res.json();
   if(data.error) throw new Error(data.error.message);
-  const posts = data.data || [];
-  await Promise.all(posts.map(async p=>{
-    p.metricValues = {saved:0};
-    try{
-      const r = await fetch('https://graph.facebook.com/v18.0/'+p.id+'/insights?metric=saved&access_token='+encodeURIComponent(token));
-      const d = await r.json();
-      const saved = d?.data?.find(x=>x.name==='saved')?.values?.[0]?.value;
-      p.metricValues.saved = Number(saved || 0);
-    }catch(e){}
-  }));
-  return posts;
+  return data.data || [];
 }
 function changeMetricMonth(delta){
   metricDate.setMonth(metricDate.getMonth()+delta);
+  localStorage.setItem('aluma_metric_period','month');
+  swCT('metricas');
+}
+function metricCurrentMonth(){
+  metricDate = new Date();
+  localStorage.setItem('aluma_metric_period','month');
   swCT('metricas');
 }
 function metricMatchesMonth(post){
   const d=new Date(post.timestamp||0);
   return d.getMonth()===metricDate.getMonth() && d.getFullYear()===metricDate.getFullYear();
 }
+function toggleMetricReportPost(id, checked){
+  if(checked) _metricasSelectedPosts.add(id);
+  else _metricasSelectedPosts.delete(id);
+  const n=document.getElementById('metric-selected-count');
+  if(n) n.textContent=_metricasSelectedPosts.size;
+}
+function selectMetricReportPosts(mode){
+  const ids = mode==='none' ? [] : (mode==='top3' ? sortMetricPosts(_metricasCurrentFiltered,'interactions').slice(0,3).map(p=>p.id) : _metricasCurrentFiltered.map(p=>p.id));
+  _metricasSelectedPosts = new Set(ids);
+  document.querySelectorAll('.metric-report-check').forEach(cb=>{ cb.checked=_metricasSelectedPosts.has(cb.value); });
+  const n=document.getElementById('metric-selected-count');
+  if(n) n.textContent=_metricasSelectedPosts.size;
+}
 async function exportMetricasPDF(){
   const client=clients[currentClientId];
-  const posts=_metricasCurrentFiltered.length?_metricasCurrentFiltered:_metricasCurrentPosts;
-  if(!client || !posts.length){ showToast('Sem métricas para gerar relatório','err'); return; }
+  const base=_metricasCurrentFiltered.length?_metricasCurrentFiltered:_metricasCurrentPosts;
+  const selected=base.filter(p=>_metricasSelectedPosts.has(p.id));
+  const posts=(selected.length?selected:sortMetricPosts(base,'interactions').slice(0,3)).slice(0,3);
+  if(!client || !posts.length){ showToast('Selecione pelo menos um post para o relatório','err'); return; }
   const monthName=MONTHS[metricDate.getMonth()];
   const year=metricDate.getFullYear();
-  const top=sortMetricPosts(posts,'interactions').slice(0,3);
   const totalLikes=posts.reduce((s,p)=>s+Number(p.like_count||0),0);
   const totalComments=posts.reduce((s,p)=>s+Number(p.comments_count||0),0);
-  const totalSaves=posts.reduce((s,p)=>s+metricInsightValue(p,'saved'),0);
-  const totalInteractions=totalLikes+totalComments+totalSaves;
+  const totalInteractions=totalLikes+totalComments;
   const esc=value=>String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const num=value=>Number(value||0).toLocaleString('pt-BR');
   const clientPhoto=client.photo||'';
-  const card=(p,i)=>{ const cover=p.thumbnail_url||p.media_url||''; return `<div class="post"><div class="rank">#${i+1}</div><div class="thumb">${cover?`<img src="${cover}">`:'<span>📷</span>'}</div><div class="copy"><p>${esc(p.caption||'Sem legenda')}</p><div><b>❤️ ${num(p.like_count)}</b><b>💬 ${num(p.comments_count)}</b><b>🔖 ${num(metricInsightValue(p,'saved'))}</b></div></div></div>`; };
+  const card=(p,i)=>{ const cover=p.thumbnail_url||p.media_url||''; return `<div class="post"><div class="rank">#${i+1}</div><div class="thumb">${cover?`<img src="${cover}">`:'<span>📷</span>'}</div><div class="copy"><p>${esc(p.caption||'Sem legenda')}</p><div><b>❤️ ${num(p.like_count)}</b><b>💬 ${num(p.comments_count)}</b><b>↗ ${num(metricInteractionScore(p))}</b></div></div></div>`; };
   const html=`<!doctype html><html><head><meta charset="UTF-8"><title>Métricas ${esc(client.name)}</title><style>
     *{box-sizing:border-box}body{margin:0;background:#080716;color:white;font-family:Inter,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}.slide{width:1920px;height:1080px;padding:72px 92px;background:radial-gradient(circle at 82% 8%,rgba(132,131,255,.34),transparent 33%),linear-gradient(135deg,#080716,#181633 62%,#070713);overflow:hidden;position:relative}.brand{font-size:44px;font-weight:950;letter-spacing:-1px}.brand span{color:#8483ff}.top{display:flex;justify-content:space-between;align-items:center}.client{display:flex;align-items:center;gap:22px}.avatar{width:108px;height:108px;border-radius:28px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}.client h1{font-size:48px;margin:0 0 7px}.client p{font-size:22px;color:#aaa6d8;margin:0}.title{margin-top:68px}.title small{font-size:18px;text-transform:uppercase;letter-spacing:7px;color:#8483ff;font-weight:900}.title h2{font-size:76px;line-height:1.03;margin:14px 0 0}.grid{display:grid;grid-template-columns:420px 1fr;gap:34px;margin-top:48px}.stats{display:grid;gap:16px}.stat{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:22px}.stat .n{font-size:52px;font-weight:950}.stat .l{font-size:16px;color:#aaa6d8;text-transform:uppercase;letter-spacing:2px;font-weight:850}.posts{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.post{background:white;color:#121126;border-radius:20px;overflow:hidden;min-height:472px;position:relative}.rank{position:absolute;top:16px;left:16px;background:#8483ff;color:white;border-radius:999px;padding:8px 13px;font-weight:950}.thumb{height:270px;background:#eeeef8;display:flex;align-items:center;justify-content:center;font-size:44px}.thumb img{width:100%;height:100%;object-fit:cover}.copy{padding:20px}.copy p{font-size:19px;line-height:1.35;height:104px;overflow:hidden;margin:0;color:#282742}.copy div{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px;color:#8483ff;font-size:20px}.actions{position:fixed;right:24px;bottom:24px;z-index:50}.actions button{border:0;border-radius:999px;background:#8483ff;color:white;padding:14px 22px;font-weight:850;box-shadow:0 14px 30px rgba(0,0,0,.24);cursor:pointer}@page{size:1920px 1080px;margin:0}@media print{.actions{display:none}}
-  </style></head><body><div class="actions"><button onclick="window.print()">Salvar PDF / Imprimir</button></div><main class="slide"><div class="top"><div class="brand"><span>⚡</span> aluma</div><div class="client"><div class="avatar">${clientPhoto?`<img src="${clientPhoto}">`:esc((client.name||'?').charAt(0))}</div><div><h1>${esc(client.name)}</h1><p>${monthName} ${year} · ${posts.length} publicações</p></div></div></div><section class="title"><small>Relatório de performance</small><h2>Top 3 conteúdos<br>e métricas do mês</h2></section><section class="grid"><div class="stats"><div class="stat"><div class="n">${num(totalInteractions)}</div><div class="l">Interações</div></div><div class="stat"><div class="n">${num(totalLikes)}</div><div class="l">Curtidas</div></div><div class="stat"><div class="n">${num(totalComments)}</div><div class="l">Comentários</div></div><div class="stat"><div class="n">${num(totalSaves)}</div><div class="l">Salvamentos</div></div></div><div class="posts">${top.map(card).join('')}</div></section></main></body></html>`;
+  </style></head><body><div class="actions"><button onclick="window.print()">Salvar PDF / Imprimir</button></div><main class="slide"><div class="top"><div class="brand"><span>⚡</span> aluma</div><div class="client"><div class="avatar">${clientPhoto?`<img src="${clientPhoto}">`:esc((client.name||'?').charAt(0))}</div><div><h1>${esc(client.name)}</h1><p>${monthName} ${year} · ${posts.length} publicações selecionadas</p></div></div></div><section class="title"><small>Relatório de performance</small><h2>Conteúdos selecionados<br>e métricas do período</h2></section><section class="grid"><div class="stats"><div class="stat"><div class="n">${num(totalInteractions)}</div><div class="l">Interações</div></div><div class="stat"><div class="n">${num(totalLikes)}</div><div class="l">Curtidas</div></div><div class="stat"><div class="n">${num(totalComments)}</div><div class="l">Comentários</div></div></div><div class="posts">${posts.map(card).join('')}</div></section></main></body></html>`;
   const w=window.open('','_blank');
   if(!w){ showToast('Permita pop-ups para gerar o relatório','err'); return; }
   w.document.write(html); w.document.close();
@@ -5071,6 +5141,7 @@ async function renderMetricas(container){
   const limit=Number(localStorage.getItem('aluma_metric_limit')||30);
   const sortKey=localStorage.getItem('aluma_metric_sort')||'interactions';
   const period=localStorage.getItem('aluma_metric_period')||'latest';
+  const monthLabel=MONTHS[metricDate.getMonth()]+' '+metricDate.getFullYear();
   container.innerHTML='<div style="padding:20px"><div class="loading"><div class="spinner"></div> Buscando métricas...</div></div>';
   try{
     const posts=await fetchMetricPostsForClient(client,limit);
@@ -5078,18 +5149,19 @@ async function renderMetricas(container){
     const filtered=period==='month'?posts.filter(metricMatchesMonth):posts;
     const ordered=sortMetricPosts(filtered,sortKey);
     _metricasCurrentFiltered=ordered;
+    if(!_metricasSelectedPosts.size) _metricasSelectedPosts = new Set(sortMetricPosts(ordered,'interactions').slice(0,3).map(p=>p.id));
     const totalLikes=ordered.reduce((s,p)=>s+Number(p.like_count||0),0);
     const totalComments=ordered.reduce((s,p)=>s+Number(p.comments_count||0),0);
-    const totalSaves=ordered.reduce((s,p)=>s+metricInsightValue(p,'saved'),0);
-    const totalInteractions=totalLikes+totalComments+totalSaves;
+    const totalInteractions=totalLikes+totalComments;
     const bestPost=ordered[0];
     let h='<div style="padding:18px 22px 24px">';
-    h+=`<div style="display:flex;align-items:center;gap:13px;margin-bottom:18px;flex-wrap:wrap"><div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);display:flex;align-items:center;justify-content:center;font-size:23px;color:#fff">📸</div><div style="min-width:0"><div style="font-size:18px;font-weight:800;color:var(--text)">@${safe(client.handle||client.name)}</div><div style="font-size:12px;color:var(--text3)">${period==='month'?MONTHS[metricDate.getMonth()]+' '+metricDate.getFullYear():'Últimas '+limit+' publicações'} · ${ordered.length} exibidas</div></div><div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-s btn-sm" onclick="changeMetricMonth(-1)">‹</button><button class="btn btn-s btn-sm" onclick="changeMetricMonth(1)">›</button><select class="fs" style="width:150px;padding:5px 8px;font-size:12px" onchange="localStorage.setItem('aluma_metric_period',this.value);swCT('metricas')"><option value="latest" ${period==='latest'?'selected':''}>Últimas</option><option value="month" ${period==='month'?'selected':''}>Mês selecionado</option></select><select class="fs" style="width:92px;padding:5px 8px;font-size:12px" onchange="localStorage.setItem('aluma_metric_limit',this.value);swCT('metricas')"><option value="20" ${limit===20?'selected':''}>20</option><option value="30" ${limit===30?'selected':''}>30</option><option value="40" ${limit===40?'selected':''}>40</option></select><select class="fs" style="width:150px;padding:5px 8px;font-size:12px" onchange="localStorage.setItem('aluma_metric_sort',this.value);swCT('metricas')"><option value="interactions" ${sortKey==='interactions'?'selected':''}>Interações</option><option value="likes" ${sortKey==='likes'?'selected':''}>Curtidas</option><option value="comments" ${sortKey==='comments'?'selected':''}>Comentários</option><option value="saved" ${sortKey==='saved'?'selected':''}>Salvamentos</option><option value="recent" ${sortKey==='recent'?'selected':''}>Recentes</option></select><button class="btn btn-p btn-sm" onclick="exportMetricasPDF()">📄 Gerar Relatório</button><button class="btn btn-s btn-sm" onclick="configureInstagramToken()">🔑 Token</button></div></div>`;
-    h+=`<div class="statsgrid" style="margin-bottom:16px"><div class="statcard"><div class="stat-lbl">Interações</div><div class="stat-val" style="color:var(--accent)">${num(totalInteractions)}</div><div class="stat-sub">curtidas + comentários + salvos</div></div><div class="statcard"><div class="stat-lbl">Curtidas</div><div class="stat-val" style="color:#f472b6">${num(totalLikes)}</div><div class="stat-sub">${ordered.length} posts</div></div><div class="statcard"><div class="stat-lbl">Comentários</div><div class="stat-val" style="color:#60a5fa">${num(totalComments)}</div><div class="stat-sub">${ordered.length} posts</div></div><div class="statcard"><div class="stat-lbl">Salvamentos</div><div class="stat-val" style="color:#facc15">${num(totalSaves)}</div><div class="stat-sub">quando liberado pela Meta</div></div></div>`;
+    h+=`<div style="display:flex;align-items:flex-start;gap:13px;margin-bottom:18px;flex-wrap:wrap"><div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#833AB4,#FD1D1D,#F77737);display:flex;align-items:center;justify-content:center;font-size:23px;color:#fff">📸</div><div style="min-width:0"><div style="font-size:18px;font-weight:800;color:var(--text)">@${safe(client.handle||client.name)}</div><div style="font-size:12px;color:var(--text3);margin-top:2px">${period==='month'?monthLabel:'Últimas '+limit+' publicações'} · ${ordered.length} exibidas</div><div style="margin-top:7px;display:inline-flex;align-items:center;gap:7px;background:rgba(132,131,255,.12);border:1px solid rgba(132,131,255,.25);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:800;color:var(--accent)">📅 ${monthLabel}</div></div><div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center"><button class="btn btn-s btn-sm" onclick="changeMetricMonth(-1)">‹ Mês</button><button class="btn btn-s btn-sm" onclick="metricCurrentMonth()">Mês atual</button><button class="btn btn-s btn-sm" onclick="changeMetricMonth(1)">Mês ›</button><select class="fs" style="width:158px;padding:6px 9px;font-size:12px" onchange="localStorage.setItem('aluma_metric_period',this.value);swCT('metricas')"><option value="latest" ${period==='latest'?'selected':''}>Últimas publicações</option><option value="month" ${period==='month'?'selected':''}>Mês selecionado</option></select><select class="fs" style="width:112px;padding:6px 9px;font-size:12px" onchange="localStorage.setItem('aluma_metric_limit',this.value);swCT('metricas')"><option value="20" ${limit===20?'selected':''}>20 posts</option><option value="30" ${limit===30?'selected':''}>30 posts</option><option value="40" ${limit===40?'selected':''}>40 posts</option></select><select class="fs" style="width:145px;padding:6px 9px;font-size:12px" onchange="localStorage.setItem('aluma_metric_sort',this.value);swCT('metricas')"><option value="interactions" ${sortKey==='interactions'?'selected':''}>Interações</option><option value="likes" ${sortKey==='likes'?'selected':''}>Curtidas</option><option value="comments" ${sortKey==='comments'?'selected':''}>Comentários</option><option value="recent" ${sortKey==='recent'?'selected':''}>Recentes</option></select><button class="btn btn-p btn-sm" onclick="exportMetricasPDF()">📄 Gerar Relatório</button><button class="btn btn-s btn-sm" onclick="configureInstagramToken()">🔑 Token</button></div></div>`;
+    h+=`<div class="statsgrid" style="margin-bottom:16px"><div class="statcard"><div class="stat-lbl">Interações</div><div class="stat-val" style="color:var(--accent)">${num(totalInteractions)}</div><div class="stat-sub">curtidas + comentários</div></div><div class="statcard"><div class="stat-lbl">Curtidas</div><div class="stat-val" style="color:#f472b6">${num(totalLikes)}</div><div class="stat-sub">${ordered.length} posts</div></div><div class="statcard"><div class="stat-lbl">Comentários</div><div class="stat-val" style="color:#60a5fa">${num(totalComments)}</div><div class="stat-sub">${ordered.length} posts</div></div><div class="statcard"><div class="stat-lbl">Selecionados</div><div class="stat-val" id="metric-selected-count" style="color:var(--green)">${_metricasSelectedPosts.size}</div><div class="stat-sub">para o relatório</div></div></div>`;
+    h+=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:13px"><span style="font-size:12px;font-weight:800;color:var(--text2)">Posts do relatório:</span><button class="btn btn-s btn-sm" onclick="selectMetricReportPosts('top3')">Top 3</button><button class="btn btn-s btn-sm" onclick="selectMetricReportPosts('all')">Selecionar todos</button><button class="btn btn-s btn-sm" onclick="selectMetricReportPosts('none')">Limpar</button><span style="font-size:11px;color:var(--text3)">O PDF usa até 3 posts selecionados.</span></div>`;
     if(bestPost){ const cover=bestPost.thumbnail_url||bestPost.media_url||''; h+=`<div style="background:linear-gradient(135deg,rgba(132,131,255,.14),rgba(96,165,250,.05));border:1px solid rgba(132,131,255,.25);border-radius:12px;padding:14px;margin-bottom:18px;display:flex;gap:14px;align-items:center"><div style="width:86px;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--bg3);flex-shrink:0">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3)">📷</div>`}</div><div style="min-width:0;flex:1"><div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:6px">🏆 Melhor conteúdo no filtro atual</div><div style="font-size:13px;line-height:1.55;color:var(--text2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${safe(bestPost.caption||'Sem legenda')}</div><a href="${bestPost.permalink}" target="_blank" style="display:inline-flex;margin-top:8px;color:var(--accent);font-size:12px;font-weight:700;text-decoration:none">Ver no Instagram ↗</a></div><div style="text-align:right;flex-shrink:0"><div style="font-size:28px;font-weight:900;color:var(--accent)">${num(metricInteractionScore(bestPost))}</div><div style="font-size:10px;color:var(--text3)">interações</div></div></div>`; }
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:12px">';
-    ordered.forEach(p=>{ const cover=p.thumbnail_url||p.media_url||''; const dt=new Date(p.timestamp).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}); const tipo=p.media_type==='VIDEO'?'Reels':p.media_type==='CAROUSEL_ALBUM'?'Carrossel':'Feed'; h+=`<a href="${p.permalink}" target="_blank" style="display:block;text-decoration:none;color:inherit;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(15,14,38,.05)"><div style="aspect-ratio:1/1;background:var(--bg3);position:relative">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:28px">📷</div>`}<span style="position:absolute;left:8px;top:8px;background:rgba(10,10,20,.72);color:#fff;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800">${tipo}</span></div><div style="padding:10px 11px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--text3);font-weight:700">${dt}</span><span style="font-size:11px;color:var(--accent);font-weight:800">↗</span></div><div style="font-size:12px;line-height:1.45;color:var(--text2);height:34px;overflow:hidden">${safe(p.caption||'Sem legenda')}</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:9px;font-size:12px;font-weight:800;color:var(--text)"><span>❤️ ${num(p.like_count)}</span><span>💬 ${num(p.comments_count)}</span><span>🔖 ${num(metricInsightValue(p,'saved'))}</span></div></div></a>`; });
-    h+='</div><div style="margin-top:16px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)">ℹ️ Salvamentos dependem de permissão de insights do Meta. Se a Meta não liberar, aparecem como 0.</div></div>';
+    ordered.forEach(p=>{ const cover=p.thumbnail_url||p.media_url||''; const dt=new Date(p.timestamp).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}); const tipo=p.media_type==='VIDEO'?'Reels':p.media_type==='CAROUSEL_ALBUM'?'Carrossel':'Feed'; const checked=_metricasSelectedPosts.has(p.id)?'checked':''; h+=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(15,14,38,.05)"><div style="aspect-ratio:1/1;background:var(--bg3);position:relative">${cover?`<img src="${cover}" style="width:100%;height:100%;object-fit:cover">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:28px">📷</div>`}<span style="position:absolute;left:8px;top:8px;background:rgba(10,10,20,.72);color:#fff;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800">${tipo}</span><label style="position:absolute;right:8px;top:8px;background:rgba(255,255,255,.92);color:#121126;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900;display:flex;gap:4px;align-items:center;cursor:pointer"><input class="metric-report-check" type="checkbox" value="${p.id}" ${checked} onchange="toggleMetricReportPost(this.value,this.checked)"> PDF</label></div><div style="padding:10px 11px"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px"><span style="font-size:11px;color:var(--text3);font-weight:700">${dt}</span><a href="${p.permalink}" target="_blank" style="font-size:11px;color:var(--accent);font-weight:800;text-decoration:none">↗</a></div><div style="font-size:12px;line-height:1.45;color:var(--text2);height:34px;overflow:hidden">${safe(p.caption||'Sem legenda')}</div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:9px;font-size:12px;font-weight:800;color:var(--text)"><span>❤️ ${num(p.like_count)}</span><span>💬 ${num(p.comments_count)}</span><span>↗ ${num(metricInteractionScore(p))}</span></div></div></div>`; });
+    h+='</div></div>';
     container.innerHTML=h;
   }catch(err){ const expired=/expired|session|token/i.test(err.message||''); container.innerHTML=`<div class="empty" style="padding:50px"><div class="empty-ico">${expired?'🔑':'⚠️'}</div><div class="empty-title">${expired?'Token da Meta expirou':'Erro ao carregar métricas'}</div><div style="color:var(--text3);font-size:13px;margin-top:8px;text-align:center;max-width:460px">${expired?'Gere um token novo no Meta for Developers e atualize para toda a equipe.':safe(err.message)}</div><div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center"><button class="btn btn-p btn-sm" onclick="configureInstagramToken()">🔑 Atualizar token</button><button class="btn btn-s btn-sm" onclick="swCT('metricas')">🔄 Tentar novamente</button><button class="btn btn-s btn-sm" onclick="showEditClient()">⚙️ Verificar cliente</button></div></div>`; console.error('renderMetricas:',err); }
 }
@@ -6448,7 +6520,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=14').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=15').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
@@ -6456,6 +6528,10 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
+
+
+
 
 
 
