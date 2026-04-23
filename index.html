@@ -637,13 +637,48 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .gkcol.drag-over .kcol-body{background:rgba(132,131,255,.03);}
 
 /* === TAREFAS INLINE === */
-.task-inline{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;transition:border-color .15s;}
+.task-inline{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;transition:border-color .15s,box-shadow .15s;}
 .task-inline:focus-within{border-color:var(--accent);}
-.task-inline-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.task-inline-body{display:none;padding-top:10px;border-top:1px solid var(--border);}
+.task-inline.tracking{border-color:var(--green);box-shadow:0 0 0 3px rgba(76,175,80,.15);}
+.task-inline-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.task-inline-body{display:none;padding-top:12px;margin-top:12px;border-top:1px solid var(--border);}
 .task-inline.expanded .task-inline-body{display:block;}
-.task-inline-title{flex:1;background:none;border:none;font-size:14px;font-weight:600;color:var(--text);font-family:inherit;outline:none;}
+.task-inline-title{flex:1;min-width:120px;background:none;border:none;font-size:15px;font-weight:600;color:var(--text);font-family:inherit;outline:none;}
 .task-inline-title::placeholder{color:var(--text3);}
+/* Task Timer */
+.task-timer-wrap{display:flex;align-items:center;gap:6px;}
+.task-timer-btn{width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;}
+.task-timer-btn.play{background:var(--green);color:#fff;}
+.task-timer-btn.play:hover{background:#43a047;}
+.task-timer-btn.pause{background:var(--orange);color:#fff;}
+.task-timer-btn.pause:hover{background:#f57c00;}
+.task-timer-btn.stop{background:var(--red);color:#fff;}
+.task-timer-btn.stop:hover{background:#e53935;}
+.task-timer-display{font-size:13px;font-weight:700;font-family:'SF Mono',Monaco,monospace;color:var(--text2);min-width:52px;text-align:center;padding:4px 8px;background:var(--bg3);border-radius:6px;}
+.task-timer-display.active{color:var(--green);background:rgba(76,175,80,.1);}
+.task-inline.paused .task-timer-display{color:var(--orange);background:rgba(255,152,0,.1);}
+.task-total-time{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;}
+/* Sessions history */
+.sessions-history{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.sessions-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.session-day{margin-bottom:10px;}
+.session-day-header{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+.session-day-total{color:var(--accent);font-weight:700;}
+.session-day-items{display:flex;flex-direction:column;gap:3px;}
+.session-item{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:4px 8px;background:var(--bg3);border-radius:4px;}
+/* Mobile improvements */
+@media(max-width:600px){
+  .task-inline{padding:16px;}
+  .task-inline-header{gap:8px;}
+  .task-inline-title{font-size:16px;min-width:100px;}
+  .task-check{width:24px;height:24px;}
+  .task-timer-btn{width:36px;height:36px;font-size:14px;}
+  .task-timer-display{font-size:13px;padding:5px 8px;}
+  .task-inline-body .fgrid{grid-template-columns:1fr!important;}
+  .task-inline-body .btn{padding:12px 16px;font-size:14px;}
+  .prio-alta,.prio-media,.prio-baixa{padding:5px 10px;font-size:11px;}
+  .session-item{font-size:10px;}
+}
 
 /* === MINI DASHBOARD === */
 .mini-dash{background:linear-gradient(135deg,rgba(132,131,255,0.12) 0%,rgba(132,131,255,0.04) 100%);border:1px solid rgba(132,131,255,.25);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:14px;}
@@ -3507,6 +3542,9 @@ let _pomodoroTime = 25*60; // 25 min default
 let _pomodoroInterval = null;
 let _pomodoroMode = 'work'; // work or break
 
+// Task Timer tracking
+let _taskTimers = {}; // { taskId: { startTime, elapsed, interval } }
+
 function taskMiniDashHtml(openTasks, urgentTasks){
   return openTasks.length>0?`<div class="mini-dash" id="tasks-mini-dash">
       <div class="mini-dash-icon">${urgentTasks.length>0?'🔥':'✨'}</div>
@@ -3778,7 +3816,15 @@ async function loadTarefasInline(filter){
         ?`<img src="${photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover" title="${name}">`
         :`<div style="width:20px;height:20px;border-radius:50%;background:${m?.color||'var(--accent)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff" title="${name}">${name[0]}</div>`;
     }).join('');
-    return `<div class="task-inline ${t.done?'done':''}" id="task-${t.id}">
+    
+    // Timer state
+    const isTracking = !!_taskTimers[t.id]?.interval;
+    const isPaused = _taskTimers[t.id] && !_taskTimers[t.id].interval;
+    const currentElapsed = t.timeTracked || 0;
+    const timerDisplay = formatTaskTime(currentElapsed);
+    const sessions = t.timeSessions || [];
+    
+    return `<div class="task-inline ${t.done?'done':''} ${isTracking?'tracking':''} ${isPaused?'paused':''}" id="task-${t.id}">
       <div class="task-inline-header">
         <div class="task-check ${t.done?'checked':''}" onclick="event.stopPropagation();toggleTask('${t.id}',${!t.done})">${t.done?'✓':''}</div>
         <input class="task-inline-title" value="${t.title||''}" style="${t.done?'text-decoration:line-through;opacity:.6':''}"
@@ -3786,6 +3832,13 @@ async function loadTarefasInline(filter){
           onkeypress="if(event.key==='Enter')this.blur()">
         <span class="prio-${t.priority||'media'}" style="cursor:pointer" onclick="cycleTaskPrio('${t.id}','${t.priority||'media'}')">${t.priority||'média'}</span>
         ${dl?`<span style="font-size:11.5px;font-weight:600;color:${dlColor}">📅 ${dl}</span>`:''}
+        ${!t.done?`<div class="task-timer-wrap">
+          <button class="task-timer-btn timer-play play" onclick="event.stopPropagation();playTaskTimer('${t.id}')" title="Iniciar" style="${isTracking?'display:none':'display:flex'}">▶</button>
+          <button class="task-timer-btn timer-pause pause" onclick="event.stopPropagation();pauseTaskTimer('${t.id}')" title="Pausar" style="${isTracking?'display:flex':'display:none'}">⏸</button>
+          <button class="task-timer-btn timer-stop stop" onclick="event.stopPropagation();stopTaskTimer('${t.id}')" title="Parar e salvar" style="${isTracking||isPaused?'display:flex':'display:none'}">⏹</button>
+          <div class="task-timer-display ${isTracking?'active':''}" id="timer-${t.id}">${timerDisplay}</div>
+        </div>`:''}
+        ${t.done&&currentElapsed>0?`<div class="task-total-time">⏱ ${formatTaskTime(currentElapsed)}</div>`:''}
         <div style="display:flex;gap:3px;margin-left:auto">${assigneeHtml}</div>
         <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:4px" onclick="toggleTaskExpand('${t.id}')">⋮</button>
       </div>
@@ -3794,7 +3847,9 @@ async function loadTarefasInline(filter){
           <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" value="${t.dueDate||''}" onchange="updateTaskField('${t.id}','dueDate',this.value)"></div>
           <div class="ff"><label class="flbl">Descrição</label><input class="fi" value="${t.description||''}" onchange="updateTaskField('${t.id}','description',this.value)"></div>
         </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end">
+        ${currentElapsed>0?`<div style="font-size:12px;color:var(--text3);margin-bottom:10px">⏱ Tempo total: <strong>${formatTaskTime(currentElapsed)}</strong></div>`:''}
+        ${renderSessionsHistory(sessions)}
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
           <button class="btn btn-d btn-sm" onclick="deleteTaskInline('${t.id}')">🗑 Excluir</button>
         </div>
       </div>
@@ -3837,8 +3892,242 @@ async function deleteTaskInline(id){
 
 async function toggleTask(id,done){
   const {db,doc,updateDoc}=window._fb;
+  // Se está concluindo e tem timer rodando, para o timer
+  if(done && _taskTimers[id]?.interval){
+    await stopTaskTimer(id);
+  }
   await updateDoc(doc(db,'tarefas',id),{done,updatedAt:Date.now()});
   await loadTarefasInline(_tarefaFilter);
+}
+
+// ===== TASK TIMER FUNCTIONS =====
+function formatTaskTime(seconds){
+  if(!seconds || seconds < 0) seconds = 0;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if(h > 0) return `${h}h${String(m).padStart(2,'0')}m`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function formatTimeHHMM(timestamp){
+  const d = new Date(timestamp);
+  return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function formatDateShort(timestamp){
+  const d = new Date(timestamp);
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+}
+
+// Play - inicia ou retoma timer
+async function playTaskTimer(taskId){
+  // Pausa qualquer outro timer ativo
+  for(const id of Object.keys(_taskTimers)){
+    if(_taskTimers[id]?.interval && id !== taskId){
+      await pauseTaskTimer(id);
+    }
+  }
+  
+  // Se já está rodando, ignora
+  if(_taskTimers[taskId]?.interval) return;
+  
+  const {db,doc,getDoc,updateDoc}=window._fb;
+  const snap = await getDoc(doc(db,'tarefas',taskId));
+  if(!snap.exists()) return;
+  
+  const task = snap.data();
+  const existingTime = task.timeTracked || 0;
+  const sessions = task.timeSessions || [];
+  
+  // Cria nova sessão se não tem uma pausada
+  let currentSession = _taskTimers[taskId]?.currentSession;
+  if(!currentSession){
+    currentSession = {
+      startTime: Date.now(),
+      pausedTime: 0,
+      pauses: []
+    };
+  }
+  
+  const resumeTime = Date.now();
+  
+  _taskTimers[taskId] = {
+    startTime: currentSession.startTime,
+    resumeTime: resumeTime,
+    pausedTime: _taskTimers[taskId]?.pausedTime || 0,
+    elapsed: existingTime,
+    currentSession: currentSession,
+    interval: setInterval(()=>{
+      const now = Date.now();
+      const activeTime = Math.floor((now - _taskTimers[taskId].resumeTime) / 1000);
+      const totalSession = activeTime + (_taskTimers[taskId].pausedTime || 0);
+      const totalTime = _taskTimers[taskId].elapsed + totalSession;
+      
+      const displayEl = document.getElementById('timer-'+taskId);
+      if(displayEl) displayEl.textContent = formatTaskTime(totalTime);
+    }, 1000)
+  };
+  
+  // Salva início da sessão no Firebase
+  await updateDoc(doc(db,'tarefas',taskId),{
+    timerActive: true,
+    timerStartedAt: currentSession.startTime,
+    updatedAt: Date.now()
+  });
+  
+  updateTimerUI(taskId, 'playing');
+  showToast('▶ Timer iniciado','inf');
+}
+
+// Pause - pausa temporariamente
+async function pauseTaskTimer(taskId){
+  if(!_taskTimers[taskId]?.interval) return;
+  
+  clearInterval(_taskTimers[taskId].interval);
+  _taskTimers[taskId].interval = null;
+  
+  const now = Date.now();
+  const activeTime = Math.floor((now - _taskTimers[taskId].resumeTime) / 1000);
+  _taskTimers[taskId].pausedTime = (_taskTimers[taskId].pausedTime || 0) + activeTime;
+  
+  // Registra a pausa
+  if(_taskTimers[taskId].currentSession){
+    _taskTimers[taskId].currentSession.pauses.push({
+      pausedAt: now
+    });
+  }
+  
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'tarefas',taskId),{
+    timerActive: false,
+    updatedAt: Date.now()
+  });
+  
+  updateTimerUI(taskId, 'paused');
+  showToast('⏸ Timer pausado','inf');
+}
+
+// Stop - finaliza sessão e registra histórico
+async function stopTaskTimer(taskId){
+  const timer = _taskTimers[taskId];
+  if(!timer) return;
+  
+  // Para o interval se estiver rodando
+  if(timer.interval){
+    clearInterval(timer.interval);
+  }
+  
+  const now = Date.now();
+  let sessionDuration = timer.pausedTime || 0;
+  
+  // Se estava rodando (não pausado), adiciona tempo ativo
+  if(timer.interval){
+    const activeTime = Math.floor((now - timer.resumeTime) / 1000);
+    sessionDuration += activeTime;
+  }
+  
+  const totalTime = timer.elapsed + sessionDuration;
+  
+  // Cria registro da sessão
+  const session = {
+    startTime: timer.startTime,
+    endTime: now,
+    duration: sessionDuration
+  };
+  
+  // Salva no Firebase
+  const {db,doc,getDoc,updateDoc,arrayUnion}=window._fb;
+  const snap = await getDoc(doc(db,'tarefas',taskId));
+  const existingSessions = snap.exists() ? (snap.data().timeSessions || []) : [];
+  
+  await updateDoc(doc(db,'tarefas',taskId),{
+    timeTracked: totalTime,
+    timeSessions: [...existingSessions, session],
+    timerActive: false,
+    timerStartedAt: null,
+    updatedAt: Date.now()
+  });
+  
+  // Limpa timer local
+  delete _taskTimers[taskId];
+  
+  updateTimerUI(taskId, 'stopped');
+  
+  // Mostra resumo da sessão
+  const startStr = formatTimeHHMM(session.startTime);
+  const endStr = formatTimeHHMM(session.endTime);
+  showToast(`⏹ Sessão: ${startStr} → ${endStr} (${formatTaskTime(sessionDuration)})`,'ok');
+  
+  // Atualiza lista pra mostrar histórico
+  await loadTarefasInline(_tarefaFilter);
+}
+
+function updateTimerUI(taskId, state){
+  const cardEl = document.getElementById('task-'+taskId);
+  if(!cardEl) return;
+  
+  const playBtn = cardEl.querySelector('.timer-play');
+  const pauseBtn = cardEl.querySelector('.timer-pause');
+  const stopBtn = cardEl.querySelector('.timer-stop');
+  const displayEl = document.getElementById('timer-'+taskId);
+  
+  if(state === 'playing'){
+    cardEl.classList.add('tracking');
+    cardEl.classList.remove('paused');
+    if(playBtn) playBtn.style.display = 'none';
+    if(pauseBtn) pauseBtn.style.display = 'flex';
+    if(stopBtn) stopBtn.style.display = 'flex';
+    if(displayEl) displayEl.classList.add('active');
+  } else if(state === 'paused'){
+    cardEl.classList.remove('tracking');
+    cardEl.classList.add('paused');
+    if(playBtn) playBtn.style.display = 'flex';
+    if(pauseBtn) pauseBtn.style.display = 'none';
+    if(stopBtn) stopBtn.style.display = 'flex';
+    if(displayEl) displayEl.classList.remove('active');
+  } else {
+    cardEl.classList.remove('tracking','paused');
+    if(playBtn) playBtn.style.display = 'flex';
+    if(pauseBtn) pauseBtn.style.display = 'none';
+    if(stopBtn) stopBtn.style.display = 'none';
+    if(displayEl) displayEl.classList.remove('active');
+  }
+}
+
+function renderSessionsHistory(sessions){
+  if(!sessions || !sessions.length) return '';
+  
+  // Agrupa por dia
+  const byDay = {};
+  sessions.forEach(s=>{
+    const day = formatDateShort(s.startTime);
+    if(!byDay[day]) byDay[day] = [];
+    byDay[day].push(s);
+  });
+  
+  let html = '<div class="sessions-history"><div class="sessions-title">📋 Histórico de sessões</div>';
+  
+  for(const day of Object.keys(byDay).reverse().slice(0,5)){
+    const daySessions = byDay[day];
+    const dayTotal = daySessions.reduce((sum,s)=>sum+(s.duration||0),0);
+    
+    html += `<div class="session-day">
+      <div class="session-day-header">
+        <span>${day}</span>
+        <span class="session-day-total">${formatTaskTime(dayTotal)}</span>
+      </div>
+      <div class="session-day-items">
+        ${daySessions.map(s=>`<div class="session-item">
+          <span>${formatTimeHHMM(s.startTime)} → ${formatTimeHHMM(s.endTime)}</span>
+          <span>${formatTaskTime(s.duration)}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  
+  html += '</div>';
+  return html;
 }
 
 function openTask(id){
