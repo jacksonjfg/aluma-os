@@ -5892,6 +5892,7 @@ async function renderComercial(){
     <div class="ptabs">
       <button class="ptab active" id="ctab-dash"    onclick="swCom('dash',this)">📊 Dashboard</button>
       <button class="ptab"        id="ctab-clientes" onclick="swCom('clientes',this)">🤝 Clientes</button>
+      <button class="ptab"        id="ctab-contratos" onclick="swCom('contratos',this)">📝 Contratos</button>
       <button class="ptab"        id="ctab-custos" onclick="swCom('custos',this)">💸 Custos</button>
       <button class="ptab"        id="ctab-pipeline" onclick="swCom('pipeline',this)">📋 Pipeline</button>
     </div>
@@ -5933,6 +5934,7 @@ function renderComTab(tab){
   if(!el) return;
   if(tab==='dash')     renderComDash(el);
   else if(tab==='clientes') renderComClientes(el);
+  else if(tab==='contratos') renderComContratos(el);
   else if(tab==='custos') renderComCustos(el);
   else if(tab==='pipeline') renderComPipeline(el);
 }
@@ -6236,6 +6238,413 @@ async function deleteComCliente(){
   closeComClienteModal();
   showToast('Cliente removido','inf');
   renderComTab('clientes');
+}
+
+// ── CONTRATOS ──
+const CONTRATO_ENTREGAVEIS_DEFAULT = [
+  { id: 'e1', text: 'Execução do Planejamento Macro', checked: true },
+  { id: 'e2', text: 'Planejamento mensal de conteúdo', checked: true },
+  { id: 'e3', text: 'Elaboração dos textos dos conteúdos (copy)', checked: true },
+  { id: 'e4', text: 'Design dos carrosseis', checked: true },
+  { id: 'e5', text: 'Edição de vídeos', checked: true },
+  { id: 'e6', text: 'Gravação de vídeos (conforme planejamento)', checked: false },
+  { id: 'e7', text: 'Gerenciamento do Direct (mensagens diretas)', checked: false },
+  { id: 'e8', text: 'Gestão e produção de conteúdo para site', checked: false },
+  { id: 'e9', text: 'Suporte e acompanhamento via WhatsApp', checked: true },
+  { id: 'e10', text: 'Monitoramento de métricas', checked: true },
+  { id: 'e11', text: 'Agendamento das publicações', checked: true }
+];
+
+let _contratoData = {
+  contratante: { nome: '', cnpj: '', responsavel: '', cpf: '', email: '', telefone: '', endereco: '' },
+  canais: '',
+  entregaveis: JSON.parse(JSON.stringify(CONTRATO_ENTREGAVEIS_DEFAULT)),
+  entregaveisCustom: '',
+  valor: '',
+  vencimento: '15',
+  inicio: '',
+  duracao: '6',
+  fim: ''
+};
+
+function renderComContratos(el){
+  // Calcular data fim automaticamente
+  if(_contratoData.inicio && _contratoData.duracao){
+    const d = new Date(_contratoData.inicio+'T00:00:00');
+    d.setMonth(d.getMonth() + parseInt(_contratoData.duracao));
+    _contratoData.fim = d.toISOString().split('T')[0];
+  }
+
+  el.innerHTML = `
+    <div class="dcard">
+      <div class="dcard-hdr">📝 Gerador de Contratos</div>
+      <div class="dcard-body">
+        <p style="font-size:13px;color:var(--text3);margin-bottom:16px">Preencha os dados abaixo para gerar o contrato de prestação de serviços da Aluma.</p>
+        
+        <!-- CONTRATANTE -->
+        <div style="background:var(--bg3);padding:16px;border-radius:var(--r);margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">👤 DADOS DO CONTRATANTE</div>
+          <div class="fgrid">
+            <div class="ff"><label class="flbl">Nome / Razão Social *</label><input class="fi" id="ct-nome" value="${_contratoData.contratante.nome}" onchange="updateContratoField('contratante','nome',this.value)" placeholder="Hospital Beneficente..."></div>
+            <div class="ff"><label class="flbl">CNPJ *</label><input class="fi" id="ct-cnpj" value="${_contratoData.contratante.cnpj}" onchange="updateContratoField('contratante','cnpj',this.value)" placeholder="00.000.000/0001-00"></div>
+            <div class="ff"><label class="flbl">Responsável *</label><input class="fi" id="ct-responsavel" value="${_contratoData.contratante.responsavel}" onchange="updateContratoField('contratante','responsavel',this.value)" placeholder="Nome completo"></div>
+            <div class="ff"><label class="flbl">CPF do Responsável *</label><input class="fi" id="ct-cpf" value="${_contratoData.contratante.cpf}" onchange="updateContratoField('contratante','cpf',this.value)" placeholder="000.000.000-00"></div>
+            <div class="ff"><label class="flbl">Email</label><input class="fi" id="ct-email" value="${_contratoData.contratante.email}" onchange="updateContratoField('contratante','email',this.value)" placeholder="contato@empresa.com"></div>
+            <div class="ff"><label class="flbl">Telefone</label><input class="fi" id="ct-telefone" value="${_contratoData.contratante.telefone}" onchange="updateContratoField('contratante','telefone',this.value)" placeholder="+55 (00) 00000-0000"></div>
+            <div class="ff" style="grid-column:span 2"><label class="flbl">Endereço completo</label><input class="fi" id="ct-endereco" value="${_contratoData.contratante.endereco}" onchange="updateContratoField('contratante','endereco',this.value)" placeholder="Rua, número, bairro, cidade/UF, CEP"></div>
+          </div>
+        </div>
+
+        <!-- VIGÊNCIA -->
+        <div style="background:var(--bg3);padding:16px;border-radius:var(--r);margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">📅 VIGÊNCIA DO CONTRATO</div>
+          <div class="fgrid">
+            <div class="ff"><label class="flbl">Data de início *</label><input type="date" class="fi" id="ct-inicio" value="${_contratoData.inicio}" onchange="updateContratoField('root','inicio',this.value);renderComContratos(document.getElementById('com-content'))"></div>
+            <div class="ff"><label class="flbl">Duração *</label>
+              <select class="fi" id="ct-duracao" onchange="updateContratoField('root','duracao',this.value);renderComContratos(document.getElementById('com-content'))">
+                <option value="3" ${_contratoData.duracao==='3'?'selected':''}>3 meses</option>
+                <option value="6" ${_contratoData.duracao==='6'?'selected':''}>6 meses</option>
+                <option value="12" ${_contratoData.duracao==='12'?'selected':''}>12 meses</option>
+              </select>
+            </div>
+            <div class="ff"><label class="flbl">Data de término</label><input type="date" class="fi" id="ct-fim" value="${_contratoData.fim}" disabled style="opacity:.7"></div>
+          </div>
+        </div>
+
+        <!-- INVESTIMENTO -->
+        <div style="background:var(--bg3);padding:16px;border-radius:var(--r);margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">💰 INVESTIMENTO</div>
+          <div class="fgrid">
+            <div class="ff"><label class="flbl">Valor mensal (R$) *</label><input type="number" class="fi" id="ct-valor" value="${_contratoData.valor}" onchange="updateContratoField('root','valor',this.value)" placeholder="3000"></div>
+            <div class="ff"><label class="flbl">Dia de vencimento</label>
+              <select class="fi" id="ct-vencimento" onchange="updateContratoField('root','vencimento',this.value)">
+                <option value="1" ${_contratoData.vencimento==='1'?'selected':''}>Dia 1</option>
+                <option value="5" ${_contratoData.vencimento==='5'?'selected':''}>Dia 5</option>
+                <option value="10" ${_contratoData.vencimento==='10'?'selected':''}>Dia 10</option>
+                <option value="15" ${_contratoData.vencimento==='15'?'selected':''}>Dia 15</option>
+                <option value="20" ${_contratoData.vencimento==='20'?'selected':''}>Dia 20</option>
+                <option value="25" ${_contratoData.vencimento==='25'?'selected':''}>Dia 25</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESCOPO -->
+        <div style="background:var(--bg3);padding:16px;border-radius:var(--r);margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">🎯 ESCOPO DO TRABALHO</div>
+          
+          <div class="ff" style="margin-bottom:14px">
+            <label class="flbl">Canais contemplados *</label>
+            <input class="fi" id="ct-canais" value="${_contratoData.canais}" onchange="updateContratoField('root','canais',this.value)" placeholder="Instagram e LinkedIn da Empresa X">
+          </div>
+
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">Entregáveis (selecione os que se aplicam):</div>
+          <div style="display:grid;gap:8px;margin-bottom:14px">
+            ${_contratoData.entregaveis.map((e,i)=>`
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text)">
+                <input type="checkbox" ${e.checked?'checked':''} onchange="toggleContratoEntregavel(${i})">
+                <span>${e.text}</span>
+              </label>
+            `).join('')}
+          </div>
+
+          <div class="ff">
+            <label class="flbl">Entregáveis adicionais (opcional)</label>
+            <textarea class="fi" id="ct-custom" rows="3" onchange="updateContratoField('root','entregaveisCustom',this.value)" placeholder="Descreva aqui entregáveis específicos que não estão na lista acima...">${_contratoData.entregaveisCustom}</textarea>
+          </div>
+        </div>
+
+        <!-- AÇÕES -->
+        <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn btn-s" onclick="resetContratoForm()">🗑 Limpar</button>
+          <button class="btn btn-p" onclick="gerarContratoPDF()">📄 Gerar PDF do Contrato</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updateContratoField(section, field, value){
+  if(section === 'contratante'){
+    _contratoData.contratante[field] = value;
+  } else {
+    _contratoData[field] = value;
+  }
+}
+
+function toggleContratoEntregavel(idx){
+  _contratoData.entregaveis[idx].checked = !_contratoData.entregaveis[idx].checked;
+}
+
+function resetContratoForm(){
+  if(!confirm('Limpar todos os campos do contrato?')) return;
+  _contratoData = {
+    contratante: { nome: '', cnpj: '', responsavel: '', cpf: '', email: '', telefone: '', endereco: '' },
+    canais: '',
+    entregaveis: JSON.parse(JSON.stringify(CONTRATO_ENTREGAVEIS_DEFAULT)),
+    entregaveisCustom: '',
+    valor: '',
+    vencimento: '15',
+    inicio: '',
+    duracao: '6',
+    fim: ''
+  };
+  renderComContratos(document.getElementById('com-content'));
+  showToast('Formulário limpo','inf');
+}
+
+function gerarContratoPDF(){
+  const ct = _contratoData;
+  
+  // Validações
+  if(!ct.contratante.nome || !ct.contratante.cnpj || !ct.contratante.responsavel || !ct.contratante.cpf){
+    showToast('Preencha os dados obrigatórios do contratante','err');
+    return;
+  }
+  if(!ct.inicio || !ct.valor || !ct.canais){
+    showToast('Preencha início, valor e canais','err');
+    return;
+  }
+
+  const entregaveisSelecionados = ct.entregaveis.filter(e=>e.checked);
+  if(!entregaveisSelecionados.length && !ct.entregaveisCustom.trim()){
+    showToast('Selecione pelo menos um entregável','err');
+    return;
+  }
+
+  showToast('Gerando contrato...','inf');
+
+  // Formatar dados
+  const inicioDate = new Date(ct.inicio+'T00:00:00');
+  const fimDate = new Date(ct.fim+'T00:00:00');
+  const inicioStr = inicioDate.toLocaleDateString('pt-BR');
+  const fimStr = fimDate.toLocaleDateString('pt-BR');
+  const duracaoTexto = ct.duracao === '3' ? '03 (três)' : ct.duracao === '6' ? '06 (seis)' : '12 (doze)';
+  const valorFmt = parseFloat(ct.valor).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const hoje = new Date();
+  const hojeStr = hoje.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  // CSS do PDF
+  const css = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',Arial,sans-serif;font-size:11px;line-height:1.6;color:#1a1a2e;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    @page{size:A4;margin:20mm 18mm;}
+    .page{page-break-after:always;}
+    .page:last-child{page-break-after:auto;}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #8483ff;}
+    .logo{font-size:24px;font-weight:800;color:#8483ff;}
+    .logo-sub{font-size:9px;letter-spacing:2px;color:#666;text-transform:uppercase;}
+    .tag{background:#8483ff;color:#fff;font-size:9px;font-weight:700;padding:4px 12px;border-radius:4px;letter-spacing:1px;}
+    h1{font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:6px;}
+    h2{font-size:14px;font-weight:700;color:#8483ff;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid #e8e8f0;}
+    h3{font-size:12px;font-weight:700;color:#1a1a2e;margin:14px 0 8px;}
+    .section{background:#f8f8fc;padding:14px;border-radius:8px;margin-bottom:14px;}
+    .section-title{font-size:11px;font-weight:700;color:#8483ff;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    .party{padding:12px;background:#fff;border-radius:6px;border:1px solid #e8e8f0;}
+    .party-tag{font-size:8px;font-weight:700;color:#fff;background:#8483ff;padding:2px 8px;border-radius:3px;display:inline-block;margin-bottom:8px;}
+    .party-name{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:4px;}
+    .party-info{font-size:10px;color:#666;line-height:1.5;}
+    .clause{margin-bottom:12px;}
+    .clause-num{font-weight:700;color:#8483ff;margin-right:4px;}
+    .highlight{background:#8483ff22;padding:10px 12px;border-radius:6px;border-left:3px solid #8483ff;margin:10px 0;}
+    .list{margin:8px 0 8px 16px;}
+    .list li{margin-bottom:4px;}
+    .valor-box{background:#1a1a2e;color:#fff;padding:16px;border-radius:8px;text-align:center;margin:14px 0;}
+    .valor-box .valor{font-size:28px;font-weight:800;color:#8483ff;}
+    .valor-box .valor-sub{font-size:10px;color:#aaa;margin-top:4px;}
+    .footer{margin-top:30px;padding-top:16px;border-top:1px solid #e8e8f0;}
+    .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;}
+    .sign-box{text-align:center;}
+    .sign-line{border-top:1px solid #1a1a2e;padding-top:8px;margin-top:50px;}
+    .sign-name{font-weight:600;font-size:11px;}
+    .sign-cpf{font-size:9px;color:#666;}
+    .legal-note{font-size:9px;color:#888;margin-top:20px;text-align:center;font-style:italic;}
+  `;
+
+  // Gerar lista de entregáveis
+  const entregaveisHtml = entregaveisSelecionados.map((e,i)=>`
+    <li><strong>${i+1}. ${e.text.split(':')[0]}:</strong> ${getEntregavelDescricao(e.id)}</li>
+  `).join('');
+
+  const customHtml = ct.entregaveisCustom.trim() ? `
+    <li><strong>${entregaveisSelecionados.length+1}. Serviços adicionais:</strong> ${ct.entregaveisCustom}</li>
+  ` : '';
+
+  // HTML do contrato
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Contrato - ${ct.contratante.nome}</title><style>${css}</style></head><body>
+
+<!-- PÁGINA 1 -->
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="logo">⚡ aluma</div>
+      <div class="logo-sub">Marketing de Conteúdo</div>
+    </div>
+    <div class="tag">CONTRATO</div>
+  </div>
+
+  <h1>Contrato de Prestação de Serviços para Gerenciamento de Redes Sociais</h1>
+  <p style="color:#666;margin-bottom:20px">Instrumento particular de prestação de serviços que entre si celebram:</p>
+
+  <div class="grid">
+    <div class="party">
+      <div class="party-tag">CONTRATADA</div>
+      <div class="party-name">44.922.705 JACKSON FREIRES GOMES</div>
+      <div class="party-info">
+        CNPJ: 44.922.705/0001-31<br>
+        Responsável: Jackson Freires Gomes<br>
+        CPF: 450.870.078-05<br>
+        Email: alumastudio.sm@gmail.com<br>
+        Tel: +55 (19) 99785-0756<br>
+        Rua Santina Martello Matarazzo, Bairro Mariluz 1, São Pedro/SP, CEP 13520-000
+      </div>
+    </div>
+    <div class="party">
+      <div class="party-tag">CONTRATANTE</div>
+      <div class="party-name">${ct.contratante.nome}</div>
+      <div class="party-info">
+        CNPJ: ${ct.contratante.cnpj}<br>
+        Responsável: ${ct.contratante.responsavel}<br>
+        CPF: ${ct.contratante.cpf}<br>
+        ${ct.contratante.email?`Email: ${ct.contratante.email}<br>`:''}
+        ${ct.contratante.telefone?`Tel: ${ct.contratante.telefone}<br>`:''}
+        ${ct.contratante.endereco||''}
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:16px;font-size:10px;color:#666">As partes concordam que este contrato pode ser assinado eletronicamente com validade jurídica assegurada, nos termos da Lei n. 14.063/20.</p>
+
+  <h2>1. Objeto do Contrato</h2>
+  <p>O presente instrumento tem por objeto a prestação de serviços de criação, desenvolvimento, planejamento estratégico e gerenciamento de conteúdo para redes sociais, conforme escopo detalhado na Cláusula 3.</p>
+
+  <h2>2. Vigência</h2>
+  <div class="highlight">
+    <p><strong>Início:</strong> ${inicioStr}</p>
+    <p><strong>Duração:</strong> ${duracaoTexto} meses</p>
+    <p><strong>Término previsto:</strong> ${fimStr}</p>
+  </div>
+  <p>O presente contrato tem vigência a partir de <strong>${inicioStr}</strong>, data em que se inicia formalmente a prestação dos serviços contratados. A assinatura poderá ocorrer em data anterior, tendo como finalidade formalizar o acordo entre as partes e viabilizar atividades preparatórias.</p>
+  <p style="margin-top:8px">O período contratual inicial será de <strong>${duracaoTexto} meses</strong>, podendo ser renovado mediante acordo expresso entre as partes, por igual período ou conforme novas condições a serem formalizadas em aditivo contratual.</p>
+
+  <h2>3. Escopo do Trabalho</h2>
+  <p><strong>Canais contemplados:</strong> ${ct.canais}</p>
+  <p style="margin-top:10px">A CONTRATADA prestará os seguintes serviços:</p>
+  <ul class="list">
+    ${entregaveisHtml}
+    ${customHtml}
+  </ul>
+</div>
+
+<!-- PÁGINA 2 -->
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="logo">⚡ aluma</div>
+      <div class="logo-sub">Marketing de Conteúdo</div>
+    </div>
+    <div class="tag">CONTRATO - PÁG. 2</div>
+  </div>
+
+  <h2>4. Diretrizes do Trabalho</h2>
+  <p><span class="clause-num">4.1.</span> Todo o conteúdo será desenvolvido com base na estratégia macro previamente alinhada com a CONTRATANTE.</p>
+  <p><span class="clause-num">4.2.</span> A CONTRATADA disponibilizará até o dia 25 de cada mês o planejamento de conteúdo completo referente ao mês subsequente.</p>
+  <p><span class="clause-num">4.3.</span> O CONTRATANTE compreende que sua participação é fundamental em todo o processo, aprovando conteúdos, fornecendo fotos e gravando vídeos quando necessário.</p>
+  <p><span class="clause-num">4.4.</span> Demandas adicionais fora do escopo previsto deverão ser solicitadas com antecedência mínima de 15 dias úteis.</p>
+
+  <h2>5. Investimento</h2>
+  <div class="valor-box">
+    <div class="valor">R$ ${valorFmt}</div>
+    <div class="valor-sub">Valor mensal pelos serviços prestados</div>
+  </div>
+  <p><span class="clause-num">5.1.</span> A primeira mensalidade será devida em <strong>${inicioStr}</strong>. As demais mensalidades vencem todo dia <strong>${ct.vencimento}</strong> de cada mês.</p>
+  <p><span class="clause-num">5.2.</span> O pagamento será realizado via plataforma Asaas (PIX/Boleto), conforme cobranças enviadas ao email e/ou WhatsApp do CONTRATANTE.</p>
+  <p><span class="clause-num">5.3.</span> O atraso superior a 30 dias autoriza o rompimento do contrato, aplicação de juros de mora de 1% ao mês, além de multa de 5% do valor em atraso.</p>
+
+  <h2>6. Permanência e Cancelamento</h2>
+  <p><span class="clause-num">6.1.</span> Caso qualquer das partes deseje encerrar o contrato antes do término da vigência, será aplicada multa compensatória equivalente a 30% do valor total restante.</p>
+  <p><span class="clause-num">6.2.</span> Após renovação, em caso de rompimento sem motivo justo, será devida multa correspondente a uma mensalidade.</p>
+  <p><span class="clause-num">6.3.</span> Alterações no escopo podem ser realizadas mediante aditivo contratual.</p>
+
+  <h2>7. Confidencialidade</h2>
+  <p>Este contrato não impede que a CONTRATADA trabalhe para outras empresas do mesmo ramo. Contudo, todas as informações do negócio da CONTRATANTE são confidenciais e serão tratadas com sigilo.</p>
+
+  <h2>8. Proteção de Dados</h2>
+  <p><span class="clause-num">8.1.</span> O CONTRATANTE declara expresso consentimento para que a CONTRATADA colete, trate e compartilhe os dados necessários ao cumprimento do contrato, nos termos da LGPD.</p>
+  <p><span class="clause-num">8.2.</span> Os ativos provenientes do serviço (pixel, lista de emails, leads) são de propriedade da CONTRATANTE.</p>
+</div>
+
+<!-- PÁGINA 3 -->
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="logo">⚡ aluma</div>
+      <div class="logo-sub">Marketing de Conteúdo</div>
+    </div>
+    <div class="tag">CONTRATO - PÁG. 3</div>
+  </div>
+
+  <h2>9. Disposições Gerais</h2>
+  <p><span class="clause-num">9.1.</span> A CONTRATADA não se responsabiliza pelo mau funcionamento ou sanções das plataformas, sobretudo nos casos em que advertiu o cliente.</p>
+  <p><span class="clause-num">9.2.</span> A tolerância com relação ao descumprimento de qualquer termo não será considerada como aceitação em termos diferentes.</p>
+  <p><span class="clause-num">9.3.</span> Não existe subordinação ou vínculo trabalhista entre as partes.</p>
+  <p><span class="clause-num">9.4.</span> Qualquer mudança de endereço, email ou WhatsApp deve ser informada, sob pena de se presumirem recebidas as comunicações.</p>
+  <p><span class="clause-num">9.5.</span> Este contrato é título executivo extrajudicial, nos termos do artigo 784, III, §4º do Código de Processo Civil.</p>
+  <p><span class="clause-num">9.6.</span> Fica eleito o foro da Comarca de São Pedro/SP para dirimir quaisquer controvérsias.</p>
+
+  <div class="footer">
+    <p style="text-align:center;font-weight:600">São Pedro, ${hojeStr}.</p>
+    
+    <div class="sign-grid">
+      <div class="sign-box">
+        <div class="sign-line">
+          <div class="sign-name">Jackson Freires Gomes</div>
+          <div class="sign-cpf">CPF: 450.870.078-05</div>
+          <div class="sign-cpf">CONTRATADA</div>
+        </div>
+      </div>
+      <div class="sign-box">
+        <div class="sign-line">
+          <div class="sign-name">${ct.contratante.responsavel}</div>
+          <div class="sign-cpf">CPF: ${ct.contratante.cpf}</div>
+          <div class="sign-cpf">CONTRATANTE</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="legal-note">Este documento foi gerado eletronicamente e possui validade jurídica nos termos da Lei nº 14.063/2020.</p>
+  </div>
+</div>
+
+</body></html>`;
+
+  // Abrir em nova janela para impressão/PDF
+  const w = window.open('','_blank');
+  if(!w){ showToast('Permita pop-ups para gerar o PDF','err'); return; }
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 800);
+  showToast('Contrato gerado! Use Ctrl+P para salvar como PDF.','ok');
+}
+
+function getEntregavelDescricao(id){
+  const desc = {
+    'e1': 'Execução e desdobramento das diretrizes, ações e estratégias definidas no Planejamento Macro previamente aprovado.',
+    'e2': 'Elaboração do planejamento mensal que define formatos, temas, objetivos e distribuição dos conteúdos a serem produzidos.',
+    'e3': 'Criação dos textos de carrosseis, legendas e roteiros de reels, alinhados ao posicionamento e objetivos estratégicos.',
+    'e4': 'Desenvolvimento do design dos conteúdos em formato de carrossel.',
+    'e5': 'Edição dos vídeos produzidos pelo CONTRATANTE ou em conjunto com a equipe da CONTRATADA.',
+    'e6': 'Participação no processo de gravação de vídeos conforme planejamento acordado. Deslocamentos presenciais terão condições definidas em comum acordo.',
+    'e7': 'Monitoramento e gestão das mensagens diretas do Instagram, zelando pela comunicação institucional.',
+    'e8': 'Escrita e produção de materiais textuais destinados ao site do CONTRATANTE.',
+    'e9': 'Suporte e acompanhamento estratégico por meio de grupo exclusivo no WhatsApp.',
+    'e10': 'Monitoramento e análise periódica das métricas de desempenho, incluindo alcance, engajamento e insights.',
+    'e11': 'Agendamento dos conteúdos aprovados conforme planejamento definido para cada canal.'
+  };
+  return desc[id] || '';
 }
 
 // ── PIPELINE ──

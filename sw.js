@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'aluma-os-v17';
+﻿const CACHE_NAME = 'aluma-os-v18';
 const APP_SHELL = [
   './manifest.webmanifest',
   './icons/icon-192.png',
