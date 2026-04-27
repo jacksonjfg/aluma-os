@@ -5084,17 +5084,25 @@ let _gerarPautaConfig = {
 };
 
 function openGerarPautaModal(){
-  // Carregar clientes ativos
-  const clientesAtivos = Object.values(_comClientes || {}).filter(c=>c.status==='ativo').sort((a,b)=>a.name.localeCompare(b.name));
+  // Pegar clientes da lista geral (sempre disponível)
+  let listaClientes = Object.values(clients || {}).filter(c=>c && c.name).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   
-  // Se não tem clientes no comercial, pegar da lista geral
-  let listaClientes = clientesAtivos.length ? clientesAtivos : Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
+  // Se tiver clientes no comercial com status ativo, usar esses
+  if(typeof _comClientes !== 'undefined' && _comClientes){
+    const clientesAtivos = Object.values(_comClientes).filter(c=>c.status==='ativo');
+    if(clientesAtivos.length) listaClientes = clientesAtivos.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  }
+  
+  if(!listaClientes.length){
+    showToast('Nenhum cliente encontrado','err');
+    return;
+  }
   
   // Configurar clientes com dias padrão
   if(!_gerarPautaConfig.clientes.length || _gerarPautaConfig.clientes.length !== listaClientes.length){
     _gerarPautaConfig.clientes = listaClientes.map((c,i)=>({
       id: c.id,
-      name: c.name,
+      name: c.name || 'Cliente',
       order: i+1,
       plan: 1,
       rev: 1,
@@ -5122,12 +5130,18 @@ function renderGerarPautaModal(){
   
   // Calcular dias úteis disponíveis
   const diasUteis = calcDiasUteis(cfg.inicioCiclo, cfg.magicNumber, cfg.feriadosExtra);
-  const diasNecessarios = cfg.clientes.reduce((sum,c)=>sum+c.plan+c.rev+c.des+c.envio, 0);
+  const diasNecessarios = cfg.clientes.reduce((sum,c)=>sum+(c.plan||1)+(c.rev||1)+(c.des||2)+(c.envio||1), 0);
   
   // Feriados do período
   const feriadosNoPeriodo = getFeriadosNoPeriodo(cfg.inicioCiclo, cfg.magicNumber);
 
-  const membros = TEAM.filter(t=>['kesia','jackson','cintia','tatiane'].includes(t.id));
+  // Pegar membros disponíveis
+  const membros = TEAM && TEAM.length ? TEAM : [
+    {id:'kesia',name:'Kesia'},
+    {id:'jackson',name:'Jackson'},
+    {id:'cintia',name:'Cíntia'},
+    {id:'tatiane',name:'Tatiane'}
+  ];
 
   const modal = document.createElement('div');
   modal.className = 'modal';
