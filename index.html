@@ -221,6 +221,9 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .comment-img{width:60px;height:60px;object-fit:cover;border-radius:5px;cursor:pointer;border:1px solid var(--border);}
 .comment-input-wrap{display:flex;gap:7px;align-items:flex-end;}
 .comment-input-wrap .fta{flex:1;min-height:52px;}
+.comment-files{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.comment-file{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;max-width:100%;padding:6px 10px;border-radius:10px;border:1px solid rgba(132,131,255,.18);background:rgba(132,131,255,.08);font-size:12px;color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.comment-file:hover{border-color:rgba(132,131,255,.35);background:rgba(132,131,255,.12);}
 /* ASSIGNEES */
 .assignee-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
 .assignee-chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);font-size:12px;font-weight:500;cursor:pointer;background:var(--bg3);transition:all .15s;}
@@ -788,8 +791,10 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
         <button class="sb-item" onclick="setView('comercial')"><span>💼</span>Comercial</button>
         <button class="sb-item" onclick="setView('perfilAluma')"><span>⚡</span>Perfil Aluma</button>
       </div>
-      <div class="sb-sect" style="padding-bottom:2px"><div class="sb-lbl">Clientes</div></div>
+      <div class="sb-sect" style="padding-bottom:2px"><div class="sb-lbl">Clientes Ativos</div></div>
       <div class="sb-clients" id="sb-clients"><div class="loading"><div class="spinner"></div></div></div>
+      <div class="sb-sect" style="padding-bottom:2px;padding-top:8px"><div class="sb-lbl">Clientes Inativos</div></div>
+      <div class="sb-clients" id="sb-clients-inactive"><div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente inativo</div></div>
       <div class="sb-bottom">
         <button class="sb-item" id="btn-add-sb" style="display:none;color:var(--accent)" onclick="showAddClient()"><span>＋</span>Novo cliente</button>
       </div>
@@ -857,14 +862,15 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
         <div class="ff"><label class="flbl">Tipo</label>
           <select class="fs" id="np-type"><option>Feed</option><option>Stories</option><option>Reels</option><option>TikTok</option><option>Facebook</option><option>LinkedIn</option></select>
         </div>
-        <div class="ff"><label class="flbl">Mês</label>
-          <select class="fs" id="np-month"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
+        <div class="ff"><label class="flbl">Mês do conteúdo</label>
+          <select class="fs" id="np-month" onchange="updateNewPackOperationalPreview()"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
         </div>
+        <div class="ff"><label class="flbl">Mês operacional</label><input class="fi" id="np-operational-month" readonly placeholder="Calculado automaticamente"></div>
       </div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Responsável</label>
         <div class="assignee-grid" id="np-assignees"></div>
       </div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due"></div>
+      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due" onchange="updateNewPackOperationalPreview()"></div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Link Canva</label><input class="fi" id="np-canva" placeholder="canva.com/design/..."></div>
       <div class="brow">
         <button class="btn btn-p" onclick="saveNewPack()">Criar pack</button>
@@ -1153,7 +1159,7 @@ async function loadClients(){
   clients={};
   try{
     const snap=await getDocs(collection(db,'clients'));
-    snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
+    snap.forEach(d=>{ clients[d.id]={id:d.id,status:'ativo',...d.data()}; });
   }catch(err){
     console.warn('loadClients all clients blocked:', err);
     try{
@@ -1163,32 +1169,61 @@ async function loadClients(){
       for(const cid of clientIds){
         try{
           const cs=await getDoc(doc(db,'clients',cid));
-          clients[cid]=cs.exists()?{id:cid,...cs.data()}:{id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'};
-        }catch(e){ clients[cid]={id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'}; }
+          clients[cid]=cs.exists()?{id:cid,status:'ativo',...cs.data()}:{id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff',status:'ativo'};
+        }catch(e){ clients[cid]={id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff',status:'ativo'}; }
       }
     }catch(e){ console.warn('loadClients fallback packs blocked:', e); }
   }
   renderSidebar();
 }
-
-function renderSidebar(){
-  const el=document.getElementById('sb-clients');
-  const list=Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
-  if(!list.length){ el.innerHTML='<div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente ainda</div>'; return; }
-  el.innerHTML=list.map(c=>`
-    <button class="sb-item ${currentClientId===c.id?'active':''}" onclick="openClient('${c.id}')">
+function isClientInactive(client){ return String(client?.status||'ativo')==='inativo'; }
+function isClientActive(client){ return !isClientInactive(client); }
+function getActiveClients(){ return Object.values(clients).filter(isClientActive).sort((a,b)=>a.name.localeCompare(b.name)); }
+function getInactiveClients(){ return Object.values(clients).filter(isClientInactive).sort((a,b)=>a.name.localeCompare(b.name)); }
+function monthIndexByName(name){ return MONTHS.indexOf(name); }
+function inferContentYear(pack){
+  if(Number.isFinite(Number(pack?.contentYear))) return Number(pack.contentYear);
+  if(pack?.dueDate){ const d=new Date(pack.dueDate+'T12:00:00'); if(!isNaN(d)) return d.getFullYear(); }
+  return new Date().getFullYear();
+}
+function inferOperationalInfo(pack){
+  if(!pack) return {month:'',year:new Date().getFullYear()};
+  if(pack.operationalMonth && Number.isFinite(Number(pack.operationalYear))) return {month:pack.operationalMonth,year:Number(pack.operationalYear)};
+  const idx=monthIndexByName(pack.month);
+  const contentYear=inferContentYear(pack);
+  if(idx<0) return {month:'',year:contentYear};
+  return {month:MONTHS[(idx+11)%12],year:idx===0?contentYear-1:contentYear};
+}
+function deriveOperationalFields(contentMonth, dueDate, contentYear){
+  const year = Number.isFinite(Number(contentYear)) ? Number(contentYear) : (()=>{ if(dueDate){ const d=new Date(dueDate+'T12:00:00'); if(!isNaN(d)) return d.getFullYear(); } return new Date().getFullYear(); })();
+  const idx=monthIndexByName(contentMonth);
+  return { contentYear: year, operationalMonth: idx<0?'':MONTHS[(idx+11)%12], operationalYear: idx===0?year-1:year };
+}
+function packMatchesOperationalMonth(pack, mo, yr){
+  const op=inferOperationalInfo(pack);
+  return op.month===MONTHS[mo] && Number(op.year)===yr;
+}
+function renderClientSidebarButton(c){
+  return `<button class="sb-item ${currentClientId===c.id?'active':''}" onclick="openClient('${c.id}')">
       <span style="width:7px;height:7px;border-radius:50%;background:${c.color||'#8483ff'};flex-shrink:0"></span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
       <span class="sb-cnt" id="cnt-${c.id}">…</span>
-    </button>`).join('');
-  list.forEach(c=>loadCnt(c.id));
+    </button>`;
+}
+function renderSidebar(){
+  const activeEl=document.getElementById('sb-clients');
+  const inactiveEl=document.getElementById('sb-clients-inactive');
+  const activeList=getActiveClients();
+  const inactiveList=getInactiveClients();
+  if(activeEl) activeEl.innerHTML=activeList.length?activeList.map(renderClientSidebarButton).join(''):'<div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente ativo</div>';
+  if(inactiveEl) inactiveEl.innerHTML=inactiveList.length?inactiveList.map(renderClientSidebarButton).join(''):'<div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente inativo</div>';
+  [...activeList,...inactiveList].forEach(c=>loadCnt(c.id));
 }
 async function loadCnt(cid){
   const {db,collection,getDocs,query,where}=window._fb;
   const snap=await getDocs(query(collection(db,'packs'),where('clientId','==',cid)));
   const el=document.getElementById('cnt-'+cid); if(el) el.textContent=snap.size;
 }
-
 // ===== VIEWS =====
 function setView(view,cid){
   document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('active'));
@@ -1209,8 +1244,10 @@ function setView(view,cid){
 
 function openClient(cid){
   currentClientId=cid;
-  document.querySelectorAll('#sb-clients .sb-item').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('#sb-clients .sb-item').forEach(el=>{ if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(cid)) el.classList.add('active'); });
+  document.querySelectorAll('#sb-clients .sb-item,#sb-clients-inactive .sb-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('#sb-clients .sb-item,#sb-clients-inactive .sb-item').forEach(el=>{
+    if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(cid)) el.classList.add('active');
+  });
   setView('client',cid);
 }
 
@@ -1237,11 +1274,12 @@ async function renderDashData(){
   const [pSnap,psSnap]=await Promise.all([getDocs(collection(db,'packs')),getDocs(collection(db,'posts'))]);
   const AP=[]; pSnap.forEach(d=>AP.push({id:d.id,...d.data()}));
   const APs=[]; psSnap.forEach(d=>APs.push({id:d.id,...d.data()}));
-  const mP=AP.filter(p=>p.month===mn);
+  const activeClientIds=new Set(getActiveClients().map(c=>c.id));
+  const mP=AP.filter(p=>activeClientIds.has(p.clientId)&&packMatchesOperationalMonth(p,mo,yr));
   const mPs=APs.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d.getMonth()===mo&&d.getFullYear()===yr; });
   const dp=mP.filter(p=>p.status==='concluido').length;
   const sc={}; STATUSES.forEach(s=>sc[s.id]=0); mP.forEach(p=>{if(sc[p.status]!==undefined)sc[p.status]++;});
-  const cp={}; Object.values(clients).forEach(c=>{cp[c.id]={total:0,done:0,name:c.name,color:c.color||'#8483ff'};});
+  const cp={}; getActiveClients().forEach(c=>{cp[c.id]={total:0,done:0,name:c.name,color:c.color||'#8483ff'};});
   mP.forEach(p=>{if(cp[p.clientId]){cp[p.clientId].total++;if(p.status==='concluido')cp[p.clientId].done++;}});
   const inner=document.getElementById('dash-inner'); if(!inner) return;
 
@@ -1466,7 +1504,7 @@ async function renderTodos(){
   const main=document.getElementById('main');
   main.innerHTML=`<div class="ph">
     <div class="ptitle">🗂 Todos os Clientes</div>
-    <div class="psub">${Object.keys(clients).length} clientes na carteira</div>
+    <div class="psub">${getActiveClients().length} clientes ativos na carteira</div>
     <div class="ptabs">
       <button class="ptab ${todosTab==='kanban'?'active':''}" onclick="switchTodosTab('kanban')">📦 Kanban Geral</button>
       <button class="ptab ${todosTab==='cal'?'active':''}" onclick="switchTodosTab('cal')">📅 Calendário</button>
@@ -1492,6 +1530,8 @@ async function renderGlobalKanban(container){
   container.innerHTML=`<div class="kanban-outer"><div class="kanban-board" id="global-kb"><div class="loading"><div class="spinner"></div></div></div></div>`;
   const snap=await getDocs(collection(db,'packs'));
   let allP=[]; snap.forEach(d=>allP.push({id:d.id,...d.data()}));
+  const activeClientIds=new Set(getActiveClients().map(c=>c.id));
+  allP=allP.filter(p=>activeClientIds.has(p.clientId));
   const board=document.getElementById('global-kb'); if(!board) return;
   board.innerHTML=STATUSES.map(s=>{
     const col=allP.filter(p=>p.status===s.id);
@@ -1595,9 +1635,19 @@ function toggleGlobalMDD(id){
 }
 async function setGlobalPackMonth(id,m){
   const {db,doc,updateDoc}=window._fb;
-  await updateDoc(doc(db,'packs',id),{month:m});
+  const pack = packs[id] || {};
+  const contentYear = Number(pack.contentYear) || inferContentYear(pack);
+  const timing = deriveOperationalFields(m, pack.dueDate||'', contentYear);
+  const payload = {
+    month:m,
+    contentYear:timing.contentYear,
+    operationalMonth:timing.operationalMonth,
+    operationalYear:timing.operationalYear
+  };
+  await updateDoc(doc(db,'packs',id),payload);
+  if(packs[id]) packs[id] = {...packs[id], ...payload};
   document.querySelectorAll('.mdd').forEach(d=>d.classList.add('hidden'));
-  showToast('Mês atualizado!','ok');
+  showToast('MÃªs atualizado!','ok');
   renderGlobalKanban(document.getElementById('todos-tab'));
 }
 
@@ -1871,6 +1921,7 @@ function buildPM(pid){
   const noAssignee=!(p.assignees&&p.assignees.length);
   const dl=smartDate(p.dueDate);
   const dlColor=!p.dueDate?'var(--text3)':dl==='hoje'?'var(--red)':dl==='amanhã'?'var(--orange)':'var(--text2)';
+  const op=inferOperationalInfo(p);
   const dueHtml=`<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:${dlColor};cursor:pointer;position:relative" onclick="event.stopPropagation();toggleDuePicker('${pid}')">
     📅 ${dl||'+ Data entrega'}
     <input type="date" id="due-picker-${pid}" value="${p.dueDate||''}"
@@ -1885,13 +1936,13 @@ function buildPM(pid){
     :'';
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     ${buildSDD(pid,p.status)}
-    ${p.month?`<span class="ktag" style="background:rgba(96,165,250,.12);color:#60a5fa;font-size:12px">${p.month}</span>`:''}
+    ${p.month?`<span class="ktag" style="background:rgba(96,165,250,.12);color:#60a5fa;font-size:12px">Conteúdo: ${p.month}${p.contentYear?` / ${p.contentYear}`:''}</span>`:''}
+    ${op.month?`<span class="ktag" style="background:rgba(132,131,255,.12);color:var(--accent);font-size:12px">Operacional: ${op.month}${op.year?` / ${op.year}`:''}</span>`:''}
     ${dueHtml}
     ${assignBtn}${assigneeHtml}
     ${canvaHtml}
   </div>`;
-}
-function toggleDuePicker(pid){
+}function toggleDuePicker(pid){
   const inp=document.getElementById('due-picker-'+pid);
   if(inp) inp.showPicker?.()??inp.click();
 }
@@ -2256,7 +2307,7 @@ function renderPF(post){
   const postAssignees=post.assignees||[];
   const assigneeChips=TEAM.map(m=>`<div class="assignee-chip ${postAssignees.includes(m.id)?'selected':''}" onclick="togglePostAssignee('${post.id}','${m.id}',this)"><div class="assignee-avatar" style="background:${m.color}">${m.name[0]}</div>${m.name}</div>`).join('');
   const comments=(post.comments||[]);
-  const cmtHtml=comments.length?comments.map(c=>`<div class="comment-item"><div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${(c.images||[]).map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}<div class="comment-time">${c.time||''}</div></div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentário ainda</div>';
+  const cmtHtml=comments.length?comments.map(c=>`<div class="comment-item">${renderCommentHtml(c)}</div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentÃ¡rio ainda</div>';
 
   el.style.cssText='display:flex;gap:0;overflow:hidden;padding:0;';
   el.innerHTML=`
@@ -2370,7 +2421,8 @@ function renderPF(post){
       <textarea class="fta" id="ci-${post.id}" rows="2" placeholder="Escrever comentário..." style="margin-bottom:7px;font-size:12.5px"></textarea>
       <div style="display:flex;gap:6px">
         <button class="btn btn-p btn-sm" style="flex:1" onclick="addComment('${post.id}')">Enviar</button>
-        <label class="btn btn-s btn-sm" style="cursor:pointer;padding:4px 8px" title="Anexar imagem">📎<input type="file" accept="image/*" style="display:none" onchange="addCommentImg('${post.id}',this.files)"></label>
+        <label class="btn btn-s btn-sm" style="cursor:pointer;padding:4px 8px" title="Anexar imagem">IMG<input type="file" accept="image/*" style="display:none" onchange="addCommentImg('${post.id}',this.files)"></label>
+        <label class="btn btn-s btn-sm" style="cursor:pointer;padding:4px 8px" title="Anexar arquivo">ARQ<input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,application/zip" style="display:none" onchange="addCommentFile('${post.id}',this.files)"></label>
       </div>
     </div>
   </div>
@@ -2462,35 +2514,44 @@ async function togglePostAssignee(pid,uid,el){
 }
 
 // ===== COMMENTS =====
+function normalizeComment(cm){
+  return {
+    author:String(cm?.author||''),
+    text:String(cm?.text||''),
+    time:String(cm?.time||''),
+    images:Array.isArray(cm?.images)?cm.images.filter(x=>typeof x==='string'):[],
+    files:Array.isArray(cm?.files)?cm.files.filter(f=>f&&typeof f.url==='string').map(f=>({name:String(f.name||'arquivo'),url:String(f.url||''),type:String(f.type||'')})):[]
+  };
+}
+function renderCommentHtml(comment){
+  const c = normalizeComment(comment);
+  const imgs = c.images.length ? `<div class="comment-imgs">${c.images.map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}</div>` : '';
+  const files = c.files.length ? `<div class="comment-files">${c.files.map(file=>`<a class="comment-file" href="${file.url}" target="_blank" rel="noopener">ðŸ“„ ${safe(file.name||'arquivo')}</a>`).join('')}</div>` : '';
+  return `<div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${imgs}${files}<div class="comment-time">${c.time||''}</div>`;
+}
 async function addComment(pid){
   const inp=document.getElementById('ci-'+pid);
   const text=(inp?.value||'').trim();
-  if(!text){ showToast('Digite um comentário','err'); return; }
-  if(!posts[pid]){ showToast('Post não encontrado','err'); return; }
-  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuário';
+  if(!text){ showToast('Digite um comentÃ¡rio','err'); return; }
+  if(!posts[pid]){ showToast('Post nÃ£o encontrado','err'); return; }
+  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'UsuÃ¡rio';
   const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-  const newComment={author,text,time:now,images:[]};
-  // Build clean array — no functions, no undefined
-  const existing=[];
-  (posts[pid].comments||[]).forEach(cm=>{
-    existing.push({author:String(cm.author||''),text:String(cm.text||''),time:String(cm.time||''),images:Array.isArray(cm.images)?cm.images.filter(x=>typeof x==='string'):[]});
-  });
+  const existing=(posts[pid].comments||[]).map(normalizeComment);
+  const newComment=normalizeComment({author,text,time:now,images:[],files:[]});
   existing.push(newComment);
   posts[pid].comments=existing;
   try{
     const {db,doc,updateDoc}=window._fb;
     await updateDoc(doc(db,'posts',pid),{comments:existing});
     if(inp) inp.value='';
-    // Append to UI
     const cl=document.getElementById('cl-'+pid);
     if(cl){
-      // Remove "no comments" placeholder
-      cl.querySelectorAll('div').forEach(d=>{ if(d.textContent==='Nenhum comentário ainda') d.remove(); });
+      if(cl.textContent.includes('Nenhum comentÃ¡rio ainda')) cl.innerHTML='';
       const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=`<div class="comment-author">${author}</div><div class="comment-text">${text}</div><div class="comment-time">${now}</div>`;
+      div.innerHTML=renderCommentHtml(newComment);
       cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
     }
-    showToast('Comentário enviado!','ok');
+    showToast('ComentÃ¡rio enviado!','ok');
   } catch(err){
     console.error('Comment save error:',err);
     showToast('Erro ao salvar: '+err.message,'err');
@@ -2498,36 +2559,62 @@ async function addComment(pid){
 }
 async function addCommentImg(pid,files){
   if(!posts[pid]||!files||!files.length) return;
-  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuário';
+  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'UsuÃ¡rio';
   const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   const imgs=[];
   showToast('Enviando imagem...','inf');
   try{
-    for(const f of files){ 
-      try{
-        const url = await uploadPostImage(pid, f, 'comments');
-        imgs.push(url);
-      } catch(e){ imgs.push(await toB64(f)); } // fallback
+    for(const f of files){
+      try{ imgs.push(await uploadPostImage(pid, f, 'comments')); }
+      catch(e){ imgs.push(await toB64(f)); }
     }
-    const newComment={author,text:'📎 imagem',time:now,images:imgs};
-    const existing=[];
-    (posts[pid].comments||[]).forEach(cm=>{
-      existing.push({author:String(cm.author||''),text:String(cm.text||''),time:String(cm.time||''),images:Array.isArray(cm.images)?cm.images.filter(x=>typeof x==='string'):[]});
-    });
+    const existing=(posts[pid].comments||[]).map(normalizeComment);
+    const newComment=normalizeComment({author,text:'ðŸ“Ž imagem',time:now,images:imgs,files:[]});
     existing.push(newComment);
     posts[pid].comments=existing;
     const {db,doc,updateDoc}=window._fb;
     await updateDoc(doc(db,'posts',pid),{comments:existing});
     const cl=document.getElementById('cl-'+pid);
     if(cl){
+      if(cl.textContent.includes('Nenhum comentÃ¡rio ainda')) cl.innerHTML='';
       const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=`<div class="comment-author">${author}</div><div class="comment-text">📎 imagem</div>${imgs.map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}<div class="comment-time">${now}</div>`;
+      div.innerHTML=renderCommentHtml(newComment);
       cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
     }
     showToast('Imagem enviada!','ok');
   } catch(err){
     console.error('Comment img error:',err);
     showToast('Erro: '+err.message,'err');
+  }
+}
+async function addCommentFile(pid,files){
+  if(!posts[pid]||!files||!files.length) return;
+  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'UsuÃ¡rio';
+  const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  const uploaded=[];
+  showToast('Enviando arquivo...','inf');
+  try{
+    for(const f of files){
+      const url = await uploadPostImage(pid, f, 'comments');
+      uploaded.push({name:f.name,url,type:f.type||''});
+    }
+    const existing=(posts[pid].comments||[]).map(normalizeComment);
+    const newComment=normalizeComment({author,text:'ðŸ“Ž arquivo anexado',time:now,images:[],files:uploaded});
+    existing.push(newComment);
+    posts[pid].comments=existing;
+    const {db,doc,updateDoc}=window._fb;
+    await updateDoc(doc(db,'posts',pid),{comments:existing});
+    const cl=document.getElementById('cl-'+pid);
+    if(cl){
+      if(cl.textContent.includes('Nenhum comentÃ¡rio ainda')) cl.innerHTML='';
+      const div=document.createElement('div'); div.className='comment-item';
+      div.innerHTML=renderCommentHtml(newComment);
+      cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
+    }
+    showToast('Arquivo enviado!','ok');
+  } catch(err){
+    console.error('Comment file error:',err);
+    showToast('Erro ao anexar arquivo: '+err.message,'err');
   }
 }
 
@@ -2777,17 +2864,27 @@ async function saveClient(){
   const color=document.getElementById('c-color').value;
   if(!name){ showToast('Nome obrigatório','err'); return; }
   const {db,addDoc,collection}=window._fb;
-  const ref=await addDoc(collection(db,'clients'),{name,handle,niche,color,createdAt:Date.now(),members:[currentUser.uid]});
-  clients[ref.id]={id:ref.id,name,handle,niche,color,members:[currentUser.uid]};
+  const ref=await addDoc(collection(db,'clients'),{name,handle,niche,color,status:'ativo',createdAt:Date.now(),members:[currentUser.uid]});
+  clients[ref.id]={id:ref.id,name,handle,niche,color,status:'ativo',members:[currentUser.uid]};
   closeClientModal(); renderSidebar();
   if(currentView==='todos') renderTodos(); else renderClientes();
   showToast(`${name} adicionado!`,'ok');
 }
 
 // ===== NEW PACK =====
+function updateNewPackOperationalPreview(){
+  const month=document.getElementById('np-month')?.value||'';
+  const dueDate=document.getElementById('np-due')?.value||'';
+  const info=deriveOperationalFields(month,dueDate);
+  const op=document.getElementById('np-operational-month');
+  if(op) op.value=info.operationalMonth ? (info.operationalMonth+' '+info.operationalYear) : '';
+}
 function showNewPack(){
   document.getElementById('pack-new-mo').classList.add('open');
+  const monthEl=document.getElementById('np-month');
+  if(monthEl) monthEl.value=MONTHS[(new Date().getMonth()+1)%12];
   renderAssigneeChips('np-assignees');
+  updateNewPackOperationalPreview();
 }
 function renderAssigneeChips(containerId){
   const el=document.getElementById(containerId||'np-assignees'); if(!el) return;
@@ -2802,20 +2899,23 @@ async function saveNewPack(){
   const canvaLink=document.getElementById('np-canva').value.trim();
   const dueDate=document.getElementById('np-due').value;
   const assignees=getSelectedACs();
+  const timing=deriveOperationalFields(month,dueDate);
   const {db,addDoc,collection}=window._fb;
-  const ref=await addDoc(collection(db,'packs'),{clientId:currentClientId,type,month,canvaLink,dueDate,assignees,status:'planejamento',postCount:0,createdAt:Date.now()});
-  packs[ref.id]={id:ref.id,clientId:currentClientId,type,month,canvaLink,dueDate,assignees,status:'planejamento',postCount:0};
+  const payload={clientId:currentClientId,type,month,contentYear:timing.contentYear,operationalMonth:timing.operationalMonth,operationalYear:timing.operationalYear,canvaLink,dueDate,assignees,status:'planejamento',postCount:0,createdAt:Date.now()};
+  const ref=await addDoc(collection(db,'packs'),payload);
+  packs[ref.id]={id:ref.id,...payload};
   document.getElementById('pack-new-mo').classList.remove('open');
   loadKanban(); showToast('Pack criado!','ok');
 }
 async function createPackInStatus(status){
   const {db,addDoc,collection}=window._fb;
-  const month=MONTHS[new Date().getMonth()];
-  const ref=await addDoc(collection(db,'packs'),{clientId:currentClientId,type:'Feed',month,status,assignees:[],postCount:0,createdAt:Date.now()});
-  packs[ref.id]={id:ref.id,clientId:currentClientId,type:'Feed',month,status,assignees:[],postCount:0};
+  const month=MONTHS[(new Date().getMonth()+1)%12];
+  const timing=deriveOperationalFields(month,'');
+  const payload={clientId:currentClientId,type:'Feed',month,contentYear:timing.contentYear,operationalMonth:timing.operationalMonth,operationalYear:timing.operationalYear,status,assignees:[],postCount:0,createdAt:Date.now()};
+  const ref=await addDoc(collection(db,'packs'),payload);
+  packs[ref.id]={id:ref.id,...payload};
   loadKanban();
 }
-
 // ===== PDF =====
 async function exportPDF(){
   const list=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0));
@@ -3092,11 +3192,11 @@ async function duplicatePack(packId){
   showToast('Duplicando...','inf');
   const {db,collection,addDoc,getDocs,query,where}=window._fb;
   const newPackRef=await addDoc(collection(db,'packs'),{
-    clientId:pack.clientId, type:pack.type, month:pack.month,
+    clientId:pack.clientId, type:pack.type, month:pack.month, contentYear:pack.contentYear||inferContentYear(pack), operationalMonth:(pack.operationalMonth||inferOperationalInfo(pack).month), operationalYear:(pack.operationalYear||inferOperationalInfo(pack).year),
     canvaLink:pack.canvaLink||'', dueDate:pack.dueDate||'',
     assignees:pack.assignees||[], status:'planejamento', postCount:pack.postCount||0, createdAt:Date.now()
   });
-  packs[newPackRef.id]={id:newPackRef.id,clientId:pack.clientId,type:pack.type,month:pack.month,
+  packs[newPackRef.id]={id:newPackRef.id,clientId:pack.clientId,type:pack.type,month:pack.month,contentYear:pack.contentYear||inferContentYear(pack),operationalMonth:(pack.operationalMonth||inferOperationalInfo(pack).month),operationalYear:(pack.operationalYear||inferOperationalInfo(pack).year),
     canvaLink:pack.canvaLink||'',dueDate:pack.dueDate||'',assignees:pack.assignees||[],status:'planejamento',postCount:pack.postCount||0};
   const postsSnap=await getDocs(query(collection(db,'posts'),where('packId','==',packId)));
   postsSnap.forEach(async d=>{
@@ -4640,13 +4740,19 @@ function openOrientacoes(){
 function showEditClient(){
   if(!currentClientId) return;
   editingClientId=currentClientId;
-  const cl=clients[currentClientId];
-  document.getElementById('ec-title').textContent='Editar: '+cl.name;
+  const cl=clients[currentClientId]||{};
+  const off=cl.offboarding||{};
+  document.getElementById('ec-title').textContent='Editar: '+(cl.name||'Cliente');
   document.getElementById('ec-name').value=cl.name||'';
   document.getElementById('ec-handle').value=cl.handle||'';
   document.getElementById('ec-niche').value=cl.niche||'';
   document.getElementById('ec-color').value=cl.color||'#8483ff';
   document.getElementById('ec-instagram-id').value=cl.instagramId||'';
+  document.getElementById('ec-off-access').checked=!!off.accessRemoved;
+  document.getElementById('ec-off-last').checked=!!off.lastDeliveryDone;
+  document.getElementById('ec-off-files').checked=!!off.filesOrganized;
+  document.getElementById('ec-off-finance').checked=!!off.financeAligned;
+  document.getElementById('ec-off-notes').value=off.notes||'';
   editClientPhotoB64=cl.photo||'';
   const prev=document.getElementById('ec-photo-preview');
   if(cl.photo){
@@ -4654,6 +4760,11 @@ function showEditClient(){
   } else {
     prev.innerHTML=`<div style="font-size:22px;font-weight:800;color:${cl.color||'#8483ff'}">${(cl.name||'?')[0]}</div>`;
   }
+  const isInactive=isClientInactive(cl);
+  const inactivateBtn=document.getElementById('ec-inactivate-btn');
+  const reactivateBtn=document.getElementById('ec-reactivate-btn');
+  if(inactivateBtn) inactivateBtn.style.display=isInactive?'none':'inline-flex';
+  if(reactivateBtn) reactivateBtn.style.display=isInactive?'inline-flex':'none';
   document.getElementById('edit-client-mo').classList.add('open');
 }
 function closeEditClient(){ document.getElementById('edit-client-mo').classList.remove('open'); }
@@ -4664,19 +4775,40 @@ async function saveEditClient(){
   const handle=document.getElementById('ec-handle').value.trim();
   const niche=document.getElementById('ec-niche').value.trim();
   const color=document.getElementById('ec-color').value;
-  if(!name){ showToast('Nome obrigatório','err'); return; }
+  if(!name){ showToast('Nome obrigatÃ³rio','err'); return; }
   const instagramId=document.getElementById('ec-instagram-id')?.value.trim()||'';
-  const data={name,handle,niche,color,instagramId};
+  const offboarding={
+    accessRemoved:!!document.getElementById('ec-off-access')?.checked,
+    lastDeliveryDone:!!document.getElementById('ec-off-last')?.checked,
+    filesOrganized:!!document.getElementById('ec-off-files')?.checked,
+    financeAligned:!!document.getElementById('ec-off-finance')?.checked,
+    notes:document.getElementById('ec-off-notes')?.value.trim()||''
+  };
+  const current=clients[editingClientId]||{};
+  const data={name,handle,niche,color,instagramId,offboarding,status:current.status||'ativo'};
   if(editClientPhotoB64) data.photo=editClientPhotoB64;
   await updateDoc(doc(db,'clients',editingClientId),data);
-  clients[editingClientId]={...clients[editingClientId],...data};
+  clients[editingClientId]={...current,...data};
   closeEditClient();
   await loadClients();
   if(currentClientId===editingClientId) renderClientDetail(currentClientId);
   showToast('Cliente atualizado!','ok');
 }
+async function setClientStatus(status){
+  if(!editingClientId) return;
+  const {db,doc,updateDoc}=window._fb;
+  const current=clients[editingClientId]||{};
+  const payload={status,updatedAt:Date.now()};
+  if(status==='inativo') payload.inactivatedAt=Date.now();
+  await updateDoc(doc(db,'clients',editingClientId),payload);
+  clients[editingClientId]={...current,...payload};
+  closeEditClient();
+  await loadClients();
+  if(currentClientId===editingClientId) renderClientDetail(currentClientId);
+  showToast(status==='inativo'?'Cliente movido para inativos':'Cliente reativado!','ok');
+}
 async function deleteClient(){
-  if(!editingClientId||!confirm('Excluir este cliente? Isso também remove todos os packs e posts.')) return;
+  if(!editingClientId||!confirm('Excluir este cliente definitivamente? Isso tambÃ©m remove todos os packs e posts.')) return;
   const {db,doc,deleteDoc,collection,getDocs,query,where}=window._fb;
   const ps=await getDocs(query(collection(db,'packs'),where('clientId','==',editingClientId)));
   for(const pd of ps.docs){
@@ -4690,7 +4822,7 @@ async function deleteClient(){
   closeEditClient();
   await loadClients();
   setView('todos');
-  showToast('Cliente excluído','inf');
+  showToast('Cliente excluÃ­do','inf');
 }
 
 // ===== PROFILE =====
@@ -5149,54 +5281,54 @@ function renderGerarPautaModal(){
     document.getElementById('gerar-pauta-modal')?.remove();
 
     const modal = document.createElement('div');
-    modal.className = 'modal';
+    modal.className = 'mo open';
     modal.id = 'gerar-pauta-modal';
     modal.innerHTML = `
-      <div class="mbox" style="width:920px;max-width:96vw;max-height:90vh;overflow:auto">
+      <div class="modal" style="width:min(1080px,96vw);max-height:92vh;overflow:auto">
         <div class="mhdr">
-          <span>⚡ Gerar Pauta do Ciclo</span>
-          <button class="mclose" onclick="this.closest('.modal').remove()">✕</button>
+          <div class="mhdr-info">
+            <div class="mtitle">Gerar Pauta do Ciclo</div>
+            <div class="mmeta">Distribua os clientes por etapa dentro do perÃ­odo operacional</div>
+          </div>
+          <button class="mclose" onclick="document.getElementById('gerar-pauta-modal')?.remove()">Ã—</button>
         </div>
-        <div class="mbody" style="display:flex;flex-direction:column;gap:16px">
+        <div class="mbody" style="padding:20px;display:flex;flex-direction:column;gap:16px">
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
             <div class="ff">
-              <label class="flbl">📅 Início do ciclo</label>
+              <label class="flbl">InÃ­cio do ciclo</label>
               <input type="date" class="fi" value="${cfg.inicioCiclo||''}" onchange="updateGerarPautaConfig('inicioCiclo',this.value)">
             </div>
             <div class="ff">
-              <label class="flbl">🎯 Magic Number</label>
+              <label class="flbl">Magic Number</label>
               <input type="date" class="fi" value="${cfg.magicNumber||''}" onchange="updateGerarPautaConfig('magicNumber',this.value)">
             </div>
           </div>
-
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-            <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">👥 Responsáveis por etapa</div>
+            <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">ResponsÃ¡veis por etapa</div>
             <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
-              <div class="ff"><label class="flbl">PLAN</label><select class="fi" onchange="updateGerarPautaResp('PLAN',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.PLAN===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
-              <div class="ff"><label class="flbl">REV</label><select class="fi" onchange="updateGerarPautaResp('REV',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.REV===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
-              <div class="ff"><label class="flbl">DES</label><select class="fi" onchange="updateGerarPautaResp('DES',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.DES===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
-              <div class="ff"><label class="flbl">ENVIO</label><select class="fi" onchange="updateGerarPautaResp('ENVIO',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.ENVIO===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
+              <div class="ff"><label class="flbl">PLAN</label><select class="fs" onchange="updateGerarPautaResp('PLAN',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.PLAN===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
+              <div class="ff"><label class="flbl">REV</label><select class="fs" onchange="updateGerarPautaResp('REV',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.REV===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
+              <div class="ff"><label class="flbl">DES</label><select class="fs" onchange="updateGerarPautaResp('DES',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.DES===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
+              <div class="ff"><label class="flbl">ENVIO</label><select class="fs" onchange="updateGerarPautaResp('ENVIO',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.ENVIO===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
             </div>
           </div>
-
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
             <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
               <div>
-                <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:8px">🚫 Feriados no período</div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px">${feriadosNoPeriodo.map(f=>`<span style="font-size:11px;padding:4px 10px;background:var(--red);color:#fff;border-radius:999px">${f.data} - ${f.nome}</span>`).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhum feriado nacional no período</span>'}</div>
+                <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:8px">Feriados no perÃ­odo</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">${feriadosNoPeriodo.map(f=>`<span style="font-size:11px;padding:4px 10px;background:var(--red);color:#fff;border-radius:999px">${f.data} - ${f.nome}</span>`).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhum feriado nacional no perÃ­odo</span>'}</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <input type="date" class="fi" id="gp-feriado-extra" style="width:160px">
                 <button class="btn btn-s btn-sm" onclick="addFeriadoExtra()">+ Adicionar</button>
               </div>
             </div>
-            ${cfg.feriadosExtra.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${cfg.feriadosExtra.map((f,i)=>`<span style="font-size:11px;padding:4px 10px;background:var(--orange);color:#fff;border-radius:999px;display:inline-flex;gap:6px;align-items:center">${f}<button style="background:none;border:none;color:#fff;cursor:pointer" onclick="removeFeriadoExtra(${i})">✕</button></span>`).join('')}</div>` : ''}
+            ${cfg.feriadosExtra.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${cfg.feriadosExtra.map((f,i)=>`<span style="font-size:11px;padding:4px 10px;background:var(--orange);color:#fff;border-radius:999px;display:inline-flex;gap:6px;align-items:center">${f}<button style="background:none;border:none;color:#fff;cursor:pointer" onclick="removeFeriadoExtra(${i})">Ã—</button></span>`).join('')}</div>` : ''}
           </div>
-
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">📋 Clientes e dias por etapa</div>
+            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div>
             <div style="padding:14px;overflow:auto">
-              <table style="width:100%;border-collapse:collapse;min-width:680px">
+              <table style="width:100%;border-collapse:collapse;min-width:720px">
                 <thead>
                   <tr style="background:var(--bg2)">
                     <th style="padding:10px;text-align:left;border-bottom:1px solid var(--border)">Cliente</th>
@@ -5220,14 +5352,13 @@ function renderGerarPautaModal(){
               </table>
             </div>
           </div>
-
           <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
             <div style="background:${diasNecessarios<=diasUteis?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)'};border:1px solid ${diasNecessarios<=diasUteis?'rgba(34,197,94,.35)':'rgba(239,68,68,.35)'};border-radius:var(--r);padding:14px">
-              <div style="font-size:11px;color:var(--text3)">Dias úteis</div>
+              <div style="font-size:11px;color:var(--text3)">Dias Ãºteis</div>
               <div style="font-size:28px;font-weight:900">${diasUteis}</div>
             </div>
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-              <div style="font-size:11px;color:var(--text3)">Dias necessários</div>
+              <div style="font-size:11px;color:var(--text3)">Dias necessÃ¡rios</div>
               <div style="font-size:28px;font-weight:900">${diasNecessarios}</div>
             </div>
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
@@ -5235,17 +5366,15 @@ function renderGerarPautaModal(){
               <div style="font-size:28px;font-weight:900;color:${diasNecessarios<=diasUteis?'#22c55e':'#ef4444'}">${diasUteis-diasNecessarios}</div>
             </div>
           </div>
-
           <div class="brow" style="justify-content:space-between;gap:10px;flex-wrap:wrap">
-            <div style="font-size:12px;color:var(--text3)">${diasNecessarios>diasUteis?'Atencao: o cronograma precisa de mais dias uteis do que o periodo possui.':'Tudo certo para gerar a pauta no periodo selecionado.'}</div>
+            <div style="font-size:12px;color:var(--text3)">${diasNecessarios>diasUteis?'AtenÃ§Ã£o: o cronograma precisa de mais dias Ãºteis do que o perÃ­odo possui.':'Tudo certo para gerar a pauta no perÃ­odo selecionado.'}</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-s" onclick="previewGerarPauta()">Pré-visualizar</button>
-              <button class="btn btn-p" onclick="executarGerarPauta()" ${diasNecessarios>diasUteis?'disabled style="opacity:.5;cursor:not-allowed"':''}>Gerar no calendário</button>
+              <button class="btn btn-s" onclick="previewGerarPauta()">PrÃ©-visualizar</button>
+              <button class="btn btn-p" onclick="executarGerarPauta()" ${diasNecessarios>diasUteis?'disabled style="opacity:.5;cursor:not-allowed"':''}>Gerar no calendÃ¡rio</button>
             </div>
           </div>
         </div>
       </div>`;
-
     document.body.appendChild(modal);
   }catch(err){
     console.error('Erro ao renderizar Gerar Pauta:', err);
@@ -5256,7 +5385,6 @@ function updateGerarPautaConfig(field, value){
   _gerarPautaConfig[field] = value;
   renderGerarPautaModal();
 }
-
 function updateGerarPautaResp(etapa, value){
   _gerarPautaConfig.responsaveis[etapa] = value;
 }
@@ -5435,61 +5563,48 @@ function calcularCronograma(cfg){
 }
 
 async function executarGerarPauta(){
-  const cfg = _gerarPautaConfig;
-  const schedule = calcularCronograma(cfg);
-  
-  if(!confirm('Isso vai gerar '+schedule.length+' clientes no calendário de pauta. Continuar?')) return;
-  
-  showToast('Gerando pauta...','inf');
-  
-  const {db, doc, setDoc, getDoc} = window._fb;
-  
-  // Agrupa por mês
-  const byMonth = {};
-  
-  schedule.forEach(s=>{
-    const allDates = [...s.planDates, ...s.revDates, ...s.desDates, ...s.envioDates];
-    allDates.forEach((d,i)=>{
-      const monthKey = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  try{
+    const cfg = _gerarPautaConfig;
+    if(!cfg?.inicioCiclo || !cfg?.magicNumber){ showToast('Defina o inicio do ciclo e o Magic Number','err'); return; }
+    const schedule = calcularCronograma(cfg);
+    if(!schedule.length){ showToast('Nenhum cliente para gerar na pauta','err'); return; }
+    if(!confirm('Isso vai gerar '+schedule.length+' clientes no calendario de pauta. Continuar?')) return;
+
+    showToast('Gerando pauta...','inf');
+    const {db, doc, setDoc, getDoc} = window._fb;
+    const byMonth = {};
+
+    const pushStage = (date, memberId, type, clientId) => {
+      if(!date || !memberId) return;
+      const dateStr = date.toISOString().split('T')[0];
+      const monthKey = dateStr.slice(0,7);
       if(!byMonth[monthKey]) byMonth[monthKey] = {};
-      
-      const dateStr = d.toISOString().split('T')[0];
-      let type, memberId;
-      
-      if(s.planDates.includes(d)){ type='PLAN'; memberId=cfg.responsaveis.PLAN; }
-      else if(s.revDates.includes(d)){ type='REV'; memberId=cfg.responsaveis.REV; }
-      else if(s.desDates.includes(d)){ type='DES'; memberId=cfg.responsaveis.DES; }
-      else if(s.envioDates.includes(d)){ type='PDF'; memberId=cfg.responsaveis.ENVIO; }
-      
-      const cellKey = memberId+'_'+dateStr;
-      byMonth[monthKey][cellKey] = { client: s.id, type: type };
+      byMonth[monthKey][memberId+'_'+dateStr] = { client: clientId, type };
+    };
+
+    schedule.forEach(s=>{
+      (s.planDates||[]).forEach(d=>pushStage(d, cfg.responsaveis.PLAN, 'PLAN', s.id));
+      (s.revDates||[]).forEach(d=>pushStage(d, cfg.responsaveis.REV, 'REV', s.id));
+      (s.desDates||[]).forEach(d=>pushStage(d, cfg.responsaveis.DES, 'DES', s.id));
+      (s.envioDates||[]).forEach(d=>pushStage(d, cfg.responsaveis.ENVIO, 'PDF', s.id));
     });
-  });
-  
-  // Salva no Firestore
-  for(const monthKey of Object.keys(byMonth)){
-    try{
-      const existingSnap = await getDoc(doc(db,'pauta',monthKey));
-      const existingData = existingSnap.exists() ? existingSnap.data() : {};
-      const mergedData = { ...existingData, ...byMonth[monthKey] };
-      
-      // Salva magic number
-      mergedData.magicNumber = cfg.magicNumber;
-      
-      await setDoc(doc(db,'pauta',monthKey), mergedData);
-    }catch(e){
-      console.error('Erro salvando pauta:', e);
+
+    for(const monthKey of Object.keys(byMonth)){
+      const snap = await getDoc(doc(db,'pauta',monthKey));
+      const existing = snap.exists() ? snap.data() : {};
+      await setDoc(doc(db,'pauta',monthKey), { ...existing, ...byMonth[monthKey], magicNumber: cfg.magicNumber });
     }
+
+    document.getElementById('gerar-pauta-modal')?.remove();
+    await loadPautaMonth();
+    showToast('Pauta gerada com sucesso!','ok');
+  }catch(err){
+    console.error('Erro ao gerar pauta:', err);
+    showToast('Erro ao gerar pauta: ' + (err && err.message ? err.message : err),'err');
   }
-  
-  document.getElementById('gerar-pauta-modal')?.remove();
-  showToast('Pauta gerada com sucesso!','ok');
-  
-  // Recarrega a visualização
-  await loadPautaMonth();
 }
 
-// ===== RELATÓRIO MENSAL POR CLIENTE =====
+// ===== RELATÃ“RIO MENSAL POR CLIENTE =====
 
 async function renderRelatorio(container){
   container.setAttribute('style','flex:1;overflow-y:auto;display:block');
@@ -7332,14 +7447,15 @@ async function deleteProspect(){
         <div class="ff"><label class="flbl">Tipo</label>
           <select class="fs" id="np-type"><option>Feed</option><option>Stories</option><option>Reels</option><option>TikTok</option><option>Facebook</option><option>LinkedIn</option></select>
         </div>
-        <div class="ff"><label class="flbl">Mês</label>
-          <select class="fs" id="np-month"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
+        <div class="ff"><label class="flbl">Mês do conteúdo</label>
+          <select class="fs" id="np-month" onchange="updateNewPackOperationalPreview()"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
         </div>
+        <div class="ff"><label class="flbl">Mês operacional</label><input class="fi" id="np-operational-month" readonly placeholder="Calculado automaticamente"></div>
       </div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Responsável</label>
         <div class="assignee-grid" id="np-assignees"></div>
       </div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due"></div>
+      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due" onchange="updateNewPackOperationalPreview()"></div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Link Canva</label><input class="fi" id="np-canva" placeholder="canva.com/design/..."></div>
       <div class="brow">
         <button class="btn btn-p" onclick="saveNewPack()">Criar pack</button>
@@ -7351,14 +7467,14 @@ async function deleteProspect(){
 
 <!-- EDIT CLIENT -->
 <div class="mo" id="edit-client-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle" id="ec-title">Editar cliente</div></div><button class="mclose" onclick="closeEditClient()">×</button></div>
-    <div style="padding:20px">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+  <div class="modal modal-sm" style="max-width:720px;width:min(720px,96vw)">
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle" id="ec-title">Editar cliente</div><div class="mmeta">Dados do cliente e desligamento seguro</div></div><button class="mclose" onclick="closeEditClient()">Ã—</button></div>
+    <div class="mbody" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;gap:14px">
         <div id="ec-photo-preview" style="width:64px;height:64px;border-radius:50%;background:var(--bg4);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;cursor:pointer;overflow:hidden;flex-shrink:0" onclick="document.getElementById('ec-photo-inp').click()"></div>
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">Foto do cliente</div>
-          <button class="btn btn-s btn-sm" onclick="document.getElementById('ec-photo-inp').click()">📷 Alterar foto</button>
+          <button class="btn btn-s btn-sm" onclick="document.getElementById('ec-photo-inp').click()">ðŸ“· Alterar foto</button>
           <input type="file" id="ec-photo-inp" accept="image/*" style="display:none" onchange="handleClientPhoto(this.files)">
         </div>
       </div>
@@ -7370,14 +7486,26 @@ async function deleteProspect(){
         <div class="ff"><label class="flbl">Nicho</label><input class="fi" id="ec-niche"></div>
         <div class="ff"><label class="flbl">Cor</label><input type="color" class="fi" id="ec-color" style="padding:3px;height:36px;cursor:pointer"></div>
       </div>
-      <div class="ff" style="margin-top:10px">
-        <label class="flbl">📊 Instagram Business ID <span style="font-weight:400;color:var(--text3)">(para métricas)</span></label>
+      <div class="ff">
+        <label class="flbl">ðŸ“Š Instagram Business ID <span style="font-weight:400;color:var(--text3)">(para mÃ©tricas)</span></label>
         <input class="fi" id="ec-instagram-id" placeholder="Ex: 17841445778218708">
       </div>
-      <div class="brow">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">Checklist de desligamento</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ec-off-access"> Acessos removidos</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ec-off-last"> Ãšltima entrega concluÃ­da</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ec-off-files"> Arquivos organizados</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ec-off-finance"> Financeiro alinhado</label>
+        </div>
+        <div class="ff" style="margin-top:12px"><label class="flbl">ObservaÃ§Ãµes finais</label><textarea class="fta" id="ec-off-notes" rows="3" placeholder="Ex: cliente cancelou em comum acordo, materiais entregues, pendÃªncias finais..."></textarea></div>
+      </div>
+      <div class="brow" style="gap:8px;flex-wrap:wrap">
         <button class="btn btn-p" onclick="saveEditClient()">Salvar</button>
         <button class="btn btn-s" onclick="closeEditClient()">Cancelar</button>
-        <button class="btn btn-d btn-sm" style="margin-left:auto" onclick="deleteClient()">🗑 Excluir</button>
+        <button class="btn btn-s btn-sm" id="ec-inactivate-btn" onclick="setClientStatus('inativo')">Mover para inativos</button>
+        <button class="btn btn-s btn-sm" id="ec-reactivate-btn" style="display:none" onclick="setClientStatus('ativo')">Reativar cliente</button>
+        <button class="btn btn-d btn-sm" style="margin-left:auto" onclick="deleteClient()">Excluir definitivo</button>
       </div>
     </div>
   </div>
@@ -7652,6 +7780,12 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
+
+
+
+
+
 
 
 
