@@ -5084,34 +5084,35 @@ let _gerarPautaConfig = {
 };
 
 function openGerarPautaModal(){
-  // Pegar clientes da lista geral (sempre disponível)
-  let listaClientes = Object.values(clients || {}).filter(c=>c && c.name).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  
-  // Se tiver clientes no comercial com status ativo, usar esses
+  const baseClients = Object.entries(clients || {}).map(([id,c])=>({ id: (c && c.id) || id, ...(c||{}) }));
+  let listaClientes = baseClients.filter(c=>c && c.name).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+
   if(typeof _comClientes !== 'undefined' && _comClientes){
-    const clientesAtivos = Object.values(_comClientes).filter(c=>c.status==='ativo');
+    const clientesAtivos = Object.entries(_comClientes)
+      .map(([id,c])=>({ id: (c && c.id) || id, ...(c||{}) }))
+      .filter(c=>c && c.name && c.status==='ativo');
     if(clientesAtivos.length) listaClientes = clientesAtivos.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   }
-  
+
   if(!listaClientes.length){
-    showToast('Nenhum cliente encontrado','err');
+    showToast('Nenhum cliente encontrado para gerar a pauta.','err');
     return;
   }
-  
-  // Configurar clientes com dias padrão
-  if(!_gerarPautaConfig.clientes.length || _gerarPautaConfig.clientes.length !== listaClientes.length){
+
+  const currentIds = (_gerarPautaConfig.clientes || []).map(c=>c.id).join('|');
+  const nextIds = listaClientes.map(c=>c.id).join('|');
+  if(!_gerarPautaConfig.clientes.length || currentIds !== nextIds){
     _gerarPautaConfig.clientes = listaClientes.map((c,i)=>({
       id: c.id,
       name: c.name || 'Cliente',
       order: i+1,
-      plan: 1,
-      rev: 1,
-      des: 2,
-      envio: 1
+      plan: Number(c.plan) || 1,
+      rev: Number(c.rev) || 1,
+      des: Number(c.des) || 2,
+      envio: Number(c.envio) || 1
     }));
   }
 
-  // Data padrão: hoje pro inicio
   if(!_gerarPautaConfig.inicioCiclo){
     const hoje = new Date();
     _gerarPautaConfig.inicioCiclo = hoje.toISOString().split('T')[0];
@@ -5124,7 +5125,6 @@ function openGerarPautaModal(){
 
   renderGerarPautaModal();
 }
-
 function renderGerarPautaModal(){
   const cfg = _gerarPautaConfig;
   
@@ -5136,10 +5136,11 @@ function renderGerarPautaModal(){
   const feriadosNoPeriodo = getFeriadosNoPeriodo(cfg.inicioCiclo, cfg.magicNumber);
 
   // Pegar membros disponíveis
-  const membros = TEAM && TEAM.length ? TEAM : [
+  const teamList = (typeof TEAM !== 'undefined' && Array.isArray(TEAM) && TEAM.length) ? TEAM : [];
+  const membros = teamList.length ? teamList : [
     {id:'kesia',name:'Kesia'},
     {id:'jackson',name:'Jackson'},
-    {id:'cintia',name:'Cíntia'},
+    {id:'cintia',name:'Cintia'},
     {id:'tatiane',name:'Tatiane'}
   ];
 
