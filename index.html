@@ -1276,7 +1276,8 @@ async function renderDashData(){
   const APs=[]; psSnap.forEach(d=>APs.push({id:d.id,...d.data()}));
   const activeClientIds=new Set(getActiveClients().map(c=>c.id));
   const mP=AP.filter(p=>activeClientIds.has(p.clientId)&&packMatchesOperationalMonth(p,mo,yr));
-  const mPs=APs.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d.getMonth()===mo&&d.getFullYear()===yr; });
+  const operationalPackIds=new Set(mP.map(p=>p.id));
+  const mPs=APs.filter(p=>operationalPackIds.has(p.packId));
   const dp=mP.filter(p=>p.status==='concluido').length;
   const sc={}; STATUSES.forEach(s=>sc[s.id]=0); mP.forEach(p=>{if(sc[p.status]!==undefined)sc[p.status]++;});
   const cp={}; getActiveClients().forEach(c=>{cp[c.id]={total:0,done:0,name:c.name,color:c.color||'#8483ff'};});
@@ -2307,7 +2308,7 @@ function renderPF(post){
   const postAssignees=post.assignees||[];
   const assigneeChips=TEAM.map(m=>`<div class="assignee-chip ${postAssignees.includes(m.id)?'selected':''}" onclick="togglePostAssignee('${post.id}','${m.id}',this)"><div class="assignee-avatar" style="background:${m.color}">${m.name[0]}</div>${m.name}</div>`).join('');
   const comments=(post.comments||[]);
-  const cmtHtml=comments.length?comments.map(c=>`<div class="comment-item">${renderCommentHtml(c)}</div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentÃ¡rio ainda</div>';
+  const cmtHtml=comments.length?comments.map((c,ci)=>`<div class="comment-item">${renderCommentHtml(c,ci,post.id)}</div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentario ainda</div>';
 
   el.style.cssText='display:flex;gap:0;overflow:hidden;padding:0;';
   el.innerHTML=`
@@ -2523,18 +2524,19 @@ function normalizeComment(cm){
     files:Array.isArray(cm?.files)?cm.files.filter(f=>f&&typeof f.url==='string').map(f=>({name:String(f.name||'arquivo'),url:String(f.url||''),type:String(f.type||'')})):[]
   };
 }
-function renderCommentHtml(comment){
+function renderCommentHtml(comment, idx=null, pid=null){
   const c = normalizeComment(comment);
   const imgs = c.images.length ? `<div class="comment-imgs">${c.images.map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}</div>` : '';
-  const files = c.files.length ? `<div class="comment-files">${c.files.map(file=>`<a class="comment-file" href="${file.url}" target="_blank" rel="noopener">ðŸ“„ ${safe(file.name||'arquivo')}</a>`).join('')}</div>` : '';
-  return `<div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${imgs}${files}<div class="comment-time">${c.time||''}</div>`;
+  const files = c.files.length ? `<div class="comment-files">${c.files.map(file=>`<a class="comment-file" href="${file.url}" target="_blank" rel="noopener">Arquivo: ${safe(file.name||'arquivo')}</a>`).join('')}</div>` : '';
+  const actions = (pid!==null && idx!==null) ? `<button class="btn btn-s btn-sm" style="padding:2px 8px" onclick="editComment('${pid}',${idx})">Editar</button>` : '';
+  return `<div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${imgs}${files}<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px"><div class="comment-time">${c.time||''}</div>${actions}</div>`;
 }
 async function addComment(pid){
   const inp=document.getElementById('ci-'+pid);
   const text=(inp?.value||'').trim();
-  if(!text){ showToast('Digite um comentÃ¡rio','err'); return; }
-  if(!posts[pid]){ showToast('Post nÃ£o encontrado','err'); return; }
-  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'UsuÃ¡rio';
+  if(!text){ showToast('Digite um comentario','err'); return; }
+  if(!posts[pid]){ showToast('Post nao encontrado','err'); return; }
+  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuario';
   const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   const existing=(posts[pid].comments||[]).map(normalizeComment);
   const newComment=normalizeComment({author,text,time:now,images:[],files:[]});
@@ -2546,12 +2548,12 @@ async function addComment(pid){
     if(inp) inp.value='';
     const cl=document.getElementById('cl-'+pid);
     if(cl){
-      if(cl.textContent.includes('Nenhum comentÃ¡rio ainda')) cl.innerHTML='';
+      if(cl.textContent.includes('Nenhum comentario ainda')) cl.innerHTML='';
       const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=renderCommentHtml(newComment);
+      div.innerHTML=renderCommentHtml(newComment, existing.length-1, pid);
       cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
     }
-    showToast('ComentÃ¡rio enviado!','ok');
+    showToast('Comentario enviado!','ok');
   } catch(err){
     console.error('Comment save error:',err);
     showToast('Erro ao salvar: '+err.message,'err');
@@ -2559,7 +2561,7 @@ async function addComment(pid){
 }
 async function addCommentImg(pid,files){
   if(!posts[pid]||!files||!files.length) return;
-  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'UsuÃ¡rio';
+  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuario';
   const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   const imgs=[];
   showToast('Enviando imagem...','inf');
@@ -2569,16 +2571,16 @@ async function addCommentImg(pid,files){
       catch(e){ imgs.push(await toB64(f)); }
     }
     const existing=(posts[pid].comments||[]).map(normalizeComment);
-    const newComment=normalizeComment({author,text:'ðŸ“Ž imagem',time:now,images:imgs,files:[]});
+    const newComment=normalizeComment({author,text:'Imagem anexada',time:now,images:imgs,files:[]});
     existing.push(newComment);
     posts[pid].comments=existing;
     const {db,doc,updateDoc}=window._fb;
     await updateDoc(doc(db,'posts',pid),{comments:existing});
     const cl=document.getElementById('cl-'+pid);
     if(cl){
-      if(cl.textContent.includes('Nenhum comentÃ¡rio ainda')) cl.innerHTML='';
+      if(cl.textContent.includes('Nenhum comentario ainda')) cl.innerHTML='';
       const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=renderCommentHtml(newComment);
+      div.innerHTML=renderCommentHtml(newComment, existing.length-1, pid);
       cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
     }
     showToast('Imagem enviada!','ok');
@@ -2589,33 +2591,62 @@ async function addCommentImg(pid,files){
 }
 async function addCommentFile(pid,files){
   if(!posts[pid]||!files||!files.length) return;
-  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'UsuÃ¡rio';
+  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuario';
   const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   const uploaded=[];
   showToast('Enviando arquivo...','inf');
+  const readAsDataUrl = file => new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
   try{
     for(const f of files){
-      const url = await uploadPostImage(pid, f, 'comments');
+      let url = '';
+      try{ url = await uploadPostImage(pid, f, 'comments'); }
+      catch(e){ url = await readAsDataUrl(f); }
       uploaded.push({name:f.name,url,type:f.type||''});
     }
     const existing=(posts[pid].comments||[]).map(normalizeComment);
-    const newComment=normalizeComment({author,text:'ðŸ“Ž arquivo anexado',time:now,images:[],files:uploaded});
+    const newComment=normalizeComment({author,text:'Arquivo anexado',time:now,images:[],files:uploaded});
     existing.push(newComment);
     posts[pid].comments=existing;
     const {db,doc,updateDoc}=window._fb;
     await updateDoc(doc(db,'posts',pid),{comments:existing});
     const cl=document.getElementById('cl-'+pid);
     if(cl){
-      if(cl.textContent.includes('Nenhum comentÃ¡rio ainda')) cl.innerHTML='';
+      if(cl.textContent.includes('Nenhum comentario ainda')) cl.innerHTML='';
       const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=renderCommentHtml(newComment);
+      div.innerHTML=renderCommentHtml(newComment, existing.length-1, pid);
       cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
     }
     showToast('Arquivo enviado!','ok');
   } catch(err){
     console.error('Comment file error:',err);
-    showToast('Erro ao anexar arquivo: '+err.message,'err');
+    showToast('Erro: '+err.message,'err');
   }
+}
+
+function editComment(pid, idx){
+  if(!posts[pid]) return;
+  const existing=(posts[pid].comments||[]).map(normalizeComment);
+  const comment = existing[idx];
+  if(!comment) return;
+  const next = prompt('Editar comentario:', comment.text||'');
+  if(next===null) return;
+  comment.text = String(next);
+  existing[idx] = normalizeComment(comment);
+  posts[pid].comments = existing;
+  const {db,doc,updateDoc}=window._fb;
+  updateDoc(doc(db,'posts',pid),{comments:existing}).then(()=>{
+    const items = document.querySelectorAll(`#cl-${pid} .comment-item`);
+    if(items[idx]) items[idx].innerHTML = renderCommentHtml(existing[idx], idx, pid);
+    showToast('Comentario atualizado!','ok');
+  }).catch(err=>{
+    console.error('Comment edit error:',err);
+    showToast('Erro ao editar: '+err.message,'err');
+  });
 }
 
 // ===== SAVE HELPERS =====
@@ -5268,7 +5299,7 @@ function renderGerarPautaModal(){
     cfg.responsaveis = cfg.responsaveis || { PLAN:'kesia', REV:'jackson', DES:'cintia', ENVIO:'tatiane' };
 
     const diasUteis = calcDiasUteis(cfg.inicioCiclo, cfg.magicNumber, cfg.feriadosExtra);
-    const diasNecessarios = cfg.clientes.reduce((sum,c)=>sum + Number(c.plan||1) + Number(c.rev||1) + Number(c.des||2) + Number(c.envio||1), 0);
+    const diasNecessarios = cfg.clientes.reduce((sum,c)=>sum + Math.max(0,Number(c.plan)||0) + Math.max(0,Number(c.rev)||0) + Math.max(0,Number(c.des)||0) + Math.max(0,Number(c.envio)||0), 0);
     const feriadosNoPeriodo = getFeriadosNoPeriodo(cfg.inicioCiclo, cfg.magicNumber);
     const teamList = (typeof TEAM !== 'undefined' && Array.isArray(TEAM) && TEAM.length) ? TEAM : [];
     const membros = teamList.length ? teamList : [
@@ -5288,14 +5319,14 @@ function renderGerarPautaModal(){
         <div class="mhdr">
           <div class="mhdr-info">
             <div class="mtitle">Gerar Pauta do Ciclo</div>
-            <div class="mmeta">Distribua os clientes por etapa dentro do perÃ­odo operacional</div>
+            <div class="mmeta">Distribua os clientes por etapa dentro do periodo operacional</div>
           </div>
-          <button class="mclose" onclick="document.getElementById('gerar-pauta-modal')?.remove()">Ã—</button>
+          <button class="mclose" onclick="document.getElementById('gerar-pauta-modal')?.remove()">&times;</button>
         </div>
         <div class="mbody" style="padding:20px;display:flex;flex-direction:column;gap:16px">
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
             <div class="ff">
-              <label class="flbl">InÃ­cio do ciclo</label>
+              <label class="flbl">Inicio do ciclo</label>
               <input type="date" class="fi" value="${cfg.inicioCiclo||''}" onchange="updateGerarPautaConfig('inicioCiclo',this.value)">
             </div>
             <div class="ff">
@@ -5304,7 +5335,7 @@ function renderGerarPautaModal(){
             </div>
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-            <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">ResponsÃ¡veis por etapa</div>
+            <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">Responsaveis por etapa</div>
             <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
               <div class="ff"><label class="flbl">PLAN</label><select class="fs" onchange="updateGerarPautaResp('PLAN',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.PLAN===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
               <div class="ff"><label class="flbl">REV</label><select class="fs" onchange="updateGerarPautaResp('REV',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.REV===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
@@ -5315,23 +5346,23 @@ function renderGerarPautaModal(){
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
             <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
               <div>
-                <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:8px">Feriados no perÃ­odo</div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px">${feriadosNoPeriodo.map(f=>`<span style="font-size:11px;padding:4px 10px;background:var(--red);color:#fff;border-radius:999px">${f.data} - ${f.nome}</span>`).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhum feriado nacional no perÃ­odo</span>'}</div>
+                <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:8px">Feriados no periodo</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">${feriadosNoPeriodo.map(f=>`<span style="font-size:11px;padding:4px 10px;background:var(--red);color:#fff;border-radius:999px">${f.data} - ${f.nome}</span>`).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhum feriado nacional no periodo</span>'}</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <input type="date" class="fi" id="gp-feriado-extra" style="width:160px">
                 <button class="btn btn-s btn-sm" onclick="addFeriadoExtra()">+ Adicionar</button>
               </div>
             </div>
-            ${cfg.feriadosExtra.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${cfg.feriadosExtra.map((f,i)=>`<span style="font-size:11px;padding:4px 10px;background:var(--orange);color:#fff;border-radius:999px;display:inline-flex;gap:6px;align-items:center">${f}<button style="background:none;border:none;color:#fff;cursor:pointer" onclick="removeFeriadoExtra(${i})">Ã—</button></span>`).join('')}</div>` : ''}
+            ${cfg.feriadosExtra.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${cfg.feriadosExtra.map((f,i)=>`<span style="font-size:11px;padding:4px 10px;background:var(--orange);color:#fff;border-radius:999px;display:inline-flex;gap:6px;align-items:center">${f}<button style="background:none;border:none;color:#fff;cursor:pointer" onclick="removeFeriadoExtra(${i})">&times;</button></span>`).join('')}</div>` : ''}
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div>
-            <div style="padding:14px;overflow:auto">
-              <table style="width:100%;border-collapse:collapse;min-width:720px">
+            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div><div style="padding:6px 14px 0;font-size:11px;color:var(--text3)">Use 0 quando a etapa nao for necessaria. A ordem abaixo define quem entra primeiro no calendario.</div>
+            <div style="padding:14px;overflow:auto;max-height:360px">
+              <table style="width:100%;border-collapse:collapse;min-width:860px">
                 <thead>
                   <tr style="background:var(--bg2)">
-                    <th style="padding:10px;text-align:left;border-bottom:1px solid var(--border)">Cliente</th>
+                    <th style="padding:10px;text-align:left;border-bottom:1px solid var(--border)">Ordem / Cliente</th>
                     <th style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">PLAN</th>
                     <th style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">REV</th>
                     <th style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">DES</th>
@@ -5341,12 +5372,20 @@ function renderGerarPautaModal(){
                 </thead>
                 <tbody>
                   ${cfg.clientes.map((c,i)=>`<tr>
-                    <td style="padding:10px;border-bottom:1px solid var(--border);font-weight:700">${i+1}. ${c.name}</td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="1" max="5" value="${c.plan}" onchange="updateGpClienteDias(${i},'plan',this.value)" style="width:64px;text-align:center"></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="1" max="5" value="${c.rev}" onchange="updateGpClienteDias(${i},'rev',this.value)" style="width:64px;text-align:center"></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="1" max="10" value="${c.des}" onchange="updateGpClienteDias(${i},'des',this.value)" style="width:64px;text-align:center"></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="1" max="3" value="${c.envio}" onchange="updateGpClienteDias(${i},'envio',this.value)" style="width:64px;text-align:center"></td>
-                    <td style="padding:10px;border-bottom:1px solid var(--border);text-align:center;font-weight:800;color:var(--accent)">${Number(c.plan)+Number(c.rev)+Number(c.des)+Number(c.envio)}</td>
+                    <td style="padding:10px;border-bottom:1px solid var(--border);font-weight:700">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div style="display:flex;flex-direction:column;gap:4px">
+                          <button class="btn btn-s btn-sm" style="padding:2px 7px;font-size:10px" onclick="moveGpCliente(${i},-1)" ${i===0?'disabled':''}>&uarr;</button>
+                          <button class="btn btn-s btn-sm" style="padding:2px 7px;font-size:10px" onclick="moveGpCliente(${i},1)" ${i===cfg.clientes.length-1?'disabled':''}>&darr;</button>
+                        </div>
+                        <span>${i+1}. ${c.name}</span>
+                      </div>
+                    </td>
+                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="0" max="5" value="${c.plan}" onchange="updateGpClienteDias(${i},'plan',this.value)" style="width:64px;text-align:center"></td>
+                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="0" max="5" value="${c.rev}" onchange="updateGpClienteDias(${i},'rev',this.value)" style="width:64px;text-align:center"></td>
+                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="0" max="10" value="${c.des}" onchange="updateGpClienteDias(${i},'des',this.value)" style="width:64px;text-align:center"></td>
+                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="0" max="3" value="${c.envio}" onchange="updateGpClienteDias(${i},'envio',this.value)" style="width:64px;text-align:center"></td>
+                    <td style="padding:10px;border-bottom:1px solid var(--border);text-align:center;font-weight:800;color:var(--accent)">${Math.max(0,Number(c.plan)||0)+Math.max(0,Number(c.rev)||0)+Math.max(0,Number(c.des)||0)+Math.max(0,Number(c.envio)||0)}</td>
                   </tr>`).join('')}
                 </tbody>
               </table>
@@ -5354,11 +5393,11 @@ function renderGerarPautaModal(){
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
             <div style="background:${diasNecessarios<=diasUteis?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)'};border:1px solid ${diasNecessarios<=diasUteis?'rgba(34,197,94,.35)':'rgba(239,68,68,.35)'};border-radius:var(--r);padding:14px">
-              <div style="font-size:11px;color:var(--text3)">Dias Ãºteis</div>
+              <div style="font-size:11px;color:var(--text3)">Dias uteis</div>
               <div style="font-size:28px;font-weight:900">${diasUteis}</div>
             </div>
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-              <div style="font-size:11px;color:var(--text3)">Dias necessÃ¡rios</div>
+              <div style="font-size:11px;color:var(--text3)">Dias necessarios</div>
               <div style="font-size:28px;font-weight:900">${diasNecessarios}</div>
             </div>
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
@@ -5367,10 +5406,10 @@ function renderGerarPautaModal(){
             </div>
           </div>
           <div class="brow" style="justify-content:space-between;gap:10px;flex-wrap:wrap">
-            <div style="font-size:12px;color:var(--text3)">${diasNecessarios>diasUteis?'AtenÃ§Ã£o: o cronograma precisa de mais dias Ãºteis do que o perÃ­odo possui.':'Tudo certo para gerar a pauta no perÃ­odo selecionado.'}</div>
+            <div style="font-size:12px;color:var(--text3)">${diasNecessarios>diasUteis?'Atencao: o cronograma precisa de mais dias uteis do que o periodo possui.':'Tudo certo para gerar a pauta no periodo selecionado.'}</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-s" onclick="previewGerarPauta()">PrÃ©-visualizar</button>
-              <button class="btn btn-p" onclick="executarGerarPauta()" ${diasNecessarios>diasUteis?'disabled style="opacity:.5;cursor:not-allowed"':''}>Gerar no calendÃ¡rio</button>
+              <button class="btn btn-s" onclick="previewGerarPauta()">Pre-visualizar</button>
+              <button class="btn btn-p" onclick="executarGerarPauta()" ${diasNecessarios>diasUteis?'disabled style="opacity:.5;cursor:not-allowed"':''}>Gerar no calendario</button>
             </div>
           </div>
         </div>
@@ -5391,6 +5430,17 @@ function updateGerarPautaResp(etapa, value){
 
 function updateGpClienteDias(idx, field, value){
   _gerarPautaConfig.clientes[idx][field] = parseInt(value) || 1;
+  renderGerarPautaModal();
+}
+
+function moveGpCliente(idx, dir){
+  const arr = _gerarPautaConfig.clientes || [];
+  const next = idx + dir;
+  if(next < 0 || next >= arr.length) return;
+  const temp = arr[idx];
+  arr[idx] = arr[next];
+  arr[next] = temp;
+  arr.forEach((item,i)=> item.order = i+1);
   renderGerarPautaModal();
 }
 
@@ -5490,75 +5540,57 @@ function addDiasUteis(startDate, dias, feriadosExtra){
 }
 
 function previewGerarPauta(){
+  const existing = document.querySelector('#gerar-pauta-modal .preview-area');
+  if(existing){ existing.remove(); return; }
   const cfg = _gerarPautaConfig;
   const schedule = calcularCronograma(cfg);
-  
-  let html = '<div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  const fmt = arr => arr.length ? arr.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ') : '-';
+  let html = '<div style="max-height:320px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
   html += '<tr style="background:var(--bg3)"><th style="padding:8px;text-align:left;border:1px solid var(--border)">Cliente</th><th style="padding:8px;border:1px solid var(--border)">PLAN</th><th style="padding:8px;border:1px solid var(--border)">REV</th><th style="padding:8px;border:1px solid var(--border)">DES</th><th style="padding:8px;border:1px solid var(--border)">ENVIO</th></tr>';
-  
   schedule.forEach(s=>{
     html += '<tr><td style="padding:8px;border:1px solid var(--border);font-weight:600">'+s.name+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#e53e3e22">'+s.planDates.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ')+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#3b82f622">'+s.revDates.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ')+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#facc1522">'+s.desDates.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ')+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#d946ef22">'+s.envioDates.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ')+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#e53e3e22">'+fmt(s.planDates)+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#3b82f622">'+fmt(s.revDates)+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#facc1522">'+fmt(s.desDates)+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#d946ef22">'+fmt(s.envioDates)+'</td>';
     html += '</tr>';
   });
   html += '</table></div>';
-  
-  const previewDiv = document.createElement('div');
-  previewDiv.innerHTML = '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="font-size:13px;font-weight:700;margin-bottom:10px">👁️ Pré-visualização do Cronograma</div>'+html+'</div>';
-  
-  const existing = document.querySelector('#gerar-pauta-modal .preview-area');
-  if(existing) existing.remove();
-  
+  const wrapper = document.createElement('div');
+  wrapper.className = 'preview-area';
+  wrapper.innerHTML = '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px"><div style="font-size:13px;font-weight:700">Pre-visualizacao do cronograma</div><button class="btn btn-s btn-sm" onclick="this.closest(`.preview-area`)?.remove()">Fechar</button></div>'+html+'</div>';
   const mbody = document.querySelector('#gerar-pauta-modal .mbody');
-  if(mbody){
-    const wrapper = document.createElement('div');
-    wrapper.className = 'preview-area';
-    wrapper.appendChild(previewDiv);
-    mbody.appendChild(wrapper);
-  }
+  if(mbody) mbody.appendChild(wrapper);
 }
 
 function calcularCronograma(cfg){
   const schedule = [];
   let currentDate = getNextDiaUtil(new Date(cfg.inicioCiclo+'T00:00:00'), cfg.feriadosExtra);
-  
-  cfg.clientes.forEach(cliente=>{
+
+  const assignStage = (entry, key, days, startDate) => {
+    const total = Math.max(0, Number(days)||0);
+    let cursor = new Date(startDate);
+    for(let i=0; i<total; i++){
+      entry[key].push(new Date(cursor));
+      if(i < total-1) cursor = addDiasUteis(cursor, 1, cfg.feriadosExtra);
+    }
+    return total ? cursor : null;
+  };
+
+  (cfg.clientes||[]).forEach(cliente=>{
     const entry = { id: cliente.id, name: cliente.name, planDates: [], revDates: [], desDates: [], envioDates: [] };
-    
-    // PLAN
-    for(let i=0; i<cliente.plan; i++){
-      entry.planDates.push(new Date(currentDate));
-      if(i < cliente.plan-1) currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
-    }
-    currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
-    
-    // REV
-    for(let i=0; i<cliente.rev; i++){
-      entry.revDates.push(new Date(currentDate));
-      if(i < cliente.rev-1) currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
-    }
-    currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
-    
-    // DES
-    for(let i=0; i<cliente.des; i++){
-      entry.desDates.push(new Date(currentDate));
-      if(i < cliente.des-1) currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
-    }
-    currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
-    
-    // ENVIO
-    for(let i=0; i<cliente.envio; i++){
-      entry.envioDates.push(new Date(currentDate));
-      if(i < cliente.envio-1) currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
-    }
-    currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
-    
+    const planEnd = assignStage(entry,'planDates',cliente.plan,currentDate);
+    const revStart = planEnd ? new Date(planEnd) : new Date(currentDate);
+    const revEnd = assignStage(entry,'revDates',cliente.rev,revStart);
+    const designStart = revEnd ? addDiasUteis(revEnd,1,cfg.feriadosExtra) : (planEnd ? addDiasUteis(planEnd,1,cfg.feriadosExtra) : new Date(currentDate));
+    const desEnd = assignStage(entry,'desDates',cliente.des,designStart);
+    const envioStart = desEnd ? new Date(desEnd) : new Date(designStart || currentDate);
+    const envioEnd = assignStage(entry,'envioDates',cliente.envio,envioStart);
+    const lastStage = envioEnd || desEnd || revEnd || planEnd;
+    currentDate = lastStage ? addDiasUteis(lastStage,1,cfg.feriadosExtra) : addDiasUteis(currentDate,1,cfg.feriadosExtra);
     schedule.push(entry);
   });
-  
+
   return schedule;
 }
 
@@ -7474,7 +7506,7 @@ async function deleteProspect(){
         <div id="ec-photo-preview" style="width:64px;height:64px;border-radius:50%;background:var(--bg4);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;cursor:pointer;overflow:hidden;flex-shrink:0" onclick="document.getElementById('ec-photo-inp').click()"></div>
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">Foto do cliente</div>
-          <button class="btn btn-s btn-sm" onclick="document.getElementById('ec-photo-inp').click()">ðŸ“· Alterar foto</button>
+          <button class="btn btn-s btn-sm" onclick="document.getElementById('ec-photo-inp').click()">Alterar foto</button>
           <input type="file" id="ec-photo-inp" accept="image/*" style="display:none" onchange="handleClientPhoto(this.files)">
         </div>
       </div>
@@ -7487,7 +7519,7 @@ async function deleteProspect(){
         <div class="ff"><label class="flbl">Cor</label><input type="color" class="fi" id="ec-color" style="padding:3px;height:36px;cursor:pointer"></div>
       </div>
       <div class="ff">
-        <label class="flbl">ðŸ“Š Instagram Business ID <span style="font-weight:400;color:var(--text3)">(para mÃ©tricas)</span></label>
+        <label class="flbl">Instagram Business ID <span style="font-weight:400;color:var(--text3)">(para metricas)</span></label>
         <input class="fi" id="ec-instagram-id" placeholder="Ex: 17841445778218708">
       </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
@@ -7780,6 +7812,9 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
+
+
 
 
 
