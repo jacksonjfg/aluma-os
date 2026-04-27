@@ -5084,15 +5084,15 @@ let _gerarPautaConfig = {
 };
 
 function openGerarPautaModal(){
-  const baseClients = Object.entries(clients || {}).map(([id,c])=>({ id: (c && c.id) || id, ...(c||{}) }));
+  const clientMap = (typeof clients !== 'undefined' && clients) ? clients : {};
+  const comercialMap = (typeof _comClientes !== 'undefined' && _comClientes) ? _comClientes : {};
+  const baseClients = Object.entries(clientMap).map(([id,c])=>({ id: (c && c.id) || id, ...(c||{}) }));
   let listaClientes = baseClients.filter(c=>c && c.name).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
 
-  if(typeof _comClientes !== 'undefined' && _comClientes){
-    const clientesAtivos = Object.entries(_comClientes)
-      .map(([id,c])=>({ id: (c && c.id) || id, ...(c||{}) }))
-      .filter(c=>c && c.name && c.status==='ativo');
-    if(clientesAtivos.length) listaClientes = clientesAtivos.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  }
+  const clientesAtivos = Object.entries(comercialMap)
+    .map(([id,c])=>({ id: (c && c.id) || id, ...(c||{}) }))
+    .filter(c=>c && c.name && c.status==='ativo');
+  if(clientesAtivos.length) listaClientes = clientesAtivos.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
 
   if(!listaClientes.length){
     showToast('Nenhum cliente encontrado para gerar a pauta.','err');
