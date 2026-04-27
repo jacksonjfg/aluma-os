@@ -4756,6 +4756,7 @@ async function renderPauta(){
       <div class="ptitle" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         📅 Pauta
         <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <button class="btn btn-p btn-sm" onclick="openGerarPautaModal()">⚡ Gerar Pauta</button>
           <button class="btn btn-s btn-sm" onclick="changePautaMonth(-1)">‹</button>
           <span id="pauta-lbl" style="font-size:14px;font-weight:700;min-width:120px;text-align:center"></span>
           <button class="btn btn-s btn-sm" onclick="changePautaMonth(1)">›</button>
@@ -5062,8 +5063,432 @@ async function exportPautaImg(){
   }
 }
 
+// ===== GERADOR DE PAUTA AUTOMÁTICA =====
+const FERIADOS_NACIONAIS = {
+  '01-01': 'Confraternização Universal',
+  '04-21': 'Tiradentes',
+  '05-01': 'Dia do Trabalho',
+  '09-07': 'Independência',
+  '10-12': 'N. Sra. Aparecida',
+  '11-02': 'Finados',
+  '11-15': 'Proclamação da República',
+  '12-25': 'Natal'
+};
+
+let _gerarPautaConfig = {
+  inicioCiclo: '',
+  magicNumber: '',
+  clientes: [],
+  feriadosExtra: [],
+  responsaveis: { PLAN: 'kesia', REV: 'jackson', DES: 'cintia', ENVIO: 'tatiane' }
+};
+
+function openGerarPautaModal(){
+  // Carregar clientes ativos
+  const clientesAtivos = Object.values(_comClientes || {}).filter(c=>c.status==='ativo').sort((a,b)=>a.name.localeCompare(b.name));
+  
+  // Se não tem clientes no comercial, pegar da lista geral
+  let listaClientes = clientesAtivos.length ? clientesAtivos : Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
+  
+  // Configurar clientes com dias padrão
+  if(!_gerarPautaConfig.clientes.length || _gerarPautaConfig.clientes.length !== listaClientes.length){
+    _gerarPautaConfig.clientes = listaClientes.map((c,i)=>({
+      id: c.id,
+      name: c.name,
+      order: i+1,
+      plan: 1,
+      rev: 1,
+      des: 2,
+      envio: 1
+    }));
+  }
+
+  // Data padrão: hoje pro inicio
+  if(!_gerarPautaConfig.inicioCiclo){
+    const hoje = new Date();
+    _gerarPautaConfig.inicioCiclo = hoje.toISOString().split('T')[0];
+  }
+  if(!_gerarPautaConfig.magicNumber){
+    const magic = new Date();
+    magic.setDate(magic.getDate() + 25);
+    _gerarPautaConfig.magicNumber = magic.toISOString().split('T')[0];
+  }
+
+  renderGerarPautaModal();
+}
+
+function renderGerarPautaModal(){
+  const cfg = _gerarPautaConfig;
+  
+  // Calcular dias úteis disponíveis
+  const diasUteis = calcDiasUteis(cfg.inicioCiclo, cfg.magicNumber, cfg.feriadosExtra);
+  const diasNecessarios = cfg.clientes.reduce((sum,c)=>sum+c.plan+c.rev+c.des+c.envio, 0);
+  
+  // Feriados do período
+  const feriadosNoPeriodo = getFeriadosNoPeriodo(cfg.inicioCiclo, cfg.magicNumber);
+
+  const membros = TEAM.filter(t=>['kesia','jackson','cintia','tatiane'].includes(t.id));
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'gerar-pauta-modal';
+  modal.innerHTML = `
+    <div class="mbox" style="width:900px;max-width:95vw;max-height:90vh;overflow-y:auto">
+      <div class="mhdr">
+        <span>⚡ Gerar Pauta do Ciclo</span>
+        <button class="mclose" onclick="this.closest('.modal').remove()">✕</button>
+      </div>
+      <div class="mbody">
+        
+        <!-- DATAS -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="ff">
+            <label class="flbl">📅 Início do Ciclo</label>
+            <input type="date" class="fi" id="gp-inicio" value="${cfg.inicioCiclo}" onchange="updateGerarPautaConfig('inicioCiclo',this.value)">
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">Primeiro dia de trabalho</div>
+          </div>
+          <div class="ff">
+            <label class="flbl">🎯 Magic Number</label>
+            <input type="date" class="fi" id="gp-magic" value="${cfg.magicNumber}" onchange="updateGerarPautaConfig('magicNumber',this.value)">
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">Último dia de entrega</div>
+          </div>
+        </div>
+
+        <!-- RESPONSÁVEIS -->
+        <div style="background:var(--bg3);padding:14px;border-radius:var(--r);margin-bottom:20px">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px">👥 Responsáveis por Etapa</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+            <div class="ff">
+              <label class="flbl">PLAN</label>
+              <select class="fi" id="gp-resp-plan" onchange="updateGerarPautaResp('PLAN',this.value)">
+                ${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.PLAN===m.id?'selected':''}>${m.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="ff">
+              <label class="flbl">REV</label>
+              <select class="fi" id="gp-resp-rev" onchange="updateGerarPautaResp('REV',this.value)">
+                ${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.REV===m.id?'selected':''}>${m.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="ff">
+              <label class="flbl">DES</label>
+              <select class="fi" id="gp-resp-des" onchange="updateGerarPautaResp('DES',this.value)">
+                ${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.DES===m.id?'selected':''}>${m.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="ff">
+              <label class="flbl">ENVIO</label>
+              <select class="fi" id="gp-resp-envio" onchange="updateGerarPautaResp('ENVIO',this.value)">
+                ${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.ENVIO===m.id?'selected':''}>${m.name}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- FERIADOS -->
+        <div style="background:var(--bg3);padding:14px;border-radius:var(--r);margin-bottom:20px">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px">🚫 Feriados no Período</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+            ${feriadosNoPeriodo.map(f=>'<span style="font-size:11px;padding:4px 10px;background:var(--red);color:#fff;border-radius:4px">'+f.data+' — '+f.nome+'</span>').join('') || '<span style="font-size:12px;color:var(--text3)">Nenhum feriado nacional no período</span>'}
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="date" class="fi" id="gp-feriado-extra" style="width:150px">
+            <button class="btn btn-s btn-sm" onclick="addFeriadoExtra()">+ Adicionar feriado</button>
+          </div>
+          ${cfg.feriadosExtra.length?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">'+cfg.feriadosExtra.map((f,i)=>'<span style="font-size:11px;padding:4px 10px;background:var(--orange);color:#fff;border-radius:4px;display:flex;align-items:center;gap:6px">'+f+'<span style="cursor:pointer" onclick="removeFeriadoExtra('+i+')">✕</span></span>').join('')+'</div>':''}
+        </div>
+
+        <!-- CLIENTES -->
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:12px;font-weight:700;color:var(--accent)">📋 Clientes e Dias por Etapa</div>
+            <div style="font-size:11px;color:var(--text3)">Arraste para reordenar • Números = dias de execução</div>
+          </div>
+          
+          <div style="background:var(--bg3);border-radius:var(--r);overflow:hidden">
+            <div style="display:grid;grid-template-columns:40px 1fr 60px 60px 60px 60px 80px;gap:1px;background:var(--border);font-size:11px;font-weight:700;color:var(--text2)">
+              <div style="background:var(--bg2);padding:10px;text-align:center">↕️</div>
+              <div style="background:var(--bg2);padding:10px">Cliente</div>
+              <div style="background:var(--bg2);padding:10px;text-align:center">PLAN</div>
+              <div style="background:var(--bg2);padding:10px;text-align:center">REV</div>
+              <div style="background:var(--bg2);padding:10px;text-align:center">DES</div>
+              <div style="background:var(--bg2);padding:10px;text-align:center">ENVIO</div>
+              <div style="background:var(--bg2);padding:10px;text-align:center">Total</div>
+            </div>
+            <div id="gp-clientes-list" style="display:flex;flex-direction:column;gap:1px;background:var(--border)">
+              ${cfg.clientes.map((c,i)=>'<div class="gp-cliente-row" data-idx="'+i+'" draggable="true" ondragstart="dragGpCliente(event,'+i+')" ondragover="event.preventDefault()" ondrop="dropGpCliente(event,'+i+')" style="display:grid;grid-template-columns:40px 1fr 60px 60px 60px 60px 80px;gap:1px;background:var(--bg1);cursor:grab"><div style="background:var(--bg2);padding:8px;text-align:center;font-size:14px;color:var(--text3)">☰</div><div style="background:var(--bg2);padding:8px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px"><span style="width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800">'+(i+1)+'</span>'+c.name+'</div><div style="background:var(--bg2);padding:4px;text-align:center"><input type="number" min="1" max="5" value="'+c.plan+'" onchange="updateGpClienteDias('+i+',\'plan\',this.value)" style="width:100%;text-align:center;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-weight:700"></div><div style="background:var(--bg2);padding:4px;text-align:center"><input type="number" min="1" max="5" value="'+c.rev+'" onchange="updateGpClienteDias('+i+',\'rev\',this.value)" style="width:100%;text-align:center;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-weight:700"></div><div style="background:var(--bg2);padding:4px;text-align:center"><input type="number" min="1" max="10" value="'+c.des+'" onchange="updateGpClienteDias('+i+',\'des\',this.value)" style="width:100%;text-align:center;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-weight:700"></div><div style="background:var(--bg2);padding:4px;text-align:center"><input type="number" min="1" max="3" value="'+c.envio+'" onchange="updateGpClienteDias('+i+',\'envio\',this.value)" style="width:100%;text-align:center;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-weight:700"></div><div style="background:var(--bg2);padding:8px;text-align:center;font-size:12px;font-weight:700;color:var(--accent)">'+(c.plan+c.rev+c.des+c.envio)+' dias</div></div>').join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- RESUMO -->
+        <div style="background:${diasNecessarios<=diasUteis?'rgba(76,175,80,.1)':'rgba(239,68,68,.1)'};border:1px solid ${diasNecessarios<=diasUteis?'var(--green)':'var(--red)'};padding:14px;border-radius:var(--r);margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:12px;color:var(--text3)">Dias úteis disponíveis</div>
+              <div style="font-size:24px;font-weight:800;color:var(--green)">${diasUteis}</div>
+            </div>
+            <div style="font-size:24px;color:var(--text3)">vs</div>
+            <div>
+              <div style="font-size:12px;color:var(--text3)">Dias necessários</div>
+              <div style="font-size:24px;font-weight:800;color:${diasNecessarios<=diasUteis?'var(--accent)':'var(--red)'}">${diasNecessarios}</div>
+            </div>
+            <div style="flex:1;text-align:right">
+              ${diasNecessarios<=diasUteis?'<span style="color:var(--green);font-weight:700">✅ Cabe no período!</span>':'<span style="color:var(--red);font-weight:700">⚠️ Excede em '+(diasNecessarios-diasUteis)+' dias</span>'}
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="mftr">
+        <button class="btn btn-s" onclick="previewGerarPauta()">👁️ Pré-visualizar</button>
+        <button class="btn btn-p" onclick="executarGerarPauta()" ${diasNecessarios>diasUteis?'disabled style="opacity:.5"':''}>📅 Gerar no Calendário</button>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('gerar-pauta-modal')?.remove();
+  document.body.appendChild(modal);
+}
+
+function updateGerarPautaConfig(field, value){
+  _gerarPautaConfig[field] = value;
+  renderGerarPautaModal();
+}
+
+function updateGerarPautaResp(etapa, value){
+  _gerarPautaConfig.responsaveis[etapa] = value;
+}
+
+function updateGpClienteDias(idx, field, value){
+  _gerarPautaConfig.clientes[idx][field] = parseInt(value) || 1;
+  renderGerarPautaModal();
+}
+
+let _gpDragIdx = null;
+function dragGpCliente(e, idx){
+  _gpDragIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function dropGpCliente(e, targetIdx){
+  e.preventDefault();
+  if(_gpDragIdx === null || _gpDragIdx === targetIdx) return;
+  const arr = _gerarPautaConfig.clientes;
+  const [moved] = arr.splice(_gpDragIdx, 1);
+  arr.splice(targetIdx, 0, moved);
+  arr.forEach((c,i)=> c.order = i+1);
+  _gpDragIdx = null;
+  renderGerarPautaModal();
+}
+
+function addFeriadoExtra(){
+  const inp = document.getElementById('gp-feriado-extra');
+  if(!inp?.value) return;
+  if(!_gerarPautaConfig.feriadosExtra.includes(inp.value)){
+    _gerarPautaConfig.feriadosExtra.push(inp.value);
+  }
+  renderGerarPautaModal();
+}
+
+function removeFeriadoExtra(idx){
+  _gerarPautaConfig.feriadosExtra.splice(idx, 1);
+  renderGerarPautaModal();
+}
+
+function calcDiasUteis(inicio, fim, feriadosExtra){
+  if(!inicio || !fim) return 0;
+  let count = 0;
+  const d = new Date(inicio+'T00:00:00');
+  const end = new Date(fim+'T00:00:00');
+  while(d <= end){
+    const dow = d.getDay();
+    const dateStr = d.toISOString().split('T')[0];
+    const mmdd = dateStr.slice(5);
+    const isFds = dow === 0 || dow === 6;
+    const isFeriadoNacional = !!FERIADOS_NACIONAIS[mmdd];
+    const isFeriadoExtra = feriadosExtra.includes(dateStr);
+    if(!isFds && !isFeriadoNacional && !isFeriadoExtra) count++;
+    d.setDate(d.getDate() + 1);
+  }
+  return count;
+}
+
+function getFeriadosNoPeriodo(inicio, fim){
+  if(!inicio || !fim) return [];
+  const feriados = [];
+  const d = new Date(inicio+'T00:00:00');
+  const end = new Date(fim+'T00:00:00');
+  while(d <= end){
+    const dateStr = d.toISOString().split('T')[0];
+    const mmdd = dateStr.slice(5);
+    if(FERIADOS_NACIONAIS[mmdd]){
+      feriados.push({ data: d.toLocaleDateString('pt-BR'), nome: FERIADOS_NACIONAIS[mmdd] });
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return feriados;
+}
+
+function getNextDiaUtil(d, feriadosExtra){
+  const date = new Date(d);
+  while(true){
+    const dow = date.getDay();
+    const dateStr = date.toISOString().split('T')[0];
+    const mmdd = dateStr.slice(5);
+    const isFds = dow === 0 || dow === 6;
+    const isFeriadoNacional = !!FERIADOS_NACIONAIS[mmdd];
+    const isFeriadoExtra = feriadosExtra.includes(dateStr);
+    if(!isFds && !isFeriadoNacional && !isFeriadoExtra) return new Date(date);
+    date.setDate(date.getDate() + 1);
+  }
+}
+
+function addDiasUteis(startDate, dias, feriadosExtra){
+  let d = new Date(startDate);
+  let count = 0;
+  while(count < dias){
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    const dateStr = d.toISOString().split('T')[0];
+    const mmdd = dateStr.slice(5);
+    const isFds = dow === 0 || dow === 6;
+    const isFeriadoNacional = !!FERIADOS_NACIONAIS[mmdd];
+    const isFeriadoExtra = feriadosExtra.includes(dateStr);
+    if(!isFds && !isFeriadoNacional && !isFeriadoExtra) count++;
+  }
+  return d;
+}
+
+function previewGerarPauta(){
+  const cfg = _gerarPautaConfig;
+  const schedule = calcularCronograma(cfg);
+  
+  let html = '<div style="max-height:400px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<tr style="background:var(--bg3)"><th style="padding:8px;text-align:left;border:1px solid var(--border)">Cliente</th><th style="padding:8px;border:1px solid var(--border)">PLAN</th><th style="padding:8px;border:1px solid var(--border)">REV</th><th style="padding:8px;border:1px solid var(--border)">DES</th><th style="padding:8px;border:1px solid var(--border)">ENVIO</th></tr>';
+  
+  schedule.forEach(s=>{
+    html += '<tr><td style="padding:8px;border:1px solid var(--border);font-weight:600">'+s.name+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#e53e3e22">'+s.planDates.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ')+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#3b82f622">'+s.revDates.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ')+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#facc1522">'+s.desDates.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ')+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#d946ef22">'+s.envioDates.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ')+'</td>';
+    html += '</tr>';
+  });
+  html += '</table></div>';
+  
+  const previewDiv = document.createElement('div');
+  previewDiv.innerHTML = '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="font-size:13px;font-weight:700;margin-bottom:10px">👁️ Pré-visualização do Cronograma</div>'+html+'</div>';
+  
+  const existing = document.querySelector('#gerar-pauta-modal .preview-area');
+  if(existing) existing.remove();
+  
+  const mbody = document.querySelector('#gerar-pauta-modal .mbody');
+  if(mbody){
+    const wrapper = document.createElement('div');
+    wrapper.className = 'preview-area';
+    wrapper.appendChild(previewDiv);
+    mbody.appendChild(wrapper);
+  }
+}
+
+function calcularCronograma(cfg){
+  const schedule = [];
+  let currentDate = getNextDiaUtil(new Date(cfg.inicioCiclo+'T00:00:00'), cfg.feriadosExtra);
+  
+  cfg.clientes.forEach(cliente=>{
+    const entry = { id: cliente.id, name: cliente.name, planDates: [], revDates: [], desDates: [], envioDates: [] };
+    
+    // PLAN
+    for(let i=0; i<cliente.plan; i++){
+      entry.planDates.push(new Date(currentDate));
+      if(i < cliente.plan-1) currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
+    }
+    currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
+    
+    // REV
+    for(let i=0; i<cliente.rev; i++){
+      entry.revDates.push(new Date(currentDate));
+      if(i < cliente.rev-1) currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
+    }
+    currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
+    
+    // DES
+    for(let i=0; i<cliente.des; i++){
+      entry.desDates.push(new Date(currentDate));
+      if(i < cliente.des-1) currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
+    }
+    currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
+    
+    // ENVIO
+    for(let i=0; i<cliente.envio; i++){
+      entry.envioDates.push(new Date(currentDate));
+      if(i < cliente.envio-1) currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
+    }
+    currentDate = addDiasUteis(currentDate, 1, cfg.feriadosExtra);
+    
+    schedule.push(entry);
+  });
+  
+  return schedule;
+}
+
+async function executarGerarPauta(){
+  const cfg = _gerarPautaConfig;
+  const schedule = calcularCronograma(cfg);
+  
+  if(!confirm('Isso vai gerar '+schedule.length+' clientes no calendário de pauta. Continuar?')) return;
+  
+  showToast('Gerando pauta...','inf');
+  
+  const {db, doc, setDoc, getDoc} = window._fb;
+  
+  // Agrupa por mês
+  const byMonth = {};
+  
+  schedule.forEach(s=>{
+    const allDates = [...s.planDates, ...s.revDates, ...s.desDates, ...s.envioDates];
+    allDates.forEach((d,i)=>{
+      const monthKey = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      if(!byMonth[monthKey]) byMonth[monthKey] = {};
+      
+      const dateStr = d.toISOString().split('T')[0];
+      let type, memberId;
+      
+      if(s.planDates.includes(d)){ type='PLAN'; memberId=cfg.responsaveis.PLAN; }
+      else if(s.revDates.includes(d)){ type='REV'; memberId=cfg.responsaveis.REV; }
+      else if(s.desDates.includes(d)){ type='DES'; memberId=cfg.responsaveis.DES; }
+      else if(s.envioDates.includes(d)){ type='PDF'; memberId=cfg.responsaveis.ENVIO; }
+      
+      const cellKey = memberId+'_'+dateStr;
+      byMonth[monthKey][cellKey] = { client: s.id, type: type };
+    });
+  });
+  
+  // Salva no Firestore
+  for(const monthKey of Object.keys(byMonth)){
+    try{
+      const existingSnap = await getDoc(doc(db,'pauta',monthKey));
+      const existingData = existingSnap.exists() ? existingSnap.data() : {};
+      const mergedData = { ...existingData, ...byMonth[monthKey] };
+      
+      // Salva magic number
+      mergedData.magicNumber = cfg.magicNumber;
+      
+      await setDoc(doc(db,'pauta',monthKey), mergedData);
+    }catch(e){
+      console.error('Erro salvando pauta:', e);
+    }
+  }
+  
+  document.getElementById('gerar-pauta-modal')?.remove();
+  showToast('Pauta gerada com sucesso!','ok');
+  
+  // Recarrega a visualização
+  await loadPautaMonth();
+}
+
 // ===== RELATÓRIO MENSAL POR CLIENTE =====
-let relDate = new Date();
 
 async function renderRelatorio(container){
   container.setAttribute('style','flex:1;overflow-y:auto;display:block');
