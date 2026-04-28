@@ -977,7 +977,6 @@ let TEAM=[
   {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'},
   {id:'jackson',name:'Jackson',role:'Estrategista',color:'#8483ff'}
 ];
-];
 async function loadTeam(){
   const {db,collection,getDocs}=window._fb;
   try{
@@ -993,7 +992,6 @@ async function seedDefaultTeam(){
     {id:'cintia',name:'Cintia',role:'Designer',color:'#c084fc'},
     {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'},
     {id:'jackson',name:'Jackson',role:'Estrategista',color:'#8483ff'}
-  ];
   ];
   for(const m of defaults){ await setDoc(doc(db,'team',m.id),{name:m.name,role:m.role,color:m.color}); }
   TEAM=defaults;
