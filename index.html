@@ -971,11 +971,12 @@ function updateTopDate(){
 }
 // TEAM is now dynamic — loaded from Firestore 'team' collection
 let TEAM=[
-  {id:'kesia',name:'Kesia',role:'Social Media',color:'#f472b6'},
+  {id:'juliana',name:'Juliana',role:'Social Media',color:'#f472b6'},
   {id:'tatiane',name:'Tatiane',role:'Atendimento',color:'#fb923c'},
-  {id:'cintia',name:'Cíntia',role:'Designer',color:'#c084fc'},
+  {id:'cintia',name:'CÃ­ntia',role:'Designer',color:'#c084fc'},
   {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'},
   {id:'jackson',name:'Jackson',role:'Estrategista',color:'#8483ff'}
+];
 ];
 async function loadTeam(){
   const {db,collection,getDocs}=window._fb;
@@ -986,13 +987,13 @@ async function loadTeam(){
   }catch(e){ console.warn('loadTeam:',e); }
 }
 async function seedDefaultTeam(){
-  const {db,doc,setDoc}=window._fb;
   const defaults=[
-    {id:'kesia',name:'Kesia',role:'Social Media',color:'#f472b6'},
+    {id:'juliana',name:'Juliana',role:'Social Media',color:'#f472b6'},
     {id:'tatiane',name:'Tatiane',role:'Atendimento',color:'#fb923c'},
     {id:'cintia',name:'Cintia',role:'Designer',color:'#c084fc'},
     {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'},
     {id:'jackson',name:'Jackson',role:'Estrategista',color:'#8483ff'}
+  ];
   ];
   for(const m of defaults){ await setDoc(doc(db,'team',m.id),{name:m.name,role:m.role,color:m.color}); }
   TEAM=defaults;
@@ -4937,274 +4938,256 @@ function changePautaMonth(d){
   pautaDate.setMonth(pautaDate.getMonth()+d);
   loadPautaMonth();
 }
-
 async function loadPautaMonth(){
   const yr = pautaDate.getFullYear();
   const mo = pautaDate.getMonth();
-  const mn = MONTHS[mo];
   const key = yr+'-'+String(mo+1).padStart(2,'0');
+  const prev = new Date(yr, mo-1, 1);
+  const next = new Date(yr, mo+1, 1);
+  const prevKey = prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0');
+  const nextKey = next.getFullYear()+'-'+String(next.getMonth()+1).padStart(2,'0');
   const lbl = document.getElementById('pauta-lbl');
-  if(lbl) lbl.textContent = mn+' '+yr;
-
-  // Load from Firestore
+  if(lbl) lbl.textContent = MONTHS[mo]+' '+yr;
   const {db,doc,getDoc} = window._fb;
-  try{
-    const snap = await getDoc(doc(db,'pauta',key));
-    pautaData[key] = snap.exists() ? snap.data() : {};
-  }catch(e){ pautaData[key] = {}; }
-
-  renderPautaGrid(yr, mo, key);
+  for(const monthKey of [prevKey, key, nextKey]){
+    try{
+      const snap = await getDoc(doc(db,'pauta',monthKey));
+      pautaData[monthKey] = snap.exists() ? snap.data() : {};
+    }catch(e){
+      pautaData[monthKey] = {};
+    }
+  }
+  renderPautaGrid(yr, mo);
 }
 
-function renderPautaGrid(yr, mo, key){
-  const data = pautaData[key] || {};
-  const mn = MONTHS[mo];
-
+function renderPautaGrid(yr, mo){
+  const monthName = MONTHS[mo];
   const MEMBER_CFG = {
-    kesia:   {types:['PLAN'], bg:'#e53e3e', text:'#fff'},
-    jackson: {types:['PLAN','REV'], bg:'#3b82f6', text:'#fff'},
-    cintia:  {types:['DES'],  bg:'#facc15', text:'#111'},
-    tatiane: {types:['PDF'],  bg:'#d946ef', text:'#fff'}
+    juliana: {label:'Juliana', type:'PLAN', bg:'#ef4444', text:'#fff', legacyIds:['kesia']},
+    jackson: {label:'Jackson', type:'REV', bg:'#3b82f6', text:'#fff', legacyIds:[]},
+    cintia: {label:'Cintia', type:'DES', bg:'#facc15', text:'#111', legacyIds:[]}
   };
-  const TYPE_COLORS = {PLAN:'#e53e3e', REV:'#3b82f6', DES:'#facc15', PDF:'#d946ef'};
-  const TYPE_TEXT   = {PLAN:'#fff',    REV:'#fff',    DES:'#111',    PDF:'#fff'};
-
-  const PAUTA_MEMBERS = ['kesia','jackson','cintia','tatiane'];
-  const members = PAUTA_MEMBERS.map(id=>TEAM.find(t=>t.id===id)||TEAM.find(t=>t.name.toLowerCase().startsWith(id.slice(0,4)))).filter(Boolean);
-  const clientList = Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
+  const MEMBER_ORDER = ['juliana','jackson','cintia'];
+  const TYPE_COLORS = {PLAN:'#ef4444', REV:'#3b82f6', DES:'#facc15'};
+  const TYPE_TEXT = {PLAN:'#fff', REV:'#fff', DES:'#111'};
+  const DAYS_FULL = ['Domingo','Segunda-feira','Terca-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sabado'];
 
   const firstDay = new Date(yr, mo, 1);
   const startDow = firstDay.getDay();
   const startDate = new Date(yr, mo, 1);
   startDate.setDate(1 - startDow);
-  const DAYS_FULL = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
 
   let totalWeeks = 0;
-  let testDate = new Date(startDate);
-  for(let w=0;w<6;w++){
-    let hasMonth=false;
-    for(let d=0;d<7;d++){ const td=new Date(testDate); td.setDate(td.getDate()+d); if(td.getMonth()===mo) hasMonth=true; }
-    if(!hasMonth) break;
-    totalWeeks++; testDate.setDate(testDate.getDate()+7);
+  let probe = new Date(startDate);
+  for(let w=0; w<6; w++){
+    let hasCurrentMonth = false;
+    for(let d=0; d<7; d++){
+      const dayProbe = new Date(probe);
+      dayProbe.setDate(dayProbe.getDate() + d);
+      if(dayProbe.getMonth() === mo) hasCurrentMonth = true;
+    }
+    if(!hasCurrentMonth) break;
+    totalWeeks++;
+    probe.setDate(probe.getDate() + 7);
   }
 
-  const CELL_H = '52px';
-  const HDR_BG = '#7b8cde';   // blue-ish header like the original
-  const HDR_TXT = '#fff';
-  const WKND_BG = '#d1d5db';  // grey weekend
-  const WKND_TXT = '#6b7280';
-  const DAY_NUM_BG = '#e8eaf6';
-  const COLLAB_BG = '#e8eaf6';
+  const teamLookup = {
+    juliana: TEAM.find(t=>t.id==='juliana') || TEAM.find(t=>t.id==='kesia') || {name:'Juliana'},
+    jackson: TEAM.find(t=>t.id==='jackson') || {name:'Jackson'},
+    cintia: TEAM.find(t=>t.id==='cintia') || {name:'Cintia'}
+  };
 
-  let html = `<div id="pauta-export-area" style="background:#fff;padding:0;border-radius:10px;overflow:hidden;border:2px solid #c7cbe8;font-family:Arial,Helvetica,sans-serif">
-
-    <!-- CAPA: Magic Number + Mês + Ano -->
+  let html = `
+  <div id="pauta-export-area" style="background:#fff;border-radius:10px;overflow:hidden;border:2px solid #c7cbe8;font-family:Arial,Helvetica,sans-serif">
     <div style="display:grid;grid-template-columns:200px 1fr 120px;background:#e8eaf6">
       <div style="padding:16px 20px;display:flex;flex-direction:column;justify-content:center">
-        <div style="font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7b8cde;margin-bottom:2px">✨ MAGIC NUMBER</div>
-        <div style="font-size:36px;font-weight:900;letter-spacing:-1px;color:#1a1a2e" id="pauta-magic-display">—</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7b8cde;margin-bottom:2px">MAGIC NUMBER</div>
+        <div style="font-size:36px;font-weight:900;letter-spacing:-1px;color:#1a1a2e" id="pauta-magic-display">-</div>
       </div>
-      <div style="background:${HDR_BG};display:flex;align-items:center;justify-content:center">
-        <div style="font-size:42px;font-weight:900;letter-spacing:8px;text-transform:uppercase;color:#fff">${mn}</div>
+      <div style="background:#7b8cde;display:flex;align-items:center;justify-content:center">
+        <div style="font-size:42px;font-weight:900;letter-spacing:8px;text-transform:uppercase;color:#fff">${monthName}</div>
       </div>
       <div style="background:#1a1a2e;display:flex;align-items:center;justify-content:center">
         <div style="font-size:28px;font-weight:900;color:#fff">${yr}</div>
       </div>
     </div>
-
-    <!-- LEGENDA -->
     <div style="display:flex;align-items:center;gap:20px;padding:8px 16px;background:#f0f2ff;border-bottom:1px solid #c7cbe8;flex-wrap:wrap">
-      ${members.filter(Boolean).map((m,mi)=>{
-        const cfg=MEMBER_CFG[PAUTA_MEMBERS[mi]]||{bg:'#888',text:'#fff'};
-        return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#333">
-          <div style="width:12px;height:12px;border-radius:50%;background:${cfg.bg}"></div>${m.name}
-        </div>`;
+      ${MEMBER_ORDER.map(id=>{
+        const cfg = MEMBER_CFG[id];
+        const name = teamLookup[id]?.name || cfg.label;
+        return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#333"><div style="width:12px;height:12px;border-radius:50%;background:${cfg.bg}"></div>${name}</div>`;
       }).join('')}
       <div style="display:flex;gap:6px;margin-left:auto">
-        ${Object.entries(TYPE_COLORS).map(([t,bg])=>`<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:4px;background:${bg};color:${TYPE_TEXT[t]}">[${t}]</span>`).join('')}
+        ${Object.keys(TYPE_COLORS).map(type=>`<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:4px;background:${TYPE_COLORS[type]};color:${TYPE_TEXT[type]}">[${type}]</span>`).join('')}
       </div>
     </div>
-
-    <!-- TABLE -->
     <table style="width:100%;border-collapse:collapse;table-layout:fixed">
       <colgroup>
         <col style="width:130px">
         ${DAYS_FULL.map((_,i)=>`<col style="width:${i===0||i===6?'70px':'1fr'}">`).join('')}
-      </colgroup>`;
+      </colgroup>
+      <tr>
+        <th style="background:#7b8cde;color:#fff;font-size:12px;font-weight:800;text-align:left;padding:8px 10px;border:1px solid #c7cbe8">Colaboradores</th>
+        ${DAYS_FULL.map((d,i)=>`<th style="background:${i===0||i===6?'#9ca3af':'#7b8cde'};color:#fff;font-size:${i===0||i===6?11:13}px;font-weight:800;text-align:center;padding:8px 4px;border:1px solid #c7cbe8">${d}</th>`).join('')}
+      </tr>`;
 
-  let cur = new Date(startDate);
+  let current = new Date(startDate);
   for(let w=0; w<totalWeeks; w++){
-    const weekDays=[];
-    for(let d=0;d<7;d++){
-      const isWknd=d===0||d===6;
-      const inMonth=cur.getMonth()===mo;
-      const dateStr=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
-      const isFeriado=data['feriado_'+dateStr];
-      weekDays.push({day:cur.getDate(),month:cur.getMonth(),dateStr,inMonth,isFeriado,isWknd});
-      cur.setDate(cur.getDate()+1);
+    const weekDays = [];
+    for(let d=0; d<7; d++){
+      const date = new Date(current);
+      const dateStr = date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+      const sourceKey = dateStr.slice(0,7);
+      const monthData = pautaData[sourceKey] || {};
+      weekDays.push({
+        date,
+        dateStr,
+        sourceKey,
+        inMonth: date.getMonth() === mo,
+        isWeekend: d===0 || d===6,
+        isHoliday: !!monthData['feriado_'+dateStr]
+      });
+      current.setDate(current.getDate() + 1);
     }
 
-    // Colaboradores + day numbers header row
-    html+=`<tr>
-      <td style="background:${HDR_BG};color:${HDR_TXT};font-size:13px;font-weight:800;text-align:center;padding:8px 6px;border:1px solid #c7cbe8;letter-spacing:.5px">Colaboradores</td>
-      ${weekDays.map(wd=>{
-        const bg=wd.isWknd?WKND_BG:DAY_NUM_BG;
-        const col=wd.isWknd?WKND_TXT:(wd.inMonth?'#1a1a2e':'#aaa');
-        return `<td style="background:${bg};border:1px solid #c7cbe8;text-align:right;padding:4px 8px;cursor:pointer;height:36px" onclick="toggleFeriado('${key}','${wd.dateStr}')" title="${wd.isFeriado?'Remover feriado':'Marcar feriado'}">
-          <div style="font-size:18px;font-weight:900;color:${wd.isFeriado?'#e53e3e':col};opacity:${wd.inMonth?1:.4}">${wd.day}</div>
-          ${wd.isFeriado?`<div style="font-size:8px;color:#e53e3e;font-weight:700;text-align:center">FERIADO</div>`:''}
-        </td>`;
+    html += `<tr>
+      <td style="background:#7b8cde;color:#fff;font-size:13px;font-weight:800;text-align:center;padding:8px 6px;border:1px solid #c7cbe8;letter-spacing:.5px">Colaboradores</td>
+      ${weekDays.map(day=>{
+        const bg = day.isWeekend ? '#d1d5db' : '#e8eaf6';
+        const color = day.isHoliday ? '#ef4444' : (day.isWeekend ? '#6b7280' : (day.inMonth ? '#1a1a2e' : '#aaa'));
+        return `<td style="background:${bg};border:1px solid #c7cbe8;text-align:right;padding:4px 8px;cursor:pointer;height:36px" onclick="toggleFeriado('${day.sourceKey}','${day.dateStr}')" title="${day.isHoliday?'Remover feriado':'Marcar feriado'}"><div style="font-size:18px;font-weight:900;color:${color};opacity:${day.inMonth?1:.45}">${day.date.getDate()}</div>${day.isHoliday?'<div style="font-size:8px;color:#ef4444;font-weight:700;text-align:center">FERIADO</div>':''}</td>`;
       }).join('')}
     </tr>`;
 
-    // Member rows
-    members.forEach((m,mi)=>{
-      if(!m) return;
-      const memberId=PAUTA_MEMBERS[mi];
-      const cfg=MEMBER_CFG[memberId]||{types:['PLAN'],bg:'#888',text:'#fff'};
-      const isJackson=memberId==='jackson';
-
-      html+=`<tr>
-        <td style="background:${COLLAB_BG};border:1px solid #c7cbe8;padding:6px 10px;height:${CELL_H};vertical-align:middle">
+    MEMBER_ORDER.forEach(memberId=>{
+      const cfg = MEMBER_CFG[memberId];
+      const memberName = teamLookup[memberId]?.name || cfg.label;
+      html += `<tr>
+        <td style="background:#e8eaf6;border:1px solid #c7cbe8;padding:6px 10px;height:52px;vertical-align:middle">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="width:10px;height:10px;border-radius:50%;background:${cfg.bg};flex-shrink:0"></div>
-            <span style="font-size:13px;font-weight:700;color:#1a1a2e">${m.name}</span>
+            <span style="font-size:13px;font-weight:700;color:#1a1a2e">${memberName}</span>
           </div>
         </td>
-        ${weekDays.map((wd,di)=>{
-          const cellKey=m.id+'_'+wd.dateStr;
-          const cell=data[cellKey]||{};
-          const clientName=cell.client?(clients[cell.client]?.name||cell.client):'';
-          const displayType=isJackson?cell.type:(cell.client||cell.type?cfg.types[0]:null);
-          const hasContent=isJackson?!!cell.type:!!(cell.client||cell.type);
-          const cellBg=hasContent?(TYPE_COLORS[displayType]||cfg.bg):(wd.isWknd?WKND_BG:'#fff');
-          const cellTxt=hasContent?(TYPE_TEXT[displayType]||cfg.text):'inherit';
-
-          return `<td style="background:${wd.isWknd&&!hasContent?WKND_BG:'#fff'};border:1px solid #c7cbe8;padding:2px;vertical-align:top;height:${CELL_H};overflow:hidden"
-            onclick="openPautaCell(event,'${key}','${cellKey}','${wd.dateStr}','${memberId}')">
-            ${wd.isFeriado
-              ?`<div style="height:100%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa">—</div>`
-              :hasContent
-                ?`<div style="background:${cellBg};height:100%;padding:4px 6px;display:flex;flex-direction:column;justify-content:center;gap:1px;cursor:pointer">
-                    ${isJackson?`<div style="font-size:11px;font-weight:800;color:${cellTxt};letter-spacing:.5px">[${displayType}]</div>`:''}
-                    ${clientName?`<div style="font-size:12px;font-weight:700;color:${cellTxt};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${clientName}</div>`:''}
-                  </div>`
-                :`<div style="height:100%;cursor:pointer;background:${wd.isWknd?WKND_BG:'#fff'}"></div>`
-            }
+        ${weekDays.map(day=>{
+          const monthData = pautaData[day.sourceKey] || {};
+          const cellKey = memberId+'_'+day.dateStr;
+          const legacy = (cfg.legacyIds||[]).map(oldId=>monthData[oldId+'_'+day.dateStr]).find(Boolean);
+          const cell = monthData[cellKey] || legacy || {};
+          const clientName = cell.client ? (clients[cell.client]?.name || cell.client) : '';
+          const hasContent = !!clientName;
+          const cellBg = hasContent ? cfg.bg : (day.isWeekend ? '#d1d5db' : '#fff');
+          const textColor = hasContent ? cfg.text : '#1a1a2e';
+          return `<td style="background:${day.isWeekend&&!hasContent?'#d1d5db':'#fff'};border:1px solid #c7cbe8;padding:2px;vertical-align:top;height:52px;overflow:hidden" onclick="openPautaCell(event,'${day.sourceKey}','${cellKey}','${day.dateStr}','${memberId}')">
+            ${day.isHoliday
+              ? '<div style="height:100%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa">-</div>'
+              : hasContent
+                ? `<div style="background:${cellBg};height:100%;padding:4px 6px;display:flex;flex-direction:column;justify-content:center;gap:1px;cursor:pointer"><div style="font-size:12px;font-weight:700;color:${textColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${clientName}</div></div>`
+                : `<div style="height:100%;cursor:pointer;background:${day.isWeekend?'#d1d5db':'#fff'}"></div>`}
           </td>`;
         }).join('')}
       </tr>`;
     });
   }
 
-  // Days of week header (after all weeks, shown once at top via sticky or just once before table)
-  html+=`</table></div>`;
+  html += '</table></div>';
+  const el = document.getElementById('pauta-inner');
+  if(el) el.innerHTML = html;
 
-  // Prepend day-of-week row right after legend
-  const dowRow = `<table style="width:100%;border-collapse:collapse;table-layout:fixed;border-bottom:2px solid #c7cbe8">
-    <colgroup>
-      <col style="width:130px">${DAYS_FULL.map((_,i)=>`<col style="width:${i===0||i===6?'70px':'1fr'}">`).join('')}
-    </colgroup>
-    <tr>
-      <th style="background:${HDR_BG};color:${HDR_TXT};font-size:12px;font-weight:800;text-align:left;padding:8px 10px;border:1px solid #c7cbe8">Colaboradores</th>
-      ${DAYS_FULL.map((d,i)=>{
-        const isWknd=i===0||i===6;
-        return `<th style="background:${isWknd?'#9ca3af':HDR_BG};color:${HDR_TXT};font-size:${isWknd?11:13}px;font-weight:800;text-align:center;padding:8px 4px;border:1px solid #c7cbe8">${d}</th>`;
-      }).join('')}
-    </tr>
-  </table>`;
-
-  // Insert dow row between legend and table
-  html = html.replace('    <!-- TABLE -->', '    <!-- DOW ROW -->\n'+dowRow+'\n    <!-- TABLE -->');
-  // Remove the duplicate "Colaboradores" column from first data row header
-  html = html.replace(/(<td[^>]*>Colaboradores<\/td>\s*)?(<tr>\s*<td style="background:#7b8cde[^"]*"[^>]*>Colaboradores<\/td>)/g, '$2');
-
-  const el=document.getElementById('pauta-inner');
-  if(el) el.innerHTML=html;
-
-  const {db,doc,getDoc}=window._fb;
+  const {db,doc,getDoc} = window._fb;
   getDoc(doc(db,'settings','magicNumbers')).then(snap=>{
-    if(snap.exists()){
-      const dv=snap.data()[MONTHS[mo]];
-      const el2=document.getElementById('pauta-magic-display');
-      if(el2) el2.textContent=dv?formatMagicDate(dv):'—';
-    }
+    if(!snap.exists()) return;
+    const value = snap.data()[MONTHS[mo]];
+    const target = document.getElementById('pauta-magic-display');
+    if(target) target.textContent = value ? formatMagicDate(value) : '-';
   }).catch(()=>{});
 }
 
 function openPautaCell(event, monthKey, cellKey, dateStr, memberId){
   event.stopPropagation();
-  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
+  document.querySelectorAll('.pauta-editor').forEach(el=>el.remove());
 
-  const data = pautaData[monthKey] || {};
-  const cell = data[cellKey] || {};
-  const clientList = Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
+  const monthData = pautaData[monthKey] || {};
+  const memberCfg = {
+    juliana: {legacyIds:['kesia']},
+    jackson: {legacyIds:[]},
+    cintia: {legacyIds:[]}
+  };
+  const legacy = (memberCfg[memberId]?.legacyIds || []).map(oldId=>monthData[oldId+'_'+dateStr]).find(Boolean);
+  const cell = monthData[cellKey] || legacy || {};
+  const clientList = Object.values(clients).filter(c=>c && c.name).sort((a,b)=>a.name.localeCompare(b.name));
 
   const ed = document.createElement('div');
   ed.className = 'pauta-editor';
   const rect = event.currentTarget.getBoundingClientRect();
-  ed.style.left = Math.min(rect.left, window.innerWidth-240)+'px';
-  ed.style.top = (rect.bottom+4)+'px';
-
-  const MEMBER_FIXED = {kesia:'PLAN',cintia:'DES',tatiane:'PDF'};
-  const fixedType = MEMBER_FIXED[memberId];
+  ed.style.left = Math.min(rect.left, window.innerWidth - 260) + 'px';
+  ed.style.top = (rect.bottom + 4) + 'px';
   ed.innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">${dateStr} — ${memberId.charAt(0).toUpperCase()+memberId.slice(1)}</div>
-    ${!fixedType?`<select class="fs" id="pe-type" style="margin-bottom:8px">
-        <option value="">— Limpar —</option>
-        ${['PLAN','REV'].map(t=>`<option value="${t}" ${cell.type===t?'selected':''}>${t}</option>`).join('')}
-      </select>`:`<input type="hidden" id="pe-type" value="${fixedType}">`}
+    <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">${dateStr} - ${(memberCfg[memberId]?.label||memberId)}</div>
     <select class="fs" id="pe-client" style="margin-bottom:10px">
-      <option value="">— Sem cliente —</option>
+      <option value="">- Sem cliente -</option>
       ${clientList.map(cl=>`<option value="${cl.id}" ${cell.client===cl.id?'selected':''}>${cl.name}</option>`).join('')}
     </select>
     <div class="brow">
       <button class="btn btn-p btn-sm" onclick="savePautaCell('${monthKey}','${cellKey}')">Salvar</button>
       <button class="btn btn-d btn-sm" onclick="clearPautaCell('${monthKey}','${cellKey}')">Limpar</button>
-      <button class="btn btn-s btn-sm" onclick="this.closest('.pauta-editor').remove()">×</button>
+      <button class="btn btn-s btn-sm" onclick="this.closest('.pauta-editor').remove()">Ã—</button>
     </div>`;
 
   document.body.appendChild(ed);
   document.addEventListener('click', function handler(e){
-    if(!ed.contains(e.target)){ ed.remove(); document.removeEventListener('click',handler); }
+    if(!ed.contains(e.target)){
+      ed.remove();
+      document.removeEventListener('click', handler);
+    }
   });
 }
 
 async function savePautaCell(monthKey, cellKey){
-  const type = document.getElementById('pe-type').value;
-  const client = document.getElementById('pe-client').value;
-  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
+  const select = document.getElementById('pe-client');
+  const clientId = select?.value || '';
+  const [memberId, dateStr] = cellKey.split('_');
   if(!pautaData[monthKey]) pautaData[monthKey] = {};
-  if(type){ pautaData[monthKey][cellKey] = {type,client}; }
-  else { delete pautaData[monthKey][cellKey]; }
+
+  if(memberId === 'juliana'){
+    delete pautaData[monthKey]['kesia_'+dateStr];
+  }
+
+  if(!clientId){
+    delete pautaData[monthKey][cellKey];
+  }else{
+    const type = memberId === 'juliana' ? 'PLAN' : (memberId === 'jackson' ? 'REV' : 'DES');
+    pautaData[monthKey][cellKey] = { client: clientId, type };
+  }
+
+  document.querySelectorAll('.pauta-editor').forEach(el=>el.remove());
   await savePautaToFirestore(monthKey);
   const [yr,mo] = monthKey.split('-').map(Number);
-  renderPautaGrid(yr, mo-1, monthKey);
+  renderPautaGrid(yr, mo-1);
 }
 
 async function clearPautaCell(monthKey, cellKey){
-  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
-  if(pautaData[monthKey]) delete pautaData[monthKey][cellKey];
+  document.querySelectorAll('.pauta-editor').forEach(el=>el.remove());
+  const [memberId, dateStr] = cellKey.split('_');
+  if(pautaData[monthKey]){
+    delete pautaData[monthKey][cellKey];
+    if(memberId === 'juliana'){
+      delete pautaData[monthKey]['kesia_'+dateStr];
+    }
+  }
   await savePautaToFirestore(monthKey);
   const [yr,mo] = monthKey.split('-').map(Number);
-  renderPautaGrid(yr, mo-1, monthKey);
+  renderPautaGrid(yr, mo-1);
 }
 
 async function toggleFeriado(monthKey, dateStr){
   if(!pautaData[monthKey]) pautaData[monthKey] = {};
-  const fk = 'feriado_'+dateStr;
-  if(pautaData[monthKey][fk]) delete pautaData[monthKey][fk];
-  else pautaData[monthKey][fk] = true;
+  const key = 'feriado_'+dateStr;
+  if(pautaData[monthKey][key]) delete pautaData[monthKey][key];
+  else pautaData[monthKey][key] = true;
   await savePautaToFirestore(monthKey);
   const [yr,mo] = monthKey.split('-').map(Number);
-  renderPautaGrid(yr, mo-1, monthKey);
-}
-
-async function savePautaToFirestore(monthKey){
-  const {db,doc,setDoc} = window._fb;
-  try{
-    await setDoc(doc(db,'pauta',monthKey), pautaData[monthKey]||{});
-  }catch(e){ showToast('Erro ao salvar pauta: '+e.message,'err'); }
+  renderPautaGrid(yr, mo-1);
 }
 
 async function exportPautaImg(){
@@ -5243,18 +5226,23 @@ let _gerarPautaConfig = {
   magicNumber: '',
   clientes: [],
   feriadosExtra: [],
-  responsaveis: { PLAN: 'kesia', REV: 'jackson', DES: 'cintia', ENVIO: 'tatiane' }
+  responsaveis: { PLAN: 'juliana', REV: 'jackson', DES: 'cintia' }
 };
+
+function updateGerarPautaConfig(field, value){
+  _gerarPautaConfig[field] = value;
+  renderGerarPautaModal();
+}
 
 function openGerarPautaModal(){
   try{
     const clientMap = (typeof clients !== 'undefined' && clients) ? clients : {};
     const comercialMap = (typeof _comClientes !== 'undefined' && _comClientes) ? _comClientes : {};
-    const baseClients = Object.entries(clientMap).map(([id,c])=>({ id: (c && c.id) || id, ...(c||{}) }));
-    const ativos = Object.entries(comercialMap).map(([id,c])=>({ id: (c && c.id) || id, ...(c||{}) })).filter(c=>c && c.name && c.status==='ativo');
-    const source = ativos.length ? ativos : baseClients;
-    const listaClientes = source.filter(c=>c && c.name).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-
+    const baseClients = Object.entries(clientMap).map(([id,c])=>({ id:(c && c.id) || id, ...(c||{}) }));
+    const ativos = Object.entries(comercialMap).map(([id,c])=>({ id:(c && c.id) || id, ...(c||{}) })).filter(c=>c && c.name && c.status === 'ativo');
+    const mergedMap = new Map();
+    [...baseClients, ...ativos].forEach(c=>{ if(c && c.id && c.name) mergedMap.set(c.id, c); });
+    const listaClientes = Array.from(mergedMap.values()).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
     if(!listaClientes.length){
       showToast('Nenhum cliente encontrado para gerar a pauta.','err');
       return;
@@ -5266,11 +5254,10 @@ function openGerarPautaModal(){
       _gerarPautaConfig.clientes = listaClientes.map((c,i)=>({
         id: c.id,
         name: c.name || 'Cliente',
-        order: i+1,
+        order: i + 1,
         plan: Number(c.plan) || 1,
         rev: Number(c.rev) || 1,
-        des: Number(c.des) || 2,
-        envio: Number(c.envio) || 1
+        des: Number(c.des) || 2
       }));
     }
 
@@ -5296,29 +5283,27 @@ function renderGerarPautaModal(){
     const cfg = _gerarPautaConfig || {};
     cfg.clientes = Array.isArray(cfg.clientes) ? cfg.clientes : [];
     cfg.feriadosExtra = Array.isArray(cfg.feriadosExtra) ? cfg.feriadosExtra : [];
-    cfg.responsaveis = cfg.responsaveis || { PLAN:'kesia', REV:'jackson', DES:'cintia', ENVIO:'tatiane' };
+    cfg.responsaveis = cfg.responsaveis || { PLAN:'juliana', REV:'jackson', DES:'cintia' };
 
     const diasUteis = calcDiasUteis(cfg.inicioCiclo, cfg.magicNumber, cfg.feriadosExtra);
     const schedulePreview = calcularCronograma(cfg);
-    const allAssignedDates = schedulePreview.flatMap(s => [...(s.planDates||[]), ...(s.revDates||[]), ...(s.desDates||[]), ...(s.envioDates||[])]);
+    const allAssignedDates = schedulePreview.flatMap(s => [...(s.planDates||[]), ...(s.revDates||[]), ...(s.desDates||[])]);
     const lastAssignedDate = allAssignedDates.length ? new Date(Math.max(...allAssignedDates.map(d => new Date(d).getTime()))) : null;
     const diasNecessarios = lastAssignedDate ? calcDiasUteis(cfg.inicioCiclo, lastAssignedDate.toISOString().split('T')[0], cfg.feriadosExtra) : 0;
     const feriadosNoPeriodo = getFeriadosNoPeriodo(cfg.inicioCiclo, cfg.magicNumber);
     const teamList = (typeof TEAM !== 'undefined' && Array.isArray(TEAM) && TEAM.length) ? TEAM : [];
-    const membros = teamList.length ? teamList : [
-      {id:'kesia',name:'Kesia'},
-      {id:'jackson',name:'Jackson'},
-      {id:'cintia',name:'Cintia'},
-      {id:'tatiane',name:'Tatiane'}
+    const membros = [
+      teamList.find(t=>t.id==='juliana') || teamList.find(t=>t.id==='kesia') || {id:'juliana',name:'Juliana'},
+      teamList.find(t=>t.id==='jackson') || {id:'jackson',name:'Jackson'},
+      teamList.find(t=>t.id==='cintia') || {id:'cintia',name:'Cintia'}
     ];
 
     document.getElementById('gerar-pauta-modal')?.remove();
-
     const modal = document.createElement('div');
     modal.className = 'mo open';
     modal.id = 'gerar-pauta-modal';
     modal.innerHTML = `
-      <div class="modal" style="width:min(1080px,96vw);max-height:92vh;overflow:auto">
+      <div class="modal" style="width:min(1240px,98vw);max-height:96vh;overflow:auto">
         <div class="mhdr">
           <div class="mhdr-info">
             <div class="mtitle">Gerar Pauta do Ciclo</div>
@@ -5326,24 +5311,17 @@ function renderGerarPautaModal(){
           </div>
           <button class="mclose" onclick="document.getElementById('gerar-pauta-modal')?.remove()">&times;</button>
         </div>
-        <div class="mbody" style="padding:20px;display:flex;flex-direction:column;gap:16px">
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
-            <div class="ff">
-              <label class="flbl">Inicio do ciclo</label>
-              <input type="date" class="fi" value="${cfg.inicioCiclo||''}" onchange="updateGerarPautaConfig('inicioCiclo',this.value)">
-            </div>
-            <div class="ff">
-              <label class="flbl">Magic Number</label>
-              <input type="date" class="fi" value="${cfg.magicNumber||''}" onchange="updateGerarPautaConfig('magicNumber',this.value)">
-            </div>
+        <div class="mbody" style="padding:16px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+            <div class="ff"><label class="flbl">Inicio do ciclo</label><input type="date" class="fi" value="${cfg.inicioCiclo||''}" onchange="updateGerarPautaConfig('inicioCiclo',this.value)"></div>
+            <div class="ff"><label class="flbl">Magic Number</label><input type="date" class="fi" value="${cfg.magicNumber||''}" onchange="updateGerarPautaConfig('magicNumber',this.value)"></div>
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
             <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">Responsaveis por etapa</div>
-            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
               <div class="ff"><label class="flbl">PLAN</label><select class="fs" onchange="updateGerarPautaResp('PLAN',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.PLAN===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
               <div class="ff"><label class="flbl">REV</label><select class="fs" onchange="updateGerarPautaResp('REV',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.REV===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
               <div class="ff"><label class="flbl">DES</label><select class="fs" onchange="updateGerarPautaResp('DES',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.DES===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
-              <div class="ff"><label class="flbl">ENVIO</label><select class="fs" onchange="updateGerarPautaResp('ENVIO',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.ENVIO===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
             </div>
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
@@ -5361,11 +5339,11 @@ function renderGerarPautaModal(){
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
             <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div>
-            <div style="padding:6px 14px 0;font-size:11px;color:var(--text3)">A ordem abaixo define quem entra primeiro no cronograma. Cada etapa ocupa a agenda do responsavel da coluna.</div>
-            <div style="padding:14px;overflow:auto;max-height:52vh">
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+            <div style="padding:6px 14px 0;font-size:11px;color:var(--text3)">A ordem abaixo define quem entra primeiro no cronograma.</div>
+            <div style="padding:10px 12px 14px;max-height:50vh;overflow-y:auto;overflow-x:hidden">
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
                 ${cfg.clientes.map((c,i)=>`
-                  <div style="border:1px solid var(--border);border-radius:14px;background:var(--bg2);padding:12px;display:flex;flex-direction:column;gap:12px">
+                  <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg2);padding:10px;display:flex;flex-direction:column;gap:10px">
                     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
                       <div style="min-width:0">
                         <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px">Ordem ${i+1}</div>
@@ -5376,34 +5354,23 @@ function renderGerarPautaModal(){
                         <button class="btn btn-s btn-sm" style="padding:4px 8px" onclick="moveGpCliente(${i},1)" ${i===cfg.clientes.length-1?'disabled':''}>&darr;</button>
                       </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+                    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
                       <div class="ff" style="margin:0"><label class="flbl">PLAN</label><select class="fs" onchange="updateGpClienteDias(${i},'plan',this.value)"><option value="0" ${Number(c.plan||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.plan||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.plan||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.plan||0)===3?'selected':''}>3 dias</option></select></div>
                       <div class="ff" style="margin:0"><label class="flbl">REV</label><select class="fs" onchange="updateGpClienteDias(${i},'rev',this.value)"><option value="0" ${Number(c.rev||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.rev||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.rev||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.rev||0)===3?'selected':''}>3 dias</option></select></div>
                       <div class="ff" style="margin:0"><label class="flbl">DES</label><select class="fs" onchange="updateGpClienteDias(${i},'des',this.value)"><option value="0" ${Number(c.des||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.des||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.des||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.des||0)===3?'selected':''}>3 dias</option></select></div>
-                      <div class="ff" style="margin:0"><label class="flbl">ENVIO</label><select class="fs" onchange="updateGpClienteDias(${i},'envio',this.value)"><option value="0" ${Number(c.envio||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.envio||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.envio||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.envio||0)===3?'selected':''}>3 dias</option></select></div>
                     </div>
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:2px">
                       <span style="font-size:11px;color:var(--text3)">Total deste cliente</span>
-                      <span style="font-size:12px;font-weight:900;color:var(--accent)">${Math.max(0,Number(c.plan)||0)+Math.max(0,Number(c.rev)||0)+Math.max(0,Number(c.des)||0)+Math.max(0,Number(c.envio)||0)} dias</span>
+                      <span style="font-size:12px;font-weight:900;color:var(--accent)">${Math.max(0,Number(c.plan)||0)+Math.max(0,Number(c.rev)||0)+Math.max(0,Number(c.des)||0)} dias</span>
                     </div>
                   </div>`).join('')}
               </div>
             </div>
-            </div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
-            <div style="background:${diasNecessarios<=diasUteis?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)'};border:1px solid ${diasNecessarios<=diasUteis?'rgba(34,197,94,.35)':'rgba(239,68,68,.35)'};border-radius:var(--r);padding:14px">
-              <div style="font-size:11px;color:var(--text3)">Dias uteis</div>
-              <div style="font-size:28px;font-weight:900">${diasUteis}</div>
-            </div>
-            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-              <div style="font-size:11px;color:var(--text3)">Dias ocupados</div>
-              <div style="font-size:28px;font-weight:900">${diasNecessarios}</div>
-            </div>
-            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-              <div style="font-size:11px;color:var(--text3)">Saldo</div>
-              <div style="font-size:28px;font-weight:900;color:${diasNecessarios<=diasUteis?'#22c55e':'#ef4444'}">${diasUteis-diasNecessarios}</div>
-            </div>
+            <div style="background:${diasNecessarios<=diasUteis?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)'};border:1px solid ${diasNecessarios<=diasUteis?'rgba(34,197,94,.35)':'rgba(239,68,68,.35)'};border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text3)">Dias uteis</div><div style="font-size:28px;font-weight:900">${diasUteis}</div></div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text3)">Dias ocupados</div><div style="font-size:28px;font-weight:900">${diasNecessarios}</div></div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text3)">Saldo</div><div style="font-size:28px;font-weight:900;color:${diasNecessarios<=diasUteis?'#22c55e':'#ef4444'}">${diasUteis-diasNecessarios}</div></div>
           </div>
           <div class="brow" style="justify-content:space-between;gap:10px;flex-wrap:wrap">
             <div style="font-size:12px;color:var(--text3)">${diasNecessarios>diasUteis?'Atencao: o cronograma precisa de mais dias uteis do que o periodo possui.':'Tudo certo para gerar a pauta no periodo selecionado.'}</div>
@@ -5416,14 +5383,11 @@ function renderGerarPautaModal(){
       </div>`;
     document.body.appendChild(modal);
   }catch(err){
-    console.error('Erro ao renderizar Gerar Pauta:', err);
-    showToast('Erro no modal da pauta: ' + (err && err.message ? err.message : err),'err');
+    console.error('Erro ao renderizar modal Gerar Pauta:', err);
+    showToast('Erro ao renderizar Gerar Pauta: ' + (err && err.message ? err.message : err),'err');
   }
 }
-function updateGerarPautaConfig(field, value){
-  _gerarPautaConfig[field] = value;
-  renderGerarPautaModal();
-}
+
 function updateGerarPautaResp(etapa, value){
   _gerarPautaConfig.responsaveis[etapa] = value;
 }
@@ -5437,27 +5401,10 @@ function moveGpCliente(idx, dir){
   const arr = _gerarPautaConfig.clientes || [];
   const next = idx + dir;
   if(next < 0 || next >= arr.length) return;
-  const temp = arr[idx];
+  const current = arr[idx];
   arr[idx] = arr[next];
-  arr[next] = temp;
-  arr.forEach((item,i)=> item.order = i+1);
-  renderGerarPautaModal();
-}
-
-let _gpDragIdx = null;
-function dragGpCliente(e, idx){
-  _gpDragIdx = idx;
-  e.dataTransfer.effectAllowed = 'move';
-}
-
-function dropGpCliente(e, targetIdx){
-  e.preventDefault();
-  if(_gpDragIdx === null || _gpDragIdx === targetIdx) return;
-  const arr = _gerarPautaConfig.clientes;
-  const [moved] = arr.splice(_gpDragIdx, 1);
-  arr.splice(targetIdx, 0, moved);
-  arr.forEach((c,i)=> c.order = i+1);
-  _gpDragIdx = null;
+  arr[next] = current;
+  arr.forEach((item,i)=>item.order = i+1);
   renderGerarPautaModal();
 }
 
@@ -5541,26 +5488,26 @@ function addDiasUteis(startDate, dias, feriadosExtra){
 
 function previewGerarPauta(){
   const existing = document.querySelector('#gerar-pauta-modal .preview-area');
-  if(existing){ existing.remove(); return; }
-  const cfg = _gerarPautaConfig;
-  const schedule = calcularCronograma(cfg);
+  if(existing){
+    existing.remove();
+    return;
+  }
+  const schedule = calcularCronograma(_gerarPautaConfig);
   const fmt = arr => arr.length ? arr.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ') : '-';
   let html = '<div style="max-height:320px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html += '<tr style="background:var(--bg3)"><th style="padding:8px;text-align:left;border:1px solid var(--border)">Cliente</th><th style="padding:8px;border:1px solid var(--border)">PLAN</th><th style="padding:8px;border:1px solid var(--border)">REV</th><th style="padding:8px;border:1px solid var(--border)">DES</th><th style="padding:8px;border:1px solid var(--border)">ENVIO</th></tr>';
-  schedule.forEach(s=>{
-    html += '<tr><td style="padding:8px;border:1px solid var(--border);font-weight:600">'+s.name+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#e53e3e22">'+fmt(s.planDates)+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#3b82f622">'+fmt(s.revDates)+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#facc1522">'+fmt(s.desDates)+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#d946ef22">'+fmt(s.envioDates)+'</td>';
-    html += '</tr>';
+  html += '<tr style="background:var(--bg3)"><th style="padding:8px;text-align:left;border:1px solid var(--border)">Cliente</th><th style="padding:8px;border:1px solid var(--border)">PLAN</th><th style="padding:8px;border:1px solid var(--border)">REV</th><th style="padding:8px;border:1px solid var(--border)">DES</th></tr>';
+  schedule.forEach(item=>{
+    html += '<tr><td style="padding:8px;border:1px solid var(--border);font-weight:600">'+item.name+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#ef444422">'+fmt(item.planDates)+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#3b82f622">'+fmt(item.revDates)+'</td>';
+    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#facc1522">'+fmt(item.desDates)+'</td></tr>';
   });
   html += '</table></div>';
   const wrapper = document.createElement('div');
   wrapper.className = 'preview-area';
   wrapper.innerHTML = '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px"><div style="font-size:13px;font-weight:700">Pre-visualizacao do cronograma</div><button class="btn btn-s btn-sm" onclick="this.closest(`.preview-area`)?.remove()">Fechar</button></div>'+html+'</div>';
-  const mbody = document.querySelector('#gerar-pauta-modal .mbody');
-  if(mbody) mbody.appendChild(wrapper);
+  const body = document.querySelector('#gerar-pauta-modal .mbody');
+  if(body) body.appendChild(wrapper);
 }
 
 function calcularCronograma(cfg){
@@ -5568,14 +5515,13 @@ function calcularCronograma(cfg){
   const feriados = Array.isArray(cfg.feriadosExtra) ? cfg.feriadosExtra : [];
   const cycleStart = getNextDiaUtil(new Date(cfg.inicioCiclo+'T00:00:00'), feriados);
   const memberBusy = {};
-  const dateKey = d => new Date(d).toISOString().split('T')[0];
-  const ensureBiz = d => getNextDiaUtil(new Date(d), feriados);
+  const dateKey = value => new Date(value).toISOString().split('T')[0];
 
   const reserve = (memberId, earliestDate, days) => {
-    const total = Math.max(0, Number(days)||0);
+    const total = Math.max(0, Number(days) || 0);
     if(!memberId || !total) return [];
     if(!memberBusy[memberId]) memberBusy[memberId] = new Set();
-    let cursor = ensureBiz(earliestDate);
+    let cursor = getNextDiaUtil(new Date(earliestDate), feriados);
     const out = [];
     while(out.length < total){
       const key = dateKey(cursor);
@@ -5583,25 +5529,21 @@ function calcularCronograma(cfg){
         memberBusy[memberId].add(key);
         out.push(new Date(cursor));
       }
-      if(out.length < total) cursor = addDiasUteis(cursor, 1, feriados);
+      if(out.length < total){
+        cursor = addDiasUteis(cursor, 1, feriados);
+      }
     }
     return out;
   };
 
-  (cfg.clientes||[]).forEach(cliente=>{
-    const entry = { id: cliente.id, name: cliente.name, planDates: [], revDates: [], desDates: [], envioDates: [] };
-    const startRef = cycleStart;
-    entry.planDates = reserve(cfg.responsaveis?.PLAN, startRef, cliente.plan);
-    const planEnd = entry.planDates.length ? entry.planDates[entry.planDates.length-1] : null;
-    const revStart = planEnd || startRef;
-    entry.revDates = reserve(cfg.responsaveis?.REV, revStart, cliente.rev);
-    const revEnd = entry.revDates.length ? entry.revDates[entry.revDates.length-1] : null;
-    const desStart = revEnd || planEnd || startRef;
-    entry.desDates = reserve(cfg.responsaveis?.DES, desStart, cliente.des);
-    const desEnd = entry.desDates.length ? entry.desDates[entry.desDates.length-1] : null;
-    const envioStart = desEnd || revEnd || planEnd || startRef;
-    entry.envioDates = reserve(cfg.responsaveis?.ENVIO, envioStart, cliente.envio);
-    schedule.push(entry);
+  (cfg.clientes || []).forEach(cliente=>{
+    const item = { id: cliente.id, name: cliente.name, planDates: [], revDates: [], desDates: [] };
+    item.planDates = reserve(cfg.responsaveis?.PLAN, cycleStart, cliente.plan);
+    const planEnd = item.planDates.length ? item.planDates[item.planDates.length-1] : cycleStart;
+    item.revDates = reserve(cfg.responsaveis?.REV, planEnd, cliente.rev);
+    const revEnd = item.revDates.length ? item.revDates[item.revDates.length-1] : planEnd;
+    item.desDates = reserve(cfg.responsaveis?.DES, revEnd, cliente.des);
+    schedule.push(item);
   });
 
   return schedule;
@@ -5610,15 +5552,20 @@ function calcularCronograma(cfg){
 async function executarGerarPauta(){
   try{
     const cfg = _gerarPautaConfig;
-    if(!cfg?.inicioCiclo || !cfg?.magicNumber){ showToast('Defina o inicio do ciclo e o Magic Number','err'); return; }
+    if(!cfg?.inicioCiclo || !cfg?.magicNumber){
+      showToast('Defina o inicio do ciclo e o Magic Number','err');
+      return;
+    }
     const schedule = calcularCronograma(cfg);
-    if(!schedule.length){ showToast('Nenhum cliente para gerar na pauta','err'); return; }
+    if(!schedule.length){
+      showToast('Nenhum cliente para gerar na pauta','err');
+      return;
+    }
     if(!confirm('Isso vai gerar '+schedule.length+' clientes no calendario de pauta. Continuar?')) return;
 
     showToast('Gerando pauta...','inf');
     const {db, doc, setDoc, getDoc} = window._fb;
     const byMonth = {};
-
     const pushStage = (date, memberId, type, clientId) => {
       if(!date || !memberId) return;
       const dateStr = date.toISOString().split('T')[0];
@@ -5627,11 +5574,10 @@ async function executarGerarPauta(){
       byMonth[monthKey][memberId+'_'+dateStr] = { client: clientId, type };
     };
 
-    schedule.forEach(s=>{
-      (s.planDates||[]).forEach(d=>pushStage(d, cfg.responsaveis.PLAN, 'PLAN', s.id));
-      (s.revDates||[]).forEach(d=>pushStage(d, cfg.responsaveis.REV, 'REV', s.id));
-      (s.desDates||[]).forEach(d=>pushStage(d, cfg.responsaveis.DES, 'DES', s.id));
-      (s.envioDates||[]).forEach(d=>pushStage(d, cfg.responsaveis.ENVIO, 'PDF', s.id));
+    schedule.forEach(item=>{
+      (item.planDates || []).forEach(date=>pushStage(date, cfg.responsaveis.PLAN, 'PLAN', item.id));
+      (item.revDates || []).forEach(date=>pushStage(date, cfg.responsaveis.REV, 'REV', item.id));
+      (item.desDates || []).forEach(date=>pushStage(date, cfg.responsaveis.DES, 'DES', item.id));
     });
 
     for(const monthKey of Object.keys(byMonth)){
@@ -5647,32 +5593,13 @@ async function executarGerarPauta(){
     console.error('Erro ao gerar pauta:', err);
     showToast('Erro ao gerar pauta: ' + (err && err.message ? err.message : err),'err');
   }
-}
-
-// ===== RELATÃ“RIO MENSAL POR CLIENTE =====
-
-async function renderRelatorio(container){
-  container.setAttribute('style','flex:1;overflow-y:auto;display:block');
-  container.innerHTML = '<div style="padding:20px"><div class="loading"><div class="spinner"></div> Carregando...</div></div>';
-  await buildRelatorio(container);
-}
-
-function changeRelMonth(d){
-  relDate.setMonth(relDate.getMonth()+d);
-  const ct = document.getElementById('ct');
-  if(ct) buildRelatorio(ct);
-}
-
+let relDate = new Date();
+function changeRelMonth(delta){ relDate = new Date(relDate.getFullYear(), relDate.getMonth()+delta, 1); swCT('relatorio'); }
+async function renderRelatorio(container){ await buildRelatorio(container); }
 async function buildRelatorio(container){
+  const yr = relDate.getFullYear(), mo = relDate.getMonth(), mn = MONTHS[mo];
+  const {db, collection, getDocs, query, where} = window._fb;
   try{
-    const yr = relDate.getFullYear();
-    const mo = relDate.getMonth();
-    const mn = MONTHS[mo];
-    const {db, collection, getDocs, query, where} = window._fb;
-    const client = clients[currentClientId];
-    if(!client){ container.innerHTML='<div style="padding:20px;color:var(--text3)">Cliente não encontrado.</div>'; return; }
-
-    // Load packs and posts
     const [packsSnap, postsSnap] = await Promise.all([
       getDocs(query(collection(db,'packs'), where('clientId','==',currentClientId))),
       getDocs(query(collection(db,'posts'), where('clientId','==',currentClientId)))
@@ -7825,6 +7752,9 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
+
+
 
 
 
