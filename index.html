@@ -5299,7 +5299,10 @@ function renderGerarPautaModal(){
     cfg.responsaveis = cfg.responsaveis || { PLAN:'kesia', REV:'jackson', DES:'cintia', ENVIO:'tatiane' };
 
     const diasUteis = calcDiasUteis(cfg.inicioCiclo, cfg.magicNumber, cfg.feriadosExtra);
-    const diasNecessarios = cfg.clientes.reduce((sum,c)=>sum + Math.max(0,Number(c.plan)||0) + Math.max(0,Number(c.rev)||0) + Math.max(0,Number(c.des)||0) + Math.max(0,Number(c.envio)||0), 0);
+    const schedulePreview = calcularCronograma(cfg);
+    const allAssignedDates = schedulePreview.flatMap(s => [...(s.planDates||[]), ...(s.revDates||[]), ...(s.desDates||[]), ...(s.envioDates||[])]);
+    const lastAssignedDate = allAssignedDates.length ? new Date(Math.max(...allAssignedDates.map(d => new Date(d).getTime()))) : null;
+    const diasNecessarios = lastAssignedDate ? calcDiasUteis(cfg.inicioCiclo, lastAssignedDate.toISOString().split('T')[0], cfg.feriadosExtra) : 0;
     const feriadosNoPeriodo = getFeriadosNoPeriodo(cfg.inicioCiclo, cfg.magicNumber);
     const teamList = (typeof TEAM !== 'undefined' && Array.isArray(TEAM) && TEAM.length) ? TEAM : [];
     const membros = teamList.length ? teamList : [
@@ -5357,38 +5360,35 @@ function renderGerarPautaModal(){
             ${cfg.feriadosExtra.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${cfg.feriadosExtra.map((f,i)=>`<span style="font-size:11px;padding:4px 10px;background:var(--orange);color:#fff;border-radius:999px;display:inline-flex;gap:6px;align-items:center">${f}<button style="background:none;border:none;color:#fff;cursor:pointer" onclick="removeFeriadoExtra(${i})">&times;</button></span>`).join('')}</div>` : ''}
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div><div style="padding:6px 14px 0;font-size:11px;color:var(--text3)">Escolha a duracao de cada etapa. Nenhum remove a etapa do cronograma.</div>
-            <div style="padding:14px;overflow:auto;max-height:360px">
-              <table style="width:100%;border-collapse:collapse;min-width:860px">
-                <thead>
-                  <tr style="background:var(--bg2)">
-                    <th style="padding:10px;text-align:left;border-bottom:1px solid var(--border)">Ordem / Cliente</th>
-                    <th style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">PLAN</th>
-                    <th style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">REV</th>
-                    <th style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">DES</th>
-                    <th style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">ENVIO</th>
-                    <th style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${cfg.clientes.map((c,i)=>`<tr>
-                    <td style="padding:10px;border-bottom:1px solid var(--border);font-weight:700">
-                      <div style="display:flex;align-items:center;gap:8px">
-                        <div style="display:flex;flex-direction:column;gap:4px">
-                          <button class="btn btn-s btn-sm" style="padding:2px 7px;font-size:10px" onclick="moveGpCliente(${i},-1)" ${i===0?'disabled':''}>&uarr;</button>
-                          <button class="btn btn-s btn-sm" style="padding:2px 7px;font-size:10px" onclick="moveGpCliente(${i},1)" ${i===cfg.clientes.length-1?'disabled':''}>&darr;</button>
-                        </div>
-                        <span>${i+1}. ${c.name}</span>
+            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div>
+            <div style="padding:6px 14px 0;font-size:11px;color:var(--text3)">A ordem abaixo define quem entra primeiro no cronograma. Cada etapa ocupa a agenda do responsavel da coluna.</div>
+            <div style="padding:14px;overflow:auto;max-height:52vh">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px">
+                ${cfg.clientes.map((c,i)=>`
+                  <div style="border:1px solid var(--border);border-radius:14px;background:var(--bg2);padding:12px;display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+                      <div style="min-width:0">
+                        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px">Ordem ${i+1}</div>
+                        <div style="font-size:15px;font-weight:800;line-height:1.25">${c.name}</div>
                       </div>
-                    </td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><select class="fs" onchange="updateGpClienteDias(${i},'plan',this.value)" style="width:110px"><option value="0" ${Number(c.plan||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.plan||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.plan||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.plan||0)===3?'selected':''}>3 dias</option></select></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><select class="fs" onchange="updateGpClienteDias(${i},'rev',this.value)" style="width:110px"><option value="0" ${Number(c.rev||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.rev||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.rev||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.rev||0)===3?'selected':''}>3 dias</option></select></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><select class="fs" onchange="updateGpClienteDias(${i},'des',this.value)" style="width:110px"><option value="0" ${Number(c.des||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.des||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.des||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.des||0)===3?'selected':''}>3 dias</option></select></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><select class="fs" onchange="updateGpClienteDias(${i},'envio',this.value)" style="width:110px"><option value="0" ${Number(c.envio||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.envio||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.envio||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.envio||0)===3?'selected':''}>3 dias</option></select></td>
-                    <td style="padding:10px;border-bottom:1px solid var(--border);text-align:center;font-weight:800;color:var(--accent)">${Math.max(0,Number(c.plan)||0)+Math.max(0,Number(c.rev)||0)+Math.max(0,Number(c.des)||0)+Math.max(0,Number(c.envio)||0)}</td>
-                  </tr>`).join('')}
-                </tbody>
-              </table>
+                      <div style="display:flex;gap:6px;flex-shrink:0">
+                        <button class="btn btn-s btn-sm" style="padding:4px 8px" onclick="moveGpCliente(${i},-1)" ${i===0?'disabled':''}>&uarr;</button>
+                        <button class="btn btn-s btn-sm" style="padding:4px 8px" onclick="moveGpCliente(${i},1)" ${i===cfg.clientes.length-1?'disabled':''}>&darr;</button>
+                      </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+                      <div class="ff" style="margin:0"><label class="flbl">PLAN</label><select class="fs" onchange="updateGpClienteDias(${i},'plan',this.value)"><option value="0" ${Number(c.plan||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.plan||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.plan||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.plan||0)===3?'selected':''}>3 dias</option></select></div>
+                      <div class="ff" style="margin:0"><label class="flbl">REV</label><select class="fs" onchange="updateGpClienteDias(${i},'rev',this.value)"><option value="0" ${Number(c.rev||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.rev||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.rev||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.rev||0)===3?'selected':''}>3 dias</option></select></div>
+                      <div class="ff" style="margin:0"><label class="flbl">DES</label><select class="fs" onchange="updateGpClienteDias(${i},'des',this.value)"><option value="0" ${Number(c.des||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.des||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.des||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.des||0)===3?'selected':''}>3 dias</option></select></div>
+                      <div class="ff" style="margin:0"><label class="flbl">ENVIO</label><select class="fs" onchange="updateGpClienteDias(${i},'envio',this.value)"><option value="0" ${Number(c.envio||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.envio||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.envio||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.envio||0)===3?'selected':''}>3 dias</option></select></div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:2px">
+                      <span style="font-size:11px;color:var(--text3)">Total deste cliente</span>
+                      <span style="font-size:12px;font-weight:900;color:var(--accent)">${Math.max(0,Number(c.plan)||0)+Math.max(0,Number(c.rev)||0)+Math.max(0,Number(c.des)||0)+Math.max(0,Number(c.envio)||0)} dias</span>
+                    </div>
+                  </div>`).join('')}
+              </div>
+            </div>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
@@ -5397,7 +5397,7 @@ function renderGerarPautaModal(){
               <div style="font-size:28px;font-weight:900">${diasUteis}</div>
             </div>
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-              <div style="font-size:11px;color:var(--text3)">Dias necessarios</div>
+              <div style="font-size:11px;color:var(--text3)">Dias ocupados</div>
               <div style="font-size:28px;font-weight:900">${diasNecessarios}</div>
             </div>
             <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
@@ -5565,29 +5565,42 @@ function previewGerarPauta(){
 
 function calcularCronograma(cfg){
   const schedule = [];
-  let currentDate = getNextDiaUtil(new Date(cfg.inicioCiclo+'T00:00:00'), cfg.feriadosExtra);
+  const feriados = Array.isArray(cfg.feriadosExtra) ? cfg.feriadosExtra : [];
+  const cycleStart = getNextDiaUtil(new Date(cfg.inicioCiclo+'T00:00:00'), feriados);
+  const memberBusy = {};
+  const dateKey = d => new Date(d).toISOString().split('T')[0];
+  const ensureBiz = d => getNextDiaUtil(new Date(d), feriados);
 
-  const assignStage = (entry, key, days, startDate) => {
+  const reserve = (memberId, earliestDate, days) => {
     const total = Math.max(0, Number(days)||0);
-    let cursor = new Date(startDate);
-    for(let i=0; i<total; i++){
-      entry[key].push(new Date(cursor));
-      if(i < total-1) cursor = addDiasUteis(cursor, 1, cfg.feriadosExtra);
+    if(!memberId || !total) return [];
+    if(!memberBusy[memberId]) memberBusy[memberId] = new Set();
+    let cursor = ensureBiz(earliestDate);
+    const out = [];
+    while(out.length < total){
+      const key = dateKey(cursor);
+      if(!memberBusy[memberId].has(key)){
+        memberBusy[memberId].add(key);
+        out.push(new Date(cursor));
+      }
+      if(out.length < total) cursor = addDiasUteis(cursor, 1, feriados);
     }
-    return total ? cursor : null;
+    return out;
   };
 
   (cfg.clientes||[]).forEach(cliente=>{
     const entry = { id: cliente.id, name: cliente.name, planDates: [], revDates: [], desDates: [], envioDates: [] };
-    const planEnd = assignStage(entry,'planDates',cliente.plan,currentDate);
-    const revStart = planEnd ? new Date(planEnd) : new Date(currentDate);
-    const revEnd = assignStage(entry,'revDates',cliente.rev,revStart);
-    const designStart = revEnd ? addDiasUteis(revEnd,1,cfg.feriadosExtra) : (planEnd ? addDiasUteis(planEnd,1,cfg.feriadosExtra) : new Date(currentDate));
-    const desEnd = assignStage(entry,'desDates',cliente.des,designStart);
-    const envioStart = desEnd ? new Date(desEnd) : new Date(designStart || currentDate);
-    const envioEnd = assignStage(entry,'envioDates',cliente.envio,envioStart);
-    const lastStage = envioEnd || desEnd || revEnd || planEnd;
-    currentDate = lastStage ? addDiasUteis(lastStage,1,cfg.feriadosExtra) : addDiasUteis(currentDate,1,cfg.feriadosExtra);
+    const startRef = cycleStart;
+    entry.planDates = reserve(cfg.responsaveis?.PLAN, startRef, cliente.plan);
+    const planEnd = entry.planDates.length ? entry.planDates[entry.planDates.length-1] : null;
+    const revStart = planEnd || startRef;
+    entry.revDates = reserve(cfg.responsaveis?.REV, revStart, cliente.rev);
+    const revEnd = entry.revDates.length ? entry.revDates[entry.revDates.length-1] : null;
+    const desStart = revEnd || planEnd || startRef;
+    entry.desDates = reserve(cfg.responsaveis?.DES, desStart, cliente.des);
+    const desEnd = entry.desDates.length ? entry.desDates[entry.desDates.length-1] : null;
+    const envioStart = desEnd || revEnd || planEnd || startRef;
+    entry.envioDates = reserve(cfg.responsaveis?.ENVIO, envioStart, cliente.envio);
     schedule.push(entry);
   });
 
