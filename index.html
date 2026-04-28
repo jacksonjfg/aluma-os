@@ -221,9 +221,6 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .comment-img{width:60px;height:60px;object-fit:cover;border-radius:5px;cursor:pointer;border:1px solid var(--border);}
 .comment-input-wrap{display:flex;gap:7px;align-items:flex-end;}
 .comment-input-wrap .fta{flex:1;min-height:52px;}
-.comment-files{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
-.comment-file{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;max-width:100%;padding:6px 10px;border-radius:10px;border:1px solid rgba(132,131,255,.18);background:rgba(132,131,255,.08);font-size:12px;color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.comment-file:hover{border-color:rgba(132,131,255,.35);background:rgba(132,131,255,.12);}
 /* ASSIGNEES */
 .assignee-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
 .assignee-chip{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);font-size:12px;font-weight:500;cursor:pointer;background:var(--bg3);transition:all .15s;}
@@ -640,48 +637,13 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .gkcol.drag-over .kcol-body{background:rgba(132,131,255,.03);}
 
 /* === TAREFAS INLINE === */
-.task-inline{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;transition:border-color .15s,box-shadow .15s;}
+.task-inline{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;transition:border-color .15s;}
 .task-inline:focus-within{border-color:var(--accent);}
-.task-inline.tracking{border-color:var(--green);box-shadow:0 0 0 3px rgba(76,175,80,.15);}
-.task-inline-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.task-inline-body{display:none;padding-top:12px;margin-top:12px;border-top:1px solid var(--border);}
+.task-inline-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.task-inline-body{display:none;padding-top:10px;border-top:1px solid var(--border);}
 .task-inline.expanded .task-inline-body{display:block;}
-.task-inline-title{flex:1;min-width:120px;background:none;border:none;font-size:15px;font-weight:600;color:var(--text);font-family:inherit;outline:none;}
+.task-inline-title{flex:1;background:none;border:none;font-size:14px;font-weight:600;color:var(--text);font-family:inherit;outline:none;}
 .task-inline-title::placeholder{color:var(--text3);}
-/* Task Timer */
-.task-timer-wrap{display:flex;align-items:center;gap:6px;}
-.task-timer-btn{width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;}
-.task-timer-btn.play{background:var(--green);color:#fff;}
-.task-timer-btn.play:hover{background:#43a047;}
-.task-timer-btn.pause{background:var(--orange);color:#fff;}
-.task-timer-btn.pause:hover{background:#f57c00;}
-.task-timer-btn.stop{background:var(--red);color:#fff;}
-.task-timer-btn.stop:hover{background:#e53935;}
-.task-timer-display{font-size:13px;font-weight:700;font-family:'SF Mono',Monaco,monospace;color:var(--text2);min-width:52px;text-align:center;padding:4px 8px;background:var(--bg3);border-radius:6px;}
-.task-timer-display.active{color:var(--green);background:rgba(76,175,80,.1);}
-.task-inline.paused .task-timer-display{color:var(--orange);background:rgba(255,152,0,.1);}
-.task-total-time{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;}
-/* Sessions history */
-.sessions-history{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
-.sessions-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
-.session-day{margin-bottom:10px;}
-.session-day-header{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;}
-.session-day-total{color:var(--accent);font-weight:700;}
-.session-day-items{display:flex;flex-direction:column;gap:3px;}
-.session-item{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding:4px 8px;background:var(--bg3);border-radius:4px;}
-/* Mobile improvements */
-@media(max-width:600px){
-  .task-inline{padding:16px;}
-  .task-inline-header{gap:8px;}
-  .task-inline-title{font-size:16px;min-width:100px;}
-  .task-check{width:24px;height:24px;}
-  .task-timer-btn{width:36px;height:36px;font-size:14px;}
-  .task-timer-display{font-size:13px;padding:5px 8px;}
-  .task-inline-body .fgrid{grid-template-columns:1fr!important;}
-  .task-inline-body .btn{padding:12px 16px;font-size:14px;}
-  .prio-alta,.prio-media,.prio-baixa{padding:5px 10px;font-size:11px;}
-  .session-item{font-size:10px;}
-}
 
 /* === MINI DASHBOARD === */
 .mini-dash{background:linear-gradient(135deg,rgba(132,131,255,0.12) 0%,rgba(132,131,255,0.04) 100%);border:1px solid rgba(132,131,255,.25);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:14px;}
@@ -791,10 +753,8 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
         <button class="sb-item" onclick="setView('comercial')"><span>💼</span>Comercial</button>
         <button class="sb-item" onclick="setView('perfilAluma')"><span>⚡</span>Perfil Aluma</button>
       </div>
-      <div class="sb-sect" style="padding-bottom:2px"><div class="sb-lbl">Clientes Ativos</div></div>
+      <div class="sb-sect" style="padding-bottom:2px"><div class="sb-lbl">Clientes</div></div>
       <div class="sb-clients" id="sb-clients"><div class="loading"><div class="spinner"></div></div></div>
-      <div class="sb-sect" style="padding-bottom:2px;padding-top:8px"><div class="sb-lbl">Clientes Inativos</div></div>
-      <div class="sb-clients" id="sb-clients-inactive"><div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente inativo</div></div>
       <div class="sb-bottom">
         <button class="sb-item" id="btn-add-sb" style="display:none;color:var(--accent)" onclick="showAddClient()"><span>＋</span>Novo cliente</button>
       </div>
@@ -862,15 +822,14 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
         <div class="ff"><label class="flbl">Tipo</label>
           <select class="fs" id="np-type"><option>Feed</option><option>Stories</option><option>Reels</option><option>TikTok</option><option>Facebook</option><option>LinkedIn</option></select>
         </div>
-        <div class="ff"><label class="flbl">Mês do conteúdo</label>
-          <select class="fs" id="np-month" onchange="updateNewPackOperationalPreview()"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
+        <div class="ff"><label class="flbl">Mês</label>
+          <select class="fs" id="np-month"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
         </div>
-        <div class="ff"><label class="flbl">Mês operacional</label><input class="fi" id="np-operational-month" readonly placeholder="Calculado automaticamente"></div>
       </div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Responsável</label>
         <div class="assignee-grid" id="np-assignees"></div>
       </div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due" onchange="updateNewPackOperationalPreview()"></div>
+      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due"></div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Link Canva</label><input class="fi" id="np-canva" placeholder="canva.com/design/..."></div>
       <div class="brow">
         <button class="btn btn-p" onclick="saveNewPack()">Criar pack</button>
@@ -881,7 +840,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 </div>
 
 <script>
-// VERSION: 20260413_142552
+// VERSION: 20260428_235900
 // ===== INSTAGRAM API =====
 let INSTAGRAM_ACCESS_TOKEN = localStorage.getItem('aluma_instagram_token') || '';
 async function getInstagramToken(){
@@ -971,9 +930,9 @@ function updateTopDate(){
 }
 // TEAM is now dynamic — loaded from Firestore 'team' collection
 let TEAM=[
-  {id:'juliana',name:'Juliana',role:'Social Media',color:'#f472b6'},
+  {id:'kesia',name:'Kesia',role:'Social Media',color:'#f472b6'},
   {id:'tatiane',name:'Tatiane',role:'Atendimento',color:'#fb923c'},
-  {id:'cintia',name:'CÃ­ntia',role:'Designer',color:'#c084fc'},
+  {id:'cintia',name:'Cíntia',role:'Designer',color:'#c084fc'},
   {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'},
   {id:'jackson',name:'Jackson',role:'Estrategista',color:'#8483ff'}
 ];
@@ -986,8 +945,9 @@ async function loadTeam(){
   }catch(e){ console.warn('loadTeam:',e); }
 }
 async function seedDefaultTeam(){
+  const {db,doc,setDoc}=window._fb;
   const defaults=[
-    {id:'juliana',name:'Juliana',role:'Social Media',color:'#f472b6'},
+    {id:'kesia',name:'Kesia',role:'Social Media',color:'#f472b6'},
     {id:'tatiane',name:'Tatiane',role:'Atendimento',color:'#fb923c'},
     {id:'cintia',name:'Cintia',role:'Designer',color:'#c084fc'},
     {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'},
@@ -1158,7 +1118,7 @@ async function loadClients(){
   clients={};
   try{
     const snap=await getDocs(collection(db,'clients'));
-    snap.forEach(d=>{ clients[d.id]={id:d.id,status:'ativo',...d.data()}; });
+    snap.forEach(d=>{ clients[d.id]={id:d.id,...d.data()}; });
   }catch(err){
     console.warn('loadClients all clients blocked:', err);
     try{
@@ -1168,61 +1128,32 @@ async function loadClients(){
       for(const cid of clientIds){
         try{
           const cs=await getDoc(doc(db,'clients',cid));
-          clients[cid]=cs.exists()?{id:cid,status:'ativo',...cs.data()}:{id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff',status:'ativo'};
-        }catch(e){ clients[cid]={id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff',status:'ativo'}; }
+          clients[cid]=cs.exists()?{id:cid,...cs.data()}:{id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'};
+        }catch(e){ clients[cid]={id:cid,name:'Cliente '+cid.slice(0,4),color:'#8483ff'}; }
       }
     }catch(e){ console.warn('loadClients fallback packs blocked:', e); }
   }
   renderSidebar();
 }
-function isClientInactive(client){ return String(client?.status||'ativo')==='inativo'; }
-function isClientActive(client){ return !isClientInactive(client); }
-function getActiveClients(){ return Object.values(clients).filter(isClientActive).sort((a,b)=>a.name.localeCompare(b.name)); }
-function getInactiveClients(){ return Object.values(clients).filter(isClientInactive).sort((a,b)=>a.name.localeCompare(b.name)); }
-function monthIndexByName(name){ return MONTHS.indexOf(name); }
-function inferContentYear(pack){
-  if(Number.isFinite(Number(pack?.contentYear))) return Number(pack.contentYear);
-  if(pack?.dueDate){ const d=new Date(pack.dueDate+'T12:00:00'); if(!isNaN(d)) return d.getFullYear(); }
-  return new Date().getFullYear();
-}
-function inferOperationalInfo(pack){
-  if(!pack) return {month:'',year:new Date().getFullYear()};
-  if(pack.operationalMonth && Number.isFinite(Number(pack.operationalYear))) return {month:pack.operationalMonth,year:Number(pack.operationalYear)};
-  const idx=monthIndexByName(pack.month);
-  const contentYear=inferContentYear(pack);
-  if(idx<0) return {month:'',year:contentYear};
-  return {month:MONTHS[(idx+11)%12],year:idx===0?contentYear-1:contentYear};
-}
-function deriveOperationalFields(contentMonth, dueDate, contentYear){
-  const year = Number.isFinite(Number(contentYear)) ? Number(contentYear) : (()=>{ if(dueDate){ const d=new Date(dueDate+'T12:00:00'); if(!isNaN(d)) return d.getFullYear(); } return new Date().getFullYear(); })();
-  const idx=monthIndexByName(contentMonth);
-  return { contentYear: year, operationalMonth: idx<0?'':MONTHS[(idx+11)%12], operationalYear: idx===0?year-1:year };
-}
-function packMatchesOperationalMonth(pack, mo, yr){
-  const op=inferOperationalInfo(pack);
-  return op.month===MONTHS[mo] && Number(op.year)===yr;
-}
-function renderClientSidebarButton(c){
-  return `<button class="sb-item ${currentClientId===c.id?'active':''}" onclick="openClient('${c.id}')">
+
+function renderSidebar(){
+  const el=document.getElementById('sb-clients');
+  const list=Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!list.length){ el.innerHTML='<div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente ainda</div>'; return; }
+  el.innerHTML=list.map(c=>`
+    <button class="sb-item ${currentClientId===c.id?'active':''}" onclick="openClient('${c.id}')">
       <span style="width:7px;height:7px;border-radius:50%;background:${c.color||'#8483ff'};flex-shrink:0"></span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
       <span class="sb-cnt" id="cnt-${c.id}">…</span>
-    </button>`;
-}
-function renderSidebar(){
-  const activeEl=document.getElementById('sb-clients');
-  const inactiveEl=document.getElementById('sb-clients-inactive');
-  const activeList=getActiveClients();
-  const inactiveList=getInactiveClients();
-  if(activeEl) activeEl.innerHTML=activeList.length?activeList.map(renderClientSidebarButton).join(''):'<div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente ativo</div>';
-  if(inactiveEl) inactiveEl.innerHTML=inactiveList.length?inactiveList.map(renderClientSidebarButton).join(''):'<div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente inativo</div>';
-  [...activeList,...inactiveList].forEach(c=>loadCnt(c.id));
+    </button>`).join('');
+  list.forEach(c=>loadCnt(c.id));
 }
 async function loadCnt(cid){
   const {db,collection,getDocs,query,where}=window._fb;
   const snap=await getDocs(query(collection(db,'packs'),where('clientId','==',cid)));
   const el=document.getElementById('cnt-'+cid); if(el) el.textContent=snap.size;
 }
+
 // ===== VIEWS =====
 function setView(view,cid){
   document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('active'));
@@ -1243,10 +1174,8 @@ function setView(view,cid){
 
 function openClient(cid){
   currentClientId=cid;
-  document.querySelectorAll('#sb-clients .sb-item,#sb-clients-inactive .sb-item').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('#sb-clients .sb-item,#sb-clients-inactive .sb-item').forEach(el=>{
-    if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(cid)) el.classList.add('active');
-  });
+  document.querySelectorAll('#sb-clients .sb-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('#sb-clients .sb-item').forEach(el=>{ if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(cid)) el.classList.add('active'); });
   setView('client',cid);
 }
 
@@ -1273,13 +1202,11 @@ async function renderDashData(){
   const [pSnap,psSnap]=await Promise.all([getDocs(collection(db,'packs')),getDocs(collection(db,'posts'))]);
   const AP=[]; pSnap.forEach(d=>AP.push({id:d.id,...d.data()}));
   const APs=[]; psSnap.forEach(d=>APs.push({id:d.id,...d.data()}));
-  const activeClientIds=new Set(getActiveClients().map(c=>c.id));
-  const mP=AP.filter(p=>activeClientIds.has(p.clientId)&&packMatchesOperationalMonth(p,mo,yr));
-  const operationalPackIds=new Set(mP.map(p=>p.id));
-  const mPs=APs.filter(p=>operationalPackIds.has(p.packId));
+  const mP=AP.filter(p=>p.month===mn);
+  const mPs=APs.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d.getMonth()===mo&&d.getFullYear()===yr; });
   const dp=mP.filter(p=>p.status==='concluido').length;
   const sc={}; STATUSES.forEach(s=>sc[s.id]=0); mP.forEach(p=>{if(sc[p.status]!==undefined)sc[p.status]++;});
-  const cp={}; getActiveClients().forEach(c=>{cp[c.id]={total:0,done:0,name:c.name,color:c.color||'#8483ff'};});
+  const cp={}; Object.values(clients).forEach(c=>{cp[c.id]={total:0,done:0,name:c.name,color:c.color||'#8483ff'};});
   mP.forEach(p=>{if(cp[p.clientId]){cp[p.clientId].total++;if(p.status==='concluido')cp[p.clientId].done++;}});
   const inner=document.getElementById('dash-inner'); if(!inner) return;
 
@@ -1504,7 +1431,7 @@ async function renderTodos(){
   const main=document.getElementById('main');
   main.innerHTML=`<div class="ph">
     <div class="ptitle">🗂 Todos os Clientes</div>
-    <div class="psub">${getActiveClients().length} clientes ativos na carteira</div>
+    <div class="psub">${Object.keys(clients).length} clientes na carteira</div>
     <div class="ptabs">
       <button class="ptab ${todosTab==='kanban'?'active':''}" onclick="switchTodosTab('kanban')">📦 Kanban Geral</button>
       <button class="ptab ${todosTab==='cal'?'active':''}" onclick="switchTodosTab('cal')">📅 Calendário</button>
@@ -1530,8 +1457,6 @@ async function renderGlobalKanban(container){
   container.innerHTML=`<div class="kanban-outer"><div class="kanban-board" id="global-kb"><div class="loading"><div class="spinner"></div></div></div></div>`;
   const snap=await getDocs(collection(db,'packs'));
   let allP=[]; snap.forEach(d=>allP.push({id:d.id,...d.data()}));
-  const activeClientIds=new Set(getActiveClients().map(c=>c.id));
-  allP=allP.filter(p=>activeClientIds.has(p.clientId));
   const board=document.getElementById('global-kb'); if(!board) return;
   board.innerHTML=STATUSES.map(s=>{
     const col=allP.filter(p=>p.status===s.id);
@@ -1635,19 +1560,9 @@ function toggleGlobalMDD(id){
 }
 async function setGlobalPackMonth(id,m){
   const {db,doc,updateDoc}=window._fb;
-  const pack = packs[id] || {};
-  const contentYear = Number(pack.contentYear) || inferContentYear(pack);
-  const timing = deriveOperationalFields(m, pack.dueDate||'', contentYear);
-  const payload = {
-    month:m,
-    contentYear:timing.contentYear,
-    operationalMonth:timing.operationalMonth,
-    operationalYear:timing.operationalYear
-  };
-  await updateDoc(doc(db,'packs',id),payload);
-  if(packs[id]) packs[id] = {...packs[id], ...payload};
+  await updateDoc(doc(db,'packs',id),{month:m});
   document.querySelectorAll('.mdd').forEach(d=>d.classList.add('hidden'));
-  showToast('MÃªs atualizado!','ok');
+  showToast('Mês atualizado!','ok');
   renderGlobalKanban(document.getElementById('todos-tab'));
 }
 
@@ -1921,7 +1836,6 @@ function buildPM(pid){
   const noAssignee=!(p.assignees&&p.assignees.length);
   const dl=smartDate(p.dueDate);
   const dlColor=!p.dueDate?'var(--text3)':dl==='hoje'?'var(--red)':dl==='amanhã'?'var(--orange)':'var(--text2)';
-  const op=inferOperationalInfo(p);
   const dueHtml=`<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:${dlColor};cursor:pointer;position:relative" onclick="event.stopPropagation();toggleDuePicker('${pid}')">
     📅 ${dl||'+ Data entrega'}
     <input type="date" id="due-picker-${pid}" value="${p.dueDate||''}"
@@ -1936,13 +1850,13 @@ function buildPM(pid){
     :'';
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     ${buildSDD(pid,p.status)}
-    ${p.month?`<span class="ktag" style="background:rgba(96,165,250,.12);color:#60a5fa;font-size:12px">Conteúdo: ${p.month}${p.contentYear?` / ${p.contentYear}`:''}</span>`:''}
-    ${op.month?`<span class="ktag" style="background:rgba(132,131,255,.12);color:var(--accent);font-size:12px">Operacional: ${op.month}${op.year?` / ${op.year}`:''}</span>`:''}
+    ${p.month?`<span class="ktag" style="background:rgba(96,165,250,.12);color:#60a5fa;font-size:12px">${p.month}</span>`:''}
     ${dueHtml}
     ${assignBtn}${assigneeHtml}
     ${canvaHtml}
   </div>`;
-}function toggleDuePicker(pid){
+}
+function toggleDuePicker(pid){
   const inp=document.getElementById('due-picker-'+pid);
   if(inp) inp.showPicker?.()??inp.click();
 }
@@ -2307,7 +2221,7 @@ function renderPF(post){
   const postAssignees=post.assignees||[];
   const assigneeChips=TEAM.map(m=>`<div class="assignee-chip ${postAssignees.includes(m.id)?'selected':''}" onclick="togglePostAssignee('${post.id}','${m.id}',this)"><div class="assignee-avatar" style="background:${m.color}">${m.name[0]}</div>${m.name}</div>`).join('');
   const comments=(post.comments||[]);
-  const cmtHtml=comments.length?comments.map((c,ci)=>`<div class="comment-item">${renderCommentHtml(c,ci,post.id)}</div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentario ainda</div>';
+  const cmtHtml=comments.length?comments.map(c=>`<div class="comment-item"><div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${(c.images||[]).map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}<div class="comment-time">${c.time||''}</div></div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentário ainda</div>';
 
   el.style.cssText='display:flex;gap:0;overflow:hidden;padding:0;';
   el.innerHTML=`
@@ -2421,8 +2335,7 @@ function renderPF(post){
       <textarea class="fta" id="ci-${post.id}" rows="2" placeholder="Escrever comentário..." style="margin-bottom:7px;font-size:12.5px"></textarea>
       <div style="display:flex;gap:6px">
         <button class="btn btn-p btn-sm" style="flex:1" onclick="addComment('${post.id}')">Enviar</button>
-        <label class="btn btn-s btn-sm" style="cursor:pointer;padding:4px 8px" title="Anexar imagem">IMG<input type="file" accept="image/*" style="display:none" onchange="addCommentImg('${post.id}',this.files)"></label>
-        <label class="btn btn-s btn-sm" style="cursor:pointer;padding:4px 8px" title="Anexar arquivo">ARQ<input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,application/zip" style="display:none" onchange="addCommentFile('${post.id}',this.files)"></label>
+        <label class="btn btn-s btn-sm" style="cursor:pointer;padding:4px 8px" title="Anexar imagem">📎<input type="file" accept="image/*" style="display:none" onchange="addCommentImg('${post.id}',this.files)"></label>
       </div>
     </div>
   </div>
@@ -2514,52 +2427,35 @@ async function togglePostAssignee(pid,uid,el){
 }
 
 // ===== COMMENTS =====
-function normalizeComment(cm){
-  return {
-    author:String(cm?.author||''),
-    text:String(cm?.text||''),
-    time:String(cm?.time||''),
-    images:Array.isArray(cm?.images)?cm.images.filter(x=>typeof x==='string'):[],
-    files:Array.isArray(cm?.files)?cm.files.filter(f=>f&&typeof f.url==='string').map(f=>({name:String(f.name||'arquivo'),url:String(f.url||''),type:String(f.type||'')})):[]
-  };
-}
-function renderCommentHtml(comment, idx=null, pid=null){
-  const c = normalizeComment(comment);
-  const esc = value => String(value || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const imgs = c.images.length
-    ? '<div class="comment-imgs">' + c.images.map(src => '<img class="comment-img" src="' + src + '" onclick="window.open(this.src)">').join('') + '</div>'
-    : '';
-  const files = c.files.length
-    ? '<div class="comment-files">' + c.files.map(file => '<a class="comment-file" href="' + String(file.url||'') + '" target="_blank" rel="noopener">Arquivo: ' + esc(file.name||'arquivo') + '</a>').join('') + '</div>'
-    : '';
-  const actions = (pid!==null && idx!==null)
-    ? '<button class="btn btn-s btn-sm" style="padding:2px 8px" onclick="editComment(' + "'" + pid + "'" + ',' + idx + ')">Editar</button>'
-    : '';
-  return '<div class="comment-author">' + (c.author||'?') + '</div><div class="comment-text">' + (c.text||'') + '</div>' + imgs + files + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px"><div class="comment-time">' + (c.time||'') + '</div>' + actions + '</div>';
-}
 async function addComment(pid){
   const inp=document.getElementById('ci-'+pid);
   const text=(inp?.value||'').trim();
-  if(!text){ showToast('Digite um comentario','err'); return; }
-  if(!posts[pid]){ showToast('Post nao encontrado','err'); return; }
-  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuario';
+  if(!text){ showToast('Digite um comentário','err'); return; }
+  if(!posts[pid]){ showToast('Post não encontrado','err'); return; }
+  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuário';
   const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-  const existing=(posts[pid].comments||[]).map(normalizeComment);
-  const newComment=normalizeComment({author,text,time:now,images:[],files:[]});
+  const newComment={author,text,time:now,images:[]};
+  // Build clean array — no functions, no undefined
+  const existing=[];
+  (posts[pid].comments||[]).forEach(cm=>{
+    existing.push({author:String(cm.author||''),text:String(cm.text||''),time:String(cm.time||''),images:Array.isArray(cm.images)?cm.images.filter(x=>typeof x==='string'):[]});
+  });
   existing.push(newComment);
   posts[pid].comments=existing;
   try{
     const {db,doc,updateDoc}=window._fb;
     await updateDoc(doc(db,'posts',pid),{comments:existing});
     if(inp) inp.value='';
+    // Append to UI
     const cl=document.getElementById('cl-'+pid);
     if(cl){
-      if(cl.textContent.includes('Nenhum comentario ainda')) cl.innerHTML='';
+      // Remove "no comments" placeholder
+      cl.querySelectorAll('div').forEach(d=>{ if(d.textContent==='Nenhum comentário ainda') d.remove(); });
       const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=renderCommentHtml(newComment, existing.length-1, pid);
+      div.innerHTML=`<div class="comment-author">${author}</div><div class="comment-text">${text}</div><div class="comment-time">${now}</div>`;
       cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
     }
-    showToast('Comentario enviado!','ok');
+    showToast('Comentário enviado!','ok');
   } catch(err){
     console.error('Comment save error:',err);
     showToast('Erro ao salvar: '+err.message,'err');
@@ -2567,26 +2463,30 @@ async function addComment(pid){
 }
 async function addCommentImg(pid,files){
   if(!posts[pid]||!files||!files.length) return;
-  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuario';
+  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuário';
   const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   const imgs=[];
   showToast('Enviando imagem...','inf');
   try{
-    for(const f of files){
-      try{ imgs.push(await uploadPostImage(pid, f, 'comments')); }
-      catch(e){ imgs.push(await toB64(f)); }
+    for(const f of files){ 
+      try{
+        const url = await uploadPostImage(pid, f, 'comments');
+        imgs.push(url);
+      } catch(e){ imgs.push(await toB64(f)); } // fallback
     }
-    const existing=(posts[pid].comments||[]).map(normalizeComment);
-    const newComment=normalizeComment({author,text:'Imagem anexada',time:now,images:imgs,files:[]});
+    const newComment={author,text:'📎 imagem',time:now,images:imgs};
+    const existing=[];
+    (posts[pid].comments||[]).forEach(cm=>{
+      existing.push({author:String(cm.author||''),text:String(cm.text||''),time:String(cm.time||''),images:Array.isArray(cm.images)?cm.images.filter(x=>typeof x==='string'):[]});
+    });
     existing.push(newComment);
     posts[pid].comments=existing;
     const {db,doc,updateDoc}=window._fb;
     await updateDoc(doc(db,'posts',pid),{comments:existing});
     const cl=document.getElementById('cl-'+pid);
     if(cl){
-      if(cl.textContent.includes('Nenhum comentario ainda')) cl.innerHTML='';
       const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=renderCommentHtml(newComment, existing.length-1, pid);
+      div.innerHTML=`<div class="comment-author">${author}</div><div class="comment-text">📎 imagem</div>${imgs.map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}<div class="comment-time">${now}</div>`;
       cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
     }
     showToast('Imagem enviada!','ok');
@@ -2594,65 +2494,6 @@ async function addCommentImg(pid,files){
     console.error('Comment img error:',err);
     showToast('Erro: '+err.message,'err');
   }
-}
-async function addCommentFile(pid,files){
-  if(!posts[pid]||!files||!files.length) return;
-  const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuario';
-  const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-  const uploaded=[];
-  showToast('Enviando arquivo...','inf');
-  const readAsDataUrl = file => new Promise((resolve,reject)=>{
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-  try{
-    for(const f of files){
-      let url = '';
-      try{ url = await uploadPostImage(pid, f, 'comments'); }
-      catch(e){ url = await readAsDataUrl(f); }
-      uploaded.push({name:f.name,url,type:f.type||''});
-    }
-    const existing=(posts[pid].comments||[]).map(normalizeComment);
-    const newComment=normalizeComment({author,text:'Arquivo anexado',time:now,images:[],files:uploaded});
-    existing.push(newComment);
-    posts[pid].comments=existing;
-    const {db,doc,updateDoc}=window._fb;
-    await updateDoc(doc(db,'posts',pid),{comments:existing});
-    const cl=document.getElementById('cl-'+pid);
-    if(cl){
-      if(cl.textContent.includes('Nenhum comentario ainda')) cl.innerHTML='';
-      const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=renderCommentHtml(newComment, existing.length-1, pid);
-      cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
-    }
-    showToast('Arquivo enviado!','ok');
-  } catch(err){
-    console.error('Comment file error:',err);
-    showToast('Erro: '+err.message,'err');
-  }
-}
-
-function editComment(pid, idx){
-  if(!posts[pid]) return;
-  const existing=(posts[pid].comments||[]).map(normalizeComment);
-  const comment = existing[idx];
-  if(!comment) return;
-  const next = prompt('Editar comentario:', comment.text||'');
-  if(next===null) return;
-  comment.text = String(next);
-  existing[idx] = normalizeComment(comment);
-  posts[pid].comments = existing;
-  const {db,doc,updateDoc}=window._fb;
-  updateDoc(doc(db,'posts',pid),{comments:existing}).then(()=>{
-    const items = document.querySelectorAll(`#cl-${pid} .comment-item`);
-    if(items[idx]) items[idx].innerHTML = renderCommentHtml(existing[idx], idx, pid);
-    showToast('Comentario atualizado!','ok');
-  }).catch(err=>{
-    console.error('Comment edit error:',err);
-    showToast('Erro ao editar: '+err.message,'err');
-  });
 }
 
 // ===== SAVE HELPERS =====
@@ -2901,27 +2742,17 @@ async function saveClient(){
   const color=document.getElementById('c-color').value;
   if(!name){ showToast('Nome obrigatório','err'); return; }
   const {db,addDoc,collection}=window._fb;
-  const ref=await addDoc(collection(db,'clients'),{name,handle,niche,color,status:'ativo',createdAt:Date.now(),members:[currentUser.uid]});
-  clients[ref.id]={id:ref.id,name,handle,niche,color,status:'ativo',members:[currentUser.uid]};
+  const ref=await addDoc(collection(db,'clients'),{name,handle,niche,color,createdAt:Date.now(),members:[currentUser.uid]});
+  clients[ref.id]={id:ref.id,name,handle,niche,color,members:[currentUser.uid]};
   closeClientModal(); renderSidebar();
   if(currentView==='todos') renderTodos(); else renderClientes();
   showToast(`${name} adicionado!`,'ok');
 }
 
 // ===== NEW PACK =====
-function updateNewPackOperationalPreview(){
-  const month=document.getElementById('np-month')?.value||'';
-  const dueDate=document.getElementById('np-due')?.value||'';
-  const info=deriveOperationalFields(month,dueDate);
-  const op=document.getElementById('np-operational-month');
-  if(op) op.value=info.operationalMonth ? (info.operationalMonth+' '+info.operationalYear) : '';
-}
 function showNewPack(){
   document.getElementById('pack-new-mo').classList.add('open');
-  const monthEl=document.getElementById('np-month');
-  if(monthEl) monthEl.value=MONTHS[(new Date().getMonth()+1)%12];
   renderAssigneeChips('np-assignees');
-  updateNewPackOperationalPreview();
 }
 function renderAssigneeChips(containerId){
   const el=document.getElementById(containerId||'np-assignees'); if(!el) return;
@@ -2936,23 +2767,20 @@ async function saveNewPack(){
   const canvaLink=document.getElementById('np-canva').value.trim();
   const dueDate=document.getElementById('np-due').value;
   const assignees=getSelectedACs();
-  const timing=deriveOperationalFields(month,dueDate);
   const {db,addDoc,collection}=window._fb;
-  const payload={clientId:currentClientId,type,month,contentYear:timing.contentYear,operationalMonth:timing.operationalMonth,operationalYear:timing.operationalYear,canvaLink,dueDate,assignees,status:'planejamento',postCount:0,createdAt:Date.now()};
-  const ref=await addDoc(collection(db,'packs'),payload);
-  packs[ref.id]={id:ref.id,...payload};
+  const ref=await addDoc(collection(db,'packs'),{clientId:currentClientId,type,month,canvaLink,dueDate,assignees,status:'planejamento',postCount:0,createdAt:Date.now()});
+  packs[ref.id]={id:ref.id,clientId:currentClientId,type,month,canvaLink,dueDate,assignees,status:'planejamento',postCount:0};
   document.getElementById('pack-new-mo').classList.remove('open');
   loadKanban(); showToast('Pack criado!','ok');
 }
 async function createPackInStatus(status){
   const {db,addDoc,collection}=window._fb;
-  const month=MONTHS[(new Date().getMonth()+1)%12];
-  const timing=deriveOperationalFields(month,'');
-  const payload={clientId:currentClientId,type:'Feed',month,contentYear:timing.contentYear,operationalMonth:timing.operationalMonth,operationalYear:timing.operationalYear,status,assignees:[],postCount:0,createdAt:Date.now()};
-  const ref=await addDoc(collection(db,'packs'),payload);
-  packs[ref.id]={id:ref.id,...payload};
+  const month=MONTHS[new Date().getMonth()];
+  const ref=await addDoc(collection(db,'packs'),{clientId:currentClientId,type:'Feed',month,status,assignees:[],postCount:0,createdAt:Date.now()});
+  packs[ref.id]={id:ref.id,clientId:currentClientId,type:'Feed',month,status,assignees:[],postCount:0};
   loadKanban();
 }
+
 // ===== PDF =====
 async function exportPDF(){
   const list=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0));
@@ -3229,11 +3057,11 @@ async function duplicatePack(packId){
   showToast('Duplicando...','inf');
   const {db,collection,addDoc,getDocs,query,where}=window._fb;
   const newPackRef=await addDoc(collection(db,'packs'),{
-    clientId:pack.clientId, type:pack.type, month:pack.month, contentYear:pack.contentYear||inferContentYear(pack), operationalMonth:(pack.operationalMonth||inferOperationalInfo(pack).month), operationalYear:(pack.operationalYear||inferOperationalInfo(pack).year),
+    clientId:pack.clientId, type:pack.type, month:pack.month,
     canvaLink:pack.canvaLink||'', dueDate:pack.dueDate||'',
     assignees:pack.assignees||[], status:'planejamento', postCount:pack.postCount||0, createdAt:Date.now()
   });
-  packs[newPackRef.id]={id:newPackRef.id,clientId:pack.clientId,type:pack.type,month:pack.month,contentYear:pack.contentYear||inferContentYear(pack),operationalMonth:(pack.operationalMonth||inferOperationalInfo(pack).month),operationalYear:(pack.operationalYear||inferOperationalInfo(pack).year),
+  packs[newPackRef.id]={id:newPackRef.id,clientId:pack.clientId,type:pack.type,month:pack.month,
     canvaLink:pack.canvaLink||'',dueDate:pack.dueDate||'',assignees:pack.assignees||[],status:'planejamento',postCount:pack.postCount||0};
   const postsSnap=await getDocs(query(collection(db,'posts'),where('packId','==',packId)));
   postsSnap.forEach(async d=>{
@@ -3299,7 +3127,7 @@ async function saveMember(){
     await setDoc(doc(db,'team',_editMemberId),{name,role,color},{merge:true});
     showToast(name+' atualizado!','ok');
   } else {
-    const id=name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'').slice(0,20)+'_'+Date.now().toString(36);
+    const id=name.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/g,'').slice(0,20)+'_'+Date.now().toString(36);
     await setDoc(doc(db,'team',id),{name,role,color});
     TEAM.push({id,name,role,color});
     showToast(name+' adicionado!','ok');
@@ -3679,9 +3507,6 @@ let _pomodoroTime = 25*60; // 25 min default
 let _pomodoroInterval = null;
 let _pomodoroMode = 'work'; // work or break
 
-// Task Timer tracking
-let _taskTimers = {}; // { taskId: { startTime, elapsed, interval } }
-
 function taskMiniDashHtml(openTasks, urgentTasks){
   return openTasks.length>0?`<div class="mini-dash" id="tasks-mini-dash">
       <div class="mini-dash-icon">${urgentTasks.length>0?'🔥':'✨'}</div>
@@ -3953,15 +3778,7 @@ async function loadTarefasInline(filter){
         ?`<img src="${photo}" style="width:20px;height:20px;border-radius:50%;object-fit:cover" title="${name}">`
         :`<div style="width:20px;height:20px;border-radius:50%;background:${m?.color||'var(--accent)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff" title="${name}">${name[0]}</div>`;
     }).join('');
-    
-    // Timer state
-    const isTracking = !!_taskTimers[t.id]?.interval;
-    const isPaused = _taskTimers[t.id] && !_taskTimers[t.id].interval;
-    const currentElapsed = t.timeTracked || 0;
-    const timerDisplay = formatTaskTime(currentElapsed);
-    const sessions = t.timeSessions || [];
-    
-    return `<div class="task-inline ${t.done?'done':''} ${isTracking?'tracking':''} ${isPaused?'paused':''}" id="task-${t.id}">
+    return `<div class="task-inline ${t.done?'done':''}" id="task-${t.id}">
       <div class="task-inline-header">
         <div class="task-check ${t.done?'checked':''}" onclick="event.stopPropagation();toggleTask('${t.id}',${!t.done})">${t.done?'✓':''}</div>
         <input class="task-inline-title" value="${t.title||''}" style="${t.done?'text-decoration:line-through;opacity:.6':''}"
@@ -3969,13 +3786,6 @@ async function loadTarefasInline(filter){
           onkeypress="if(event.key==='Enter')this.blur()">
         <span class="prio-${t.priority||'media'}" style="cursor:pointer" onclick="cycleTaskPrio('${t.id}','${t.priority||'media'}')">${t.priority||'média'}</span>
         ${dl?`<span style="font-size:11.5px;font-weight:600;color:${dlColor}">📅 ${dl}</span>`:''}
-        ${!t.done?`<div class="task-timer-wrap">
-          <button class="task-timer-btn timer-play play" onclick="event.stopPropagation();playTaskTimer('${t.id}')" title="Iniciar" style="${isTracking?'display:none':'display:flex'}">▶</button>
-          <button class="task-timer-btn timer-pause pause" onclick="event.stopPropagation();pauseTaskTimer('${t.id}')" title="Pausar" style="${isTracking?'display:flex':'display:none'}">⏸</button>
-          <button class="task-timer-btn timer-stop stop" onclick="event.stopPropagation();stopTaskTimer('${t.id}')" title="Parar e salvar" style="${isTracking||isPaused?'display:flex':'display:none'}">⏹</button>
-          <div class="task-timer-display ${isTracking?'active':''}" id="timer-${t.id}">${timerDisplay}</div>
-        </div>`:''}
-        ${t.done&&currentElapsed>0?`<div class="task-total-time">⏱ ${formatTaskTime(currentElapsed)}</div>`:''}
         <div style="display:flex;gap:3px;margin-left:auto">${assigneeHtml}</div>
         <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:4px" onclick="toggleTaskExpand('${t.id}')">⋮</button>
       </div>
@@ -3984,9 +3794,7 @@ async function loadTarefasInline(filter){
           <div class="ff"><label class="flbl">Prazo</label><input type="date" class="fi" value="${t.dueDate||''}" onchange="updateTaskField('${t.id}','dueDate',this.value)"></div>
           <div class="ff"><label class="flbl">Descrição</label><input class="fi" value="${t.description||''}" onchange="updateTaskField('${t.id}','description',this.value)"></div>
         </div>
-        ${currentElapsed>0?`<div style="font-size:12px;color:var(--text3);margin-bottom:10px">⏱ Tempo total: <strong>${formatTaskTime(currentElapsed)}</strong></div>`:''}
-        ${renderSessionsHistory(sessions)}
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn btn-d btn-sm" onclick="deleteTaskInline('${t.id}')">🗑 Excluir</button>
         </div>
       </div>
@@ -4029,242 +3837,8 @@ async function deleteTaskInline(id){
 
 async function toggleTask(id,done){
   const {db,doc,updateDoc}=window._fb;
-  // Se está concluindo e tem timer rodando, para o timer
-  if(done && _taskTimers[id]?.interval){
-    await stopTaskTimer(id);
-  }
   await updateDoc(doc(db,'tarefas',id),{done,updatedAt:Date.now()});
   await loadTarefasInline(_tarefaFilter);
-}
-
-// ===== TASK TIMER FUNCTIONS =====
-function formatTaskTime(seconds){
-  if(!seconds || seconds < 0) seconds = 0;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if(h > 0) return `${h}h${String(m).padStart(2,'0')}m`;
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-}
-
-function formatTimeHHMM(timestamp){
-  const d = new Date(timestamp);
-  return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-}
-
-function formatDateShort(timestamp){
-  const d = new Date(timestamp);
-  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
-}
-
-// Play - inicia ou retoma timer
-async function playTaskTimer(taskId){
-  // Pausa qualquer outro timer ativo
-  for(const id of Object.keys(_taskTimers)){
-    if(_taskTimers[id]?.interval && id !== taskId){
-      await pauseTaskTimer(id);
-    }
-  }
-  
-  // Se já está rodando, ignora
-  if(_taskTimers[taskId]?.interval) return;
-  
-  const {db,doc,getDoc,updateDoc}=window._fb;
-  const snap = await getDoc(doc(db,'tarefas',taskId));
-  if(!snap.exists()) return;
-  
-  const task = snap.data();
-  const existingTime = task.timeTracked || 0;
-  const sessions = task.timeSessions || [];
-  
-  // Cria nova sessão se não tem uma pausada
-  let currentSession = _taskTimers[taskId]?.currentSession;
-  if(!currentSession){
-    currentSession = {
-      startTime: Date.now(),
-      pausedTime: 0,
-      pauses: []
-    };
-  }
-  
-  const resumeTime = Date.now();
-  
-  _taskTimers[taskId] = {
-    startTime: currentSession.startTime,
-    resumeTime: resumeTime,
-    pausedTime: _taskTimers[taskId]?.pausedTime || 0,
-    elapsed: existingTime,
-    currentSession: currentSession,
-    interval: setInterval(()=>{
-      const now = Date.now();
-      const activeTime = Math.floor((now - _taskTimers[taskId].resumeTime) / 1000);
-      const totalSession = activeTime + (_taskTimers[taskId].pausedTime || 0);
-      const totalTime = _taskTimers[taskId].elapsed + totalSession;
-      
-      const displayEl = document.getElementById('timer-'+taskId);
-      if(displayEl) displayEl.textContent = formatTaskTime(totalTime);
-    }, 1000)
-  };
-  
-  // Salva início da sessão no Firebase
-  await updateDoc(doc(db,'tarefas',taskId),{
-    timerActive: true,
-    timerStartedAt: currentSession.startTime,
-    updatedAt: Date.now()
-  });
-  
-  updateTimerUI(taskId, 'playing');
-  showToast('▶ Timer iniciado','inf');
-}
-
-// Pause - pausa temporariamente
-async function pauseTaskTimer(taskId){
-  if(!_taskTimers[taskId]?.interval) return;
-  
-  clearInterval(_taskTimers[taskId].interval);
-  _taskTimers[taskId].interval = null;
-  
-  const now = Date.now();
-  const activeTime = Math.floor((now - _taskTimers[taskId].resumeTime) / 1000);
-  _taskTimers[taskId].pausedTime = (_taskTimers[taskId].pausedTime || 0) + activeTime;
-  
-  // Registra a pausa
-  if(_taskTimers[taskId].currentSession){
-    _taskTimers[taskId].currentSession.pauses.push({
-      pausedAt: now
-    });
-  }
-  
-  const {db,doc,updateDoc}=window._fb;
-  await updateDoc(doc(db,'tarefas',taskId),{
-    timerActive: false,
-    updatedAt: Date.now()
-  });
-  
-  updateTimerUI(taskId, 'paused');
-  showToast('⏸ Timer pausado','inf');
-}
-
-// Stop - finaliza sessão e registra histórico
-async function stopTaskTimer(taskId){
-  const timer = _taskTimers[taskId];
-  if(!timer) return;
-  
-  // Para o interval se estiver rodando
-  if(timer.interval){
-    clearInterval(timer.interval);
-  }
-  
-  const now = Date.now();
-  let sessionDuration = timer.pausedTime || 0;
-  
-  // Se estava rodando (não pausado), adiciona tempo ativo
-  if(timer.interval){
-    const activeTime = Math.floor((now - timer.resumeTime) / 1000);
-    sessionDuration += activeTime;
-  }
-  
-  const totalTime = timer.elapsed + sessionDuration;
-  
-  // Cria registro da sessão
-  const session = {
-    startTime: timer.startTime,
-    endTime: now,
-    duration: sessionDuration
-  };
-  
-  // Salva no Firebase
-  const {db,doc,getDoc,updateDoc,arrayUnion}=window._fb;
-  const snap = await getDoc(doc(db,'tarefas',taskId));
-  const existingSessions = snap.exists() ? (snap.data().timeSessions || []) : [];
-  
-  await updateDoc(doc(db,'tarefas',taskId),{
-    timeTracked: totalTime,
-    timeSessions: [...existingSessions, session],
-    timerActive: false,
-    timerStartedAt: null,
-    updatedAt: Date.now()
-  });
-  
-  // Limpa timer local
-  delete _taskTimers[taskId];
-  
-  updateTimerUI(taskId, 'stopped');
-  
-  // Mostra resumo da sessão
-  const startStr = formatTimeHHMM(session.startTime);
-  const endStr = formatTimeHHMM(session.endTime);
-  showToast(`⏹ Sessão: ${startStr} → ${endStr} (${formatTaskTime(sessionDuration)})`,'ok');
-  
-  // Atualiza lista pra mostrar histórico
-  await loadTarefasInline(_tarefaFilter);
-}
-
-function updateTimerUI(taskId, state){
-  const cardEl = document.getElementById('task-'+taskId);
-  if(!cardEl) return;
-  
-  const playBtn = cardEl.querySelector('.timer-play');
-  const pauseBtn = cardEl.querySelector('.timer-pause');
-  const stopBtn = cardEl.querySelector('.timer-stop');
-  const displayEl = document.getElementById('timer-'+taskId);
-  
-  if(state === 'playing'){
-    cardEl.classList.add('tracking');
-    cardEl.classList.remove('paused');
-    if(playBtn) playBtn.style.display = 'none';
-    if(pauseBtn) pauseBtn.style.display = 'flex';
-    if(stopBtn) stopBtn.style.display = 'flex';
-    if(displayEl) displayEl.classList.add('active');
-  } else if(state === 'paused'){
-    cardEl.classList.remove('tracking');
-    cardEl.classList.add('paused');
-    if(playBtn) playBtn.style.display = 'flex';
-    if(pauseBtn) pauseBtn.style.display = 'none';
-    if(stopBtn) stopBtn.style.display = 'flex';
-    if(displayEl) displayEl.classList.remove('active');
-  } else {
-    cardEl.classList.remove('tracking','paused');
-    if(playBtn) playBtn.style.display = 'flex';
-    if(pauseBtn) pauseBtn.style.display = 'none';
-    if(stopBtn) stopBtn.style.display = 'none';
-    if(displayEl) displayEl.classList.remove('active');
-  }
-}
-
-function renderSessionsHistory(sessions){
-  if(!sessions || !sessions.length) return '';
-  
-  // Agrupa por dia
-  const byDay = {};
-  sessions.forEach(s=>{
-    const day = formatDateShort(s.startTime);
-    if(!byDay[day]) byDay[day] = [];
-    byDay[day].push(s);
-  });
-  
-  let html = '<div class="sessions-history"><div class="sessions-title">📋 Histórico de sessões</div>';
-  
-  for(const day of Object.keys(byDay).reverse().slice(0,5)){
-    const daySessions = byDay[day];
-    const dayTotal = daySessions.reduce((sum,s)=>sum+(s.duration||0),0);
-    
-    html += `<div class="session-day">
-      <div class="session-day-header">
-        <span>${day}</span>
-        <span class="session-day-total">${formatTaskTime(dayTotal)}</span>
-      </div>
-      <div class="session-day-items">
-        ${daySessions.map(s=>`<div class="session-item">
-          <span>${formatTimeHHMM(s.startTime)} → ${formatTimeHHMM(s.endTime)}</span>
-          <span>${formatTaskTime(s.duration)}</span>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  }
-  
-  html += '</div>';
-  return html;
 }
 
 function openTask(id){
@@ -4777,19 +4351,13 @@ function openOrientacoes(){
 function showEditClient(){
   if(!currentClientId) return;
   editingClientId=currentClientId;
-  const cl=clients[currentClientId]||{};
-  const off=cl.offboarding||{};
-  document.getElementById('ec-title').textContent='Editar: '+(cl.name||'Cliente');
+  const cl=clients[currentClientId];
+  document.getElementById('ec-title').textContent='Editar: '+cl.name;
   document.getElementById('ec-name').value=cl.name||'';
   document.getElementById('ec-handle').value=cl.handle||'';
   document.getElementById('ec-niche').value=cl.niche||'';
   document.getElementById('ec-color').value=cl.color||'#8483ff';
   document.getElementById('ec-instagram-id').value=cl.instagramId||'';
-  document.getElementById('ec-off-access').checked=!!off.accessRemoved;
-  document.getElementById('ec-off-last').checked=!!off.lastDeliveryDone;
-  document.getElementById('ec-off-files').checked=!!off.filesOrganized;
-  document.getElementById('ec-off-finance').checked=!!off.financeAligned;
-  document.getElementById('ec-off-notes').value=off.notes||'';
   editClientPhotoB64=cl.photo||'';
   const prev=document.getElementById('ec-photo-preview');
   if(cl.photo){
@@ -4797,11 +4365,6 @@ function showEditClient(){
   } else {
     prev.innerHTML=`<div style="font-size:22px;font-weight:800;color:${cl.color||'#8483ff'}">${(cl.name||'?')[0]}</div>`;
   }
-  const isInactive=isClientInactive(cl);
-  const inactivateBtn=document.getElementById('ec-inactivate-btn');
-  const reactivateBtn=document.getElementById('ec-reactivate-btn');
-  if(inactivateBtn) inactivateBtn.style.display=isInactive?'none':'inline-flex';
-  if(reactivateBtn) reactivateBtn.style.display=isInactive?'inline-flex':'none';
   document.getElementById('edit-client-mo').classList.add('open');
 }
 function closeEditClient(){ document.getElementById('edit-client-mo').classList.remove('open'); }
@@ -4812,40 +4375,19 @@ async function saveEditClient(){
   const handle=document.getElementById('ec-handle').value.trim();
   const niche=document.getElementById('ec-niche').value.trim();
   const color=document.getElementById('ec-color').value;
-  if(!name){ showToast('Nome obrigatÃ³rio','err'); return; }
+  if(!name){ showToast('Nome obrigatório','err'); return; }
   const instagramId=document.getElementById('ec-instagram-id')?.value.trim()||'';
-  const offboarding={
-    accessRemoved:!!document.getElementById('ec-off-access')?.checked,
-    lastDeliveryDone:!!document.getElementById('ec-off-last')?.checked,
-    filesOrganized:!!document.getElementById('ec-off-files')?.checked,
-    financeAligned:!!document.getElementById('ec-off-finance')?.checked,
-    notes:document.getElementById('ec-off-notes')?.value.trim()||''
-  };
-  const current=clients[editingClientId]||{};
-  const data={name,handle,niche,color,instagramId,offboarding,status:current.status||'ativo'};
+  const data={name,handle,niche,color,instagramId};
   if(editClientPhotoB64) data.photo=editClientPhotoB64;
   await updateDoc(doc(db,'clients',editingClientId),data);
-  clients[editingClientId]={...current,...data};
+  clients[editingClientId]={...clients[editingClientId],...data};
   closeEditClient();
   await loadClients();
   if(currentClientId===editingClientId) renderClientDetail(currentClientId);
   showToast('Cliente atualizado!','ok');
 }
-async function setClientStatus(status){
-  if(!editingClientId) return;
-  const {db,doc,updateDoc}=window._fb;
-  const current=clients[editingClientId]||{};
-  const payload={status,updatedAt:Date.now()};
-  if(status==='inativo') payload.inactivatedAt=Date.now();
-  await updateDoc(doc(db,'clients',editingClientId),payload);
-  clients[editingClientId]={...current,...payload};
-  closeEditClient();
-  await loadClients();
-  if(currentClientId===editingClientId) renderClientDetail(currentClientId);
-  showToast(status==='inativo'?'Cliente movido para inativos':'Cliente reativado!','ok');
-}
 async function deleteClient(){
-  if(!editingClientId||!confirm('Excluir este cliente definitivamente? Isso tambÃ©m remove todos os packs e posts.')) return;
+  if(!editingClientId||!confirm('Excluir este cliente? Isso também remove todos os packs e posts.')) return;
   const {db,doc,deleteDoc,collection,getDocs,query,where}=window._fb;
   const ps=await getDocs(query(collection(db,'packs'),where('clientId','==',editingClientId)));
   for(const pd of ps.docs){
@@ -4859,7 +4401,7 @@ async function deleteClient(){
   closeEditClient();
   await loadClients();
   setView('todos');
-  showToast('Cliente excluÃ­do','inf');
+  showToast('Cliente excluído','inf');
 }
 
 // ===== PROFILE =====
@@ -4925,7 +4467,6 @@ async function renderPauta(){
       <div class="ptitle" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         📅 Pauta
         <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
-          <button class="btn btn-p btn-sm" onclick="openGerarPautaModal()">⚡ Gerar Pauta</button>
           <button class="btn btn-s btn-sm" onclick="changePautaMonth(-1)">‹</button>
           <span id="pauta-lbl" style="font-size:14px;font-weight:700;min-width:120px;text-align:center"></span>
           <button class="btn btn-s btn-sm" onclick="changePautaMonth(1)">›</button>
@@ -4943,256 +4484,274 @@ function changePautaMonth(d){
   pautaDate.setMonth(pautaDate.getMonth()+d);
   loadPautaMonth();
 }
+
 async function loadPautaMonth(){
   const yr = pautaDate.getFullYear();
   const mo = pautaDate.getMonth();
+  const mn = MONTHS[mo];
   const key = yr+'-'+String(mo+1).padStart(2,'0');
-  const prev = new Date(yr, mo-1, 1);
-  const next = new Date(yr, mo+1, 1);
-  const prevKey = prev.getFullYear()+'-'+String(prev.getMonth()+1).padStart(2,'0');
-  const nextKey = next.getFullYear()+'-'+String(next.getMonth()+1).padStart(2,'0');
   const lbl = document.getElementById('pauta-lbl');
-  if(lbl) lbl.textContent = MONTHS[mo]+' '+yr;
+  if(lbl) lbl.textContent = mn+' '+yr;
+
+  // Load from Firestore
   const {db,doc,getDoc} = window._fb;
-  for(const monthKey of [prevKey, key, nextKey]){
-    try{
-      const snap = await getDoc(doc(db,'pauta',monthKey));
-      pautaData[monthKey] = snap.exists() ? snap.data() : {};
-    }catch(e){
-      pautaData[monthKey] = {};
-    }
-  }
-  renderPautaGrid(yr, mo);
+  try{
+    const snap = await getDoc(doc(db,'pauta',key));
+    pautaData[key] = snap.exists() ? snap.data() : {};
+  }catch(e){ pautaData[key] = {}; }
+
+  renderPautaGrid(yr, mo, key);
 }
 
-function renderPautaGrid(yr, mo){
-  const monthName = MONTHS[mo];
+function renderPautaGrid(yr, mo, key){
+  const data = pautaData[key] || {};
+  const mn = MONTHS[mo];
+
   const MEMBER_CFG = {
-    juliana: {label:'Juliana', type:'PLAN', bg:'#ef4444', text:'#fff', legacyIds:['kesia']},
-    jackson: {label:'Jackson', type:'REV', bg:'#3b82f6', text:'#fff', legacyIds:[]},
-    cintia: {label:'Cintia', type:'DES', bg:'#facc15', text:'#111', legacyIds:[]}
+    kesia:   {types:['PLAN'], bg:'#e53e3e', text:'#fff'},
+    jackson: {types:['PLAN','REV'], bg:'#3b82f6', text:'#fff'},
+    cintia:  {types:['DES'],  bg:'#facc15', text:'#111'},
+    tatiane: {types:['PDF'],  bg:'#d946ef', text:'#fff'}
   };
-  const MEMBER_ORDER = ['juliana','jackson','cintia'];
-  const TYPE_COLORS = {PLAN:'#ef4444', REV:'#3b82f6', DES:'#facc15'};
-  const TYPE_TEXT = {PLAN:'#fff', REV:'#fff', DES:'#111'};
-  const DAYS_FULL = ['Domingo','Segunda-feira','Terca-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sabado'];
+  const TYPE_COLORS = {PLAN:'#e53e3e', REV:'#3b82f6', DES:'#facc15', PDF:'#d946ef'};
+  const TYPE_TEXT   = {PLAN:'#fff',    REV:'#fff',    DES:'#111',    PDF:'#fff'};
+
+  const PAUTA_MEMBERS = ['kesia','jackson','cintia','tatiane'];
+  const members = PAUTA_MEMBERS.map(id=>TEAM.find(t=>t.id===id)||TEAM.find(t=>t.name.toLowerCase().startsWith(id.slice(0,4)))).filter(Boolean);
+  const clientList = Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
 
   const firstDay = new Date(yr, mo, 1);
   const startDow = firstDay.getDay();
   const startDate = new Date(yr, mo, 1);
   startDate.setDate(1 - startDow);
+  const DAYS_FULL = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
 
   let totalWeeks = 0;
-  let probe = new Date(startDate);
-  for(let w=0; w<6; w++){
-    let hasCurrentMonth = false;
-    for(let d=0; d<7; d++){
-      const dayProbe = new Date(probe);
-      dayProbe.setDate(dayProbe.getDate() + d);
-      if(dayProbe.getMonth() === mo) hasCurrentMonth = true;
-    }
-    if(!hasCurrentMonth) break;
-    totalWeeks++;
-    probe.setDate(probe.getDate() + 7);
+  let testDate = new Date(startDate);
+  for(let w=0;w<6;w++){
+    let hasMonth=false;
+    for(let d=0;d<7;d++){ const td=new Date(testDate); td.setDate(td.getDate()+d); if(td.getMonth()===mo) hasMonth=true; }
+    if(!hasMonth) break;
+    totalWeeks++; testDate.setDate(testDate.getDate()+7);
   }
 
-  const teamLookup = {
-    juliana: TEAM.find(t=>t.id==='juliana') || TEAM.find(t=>t.id==='kesia') || {name:'Juliana'},
-    jackson: TEAM.find(t=>t.id==='jackson') || {name:'Jackson'},
-    cintia: TEAM.find(t=>t.id==='cintia') || {name:'Cintia'}
-  };
+  const CELL_H = '52px';
+  const HDR_BG = '#7b8cde';   // blue-ish header like the original
+  const HDR_TXT = '#fff';
+  const WKND_BG = '#d1d5db';  // grey weekend
+  const WKND_TXT = '#6b7280';
+  const DAY_NUM_BG = '#e8eaf6';
+  const COLLAB_BG = '#e8eaf6';
 
-  let html = `
-  <div id="pauta-export-area" style="background:#fff;border-radius:10px;overflow:hidden;border:2px solid #c7cbe8;font-family:Arial,Helvetica,sans-serif">
+  let html = `<div id="pauta-export-area" style="background:#fff;padding:0;border-radius:10px;overflow:hidden;border:2px solid #c7cbe8;font-family:Arial,Helvetica,sans-serif">
+
+    <!-- CAPA: Magic Number + Mês + Ano -->
     <div style="display:grid;grid-template-columns:200px 1fr 120px;background:#e8eaf6">
       <div style="padding:16px 20px;display:flex;flex-direction:column;justify-content:center">
-        <div style="font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7b8cde;margin-bottom:2px">MAGIC NUMBER</div>
-        <div style="font-size:36px;font-weight:900;letter-spacing:-1px;color:#1a1a2e" id="pauta-magic-display">-</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#7b8cde;margin-bottom:2px">✨ MAGIC NUMBER</div>
+        <div style="font-size:36px;font-weight:900;letter-spacing:-1px;color:#1a1a2e" id="pauta-magic-display">—</div>
       </div>
-      <div style="background:#7b8cde;display:flex;align-items:center;justify-content:center">
-        <div style="font-size:42px;font-weight:900;letter-spacing:8px;text-transform:uppercase;color:#fff">${monthName}</div>
+      <div style="background:${HDR_BG};display:flex;align-items:center;justify-content:center">
+        <div style="font-size:42px;font-weight:900;letter-spacing:8px;text-transform:uppercase;color:#fff">${mn}</div>
       </div>
       <div style="background:#1a1a2e;display:flex;align-items:center;justify-content:center">
         <div style="font-size:28px;font-weight:900;color:#fff">${yr}</div>
       </div>
     </div>
+
+    <!-- LEGENDA -->
     <div style="display:flex;align-items:center;gap:20px;padding:8px 16px;background:#f0f2ff;border-bottom:1px solid #c7cbe8;flex-wrap:wrap">
-      ${MEMBER_ORDER.map(id=>{
-        const cfg = MEMBER_CFG[id];
-        const name = teamLookup[id]?.name || cfg.label;
-        return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#333"><div style="width:12px;height:12px;border-radius:50%;background:${cfg.bg}"></div>${name}</div>`;
+      ${members.filter(Boolean).map((m,mi)=>{
+        const cfg=MEMBER_CFG[PAUTA_MEMBERS[mi]]||{bg:'#888',text:'#fff'};
+        return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#333">
+          <div style="width:12px;height:12px;border-radius:50%;background:${cfg.bg}"></div>${m.name}
+        </div>`;
       }).join('')}
       <div style="display:flex;gap:6px;margin-left:auto">
-        ${Object.keys(TYPE_COLORS).map(type=>`<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:4px;background:${TYPE_COLORS[type]};color:${TYPE_TEXT[type]}">[${type}]</span>`).join('')}
+        ${Object.entries(TYPE_COLORS).map(([t,bg])=>`<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:4px;background:${bg};color:${TYPE_TEXT[t]}">[${t}]</span>`).join('')}
       </div>
     </div>
+
+    <!-- TABLE -->
     <table style="width:100%;border-collapse:collapse;table-layout:fixed">
       <colgroup>
         <col style="width:130px">
         ${DAYS_FULL.map((_,i)=>`<col style="width:${i===0||i===6?'70px':'1fr'}">`).join('')}
-      </colgroup>
-      <tr>
-        <th style="background:#7b8cde;color:#fff;font-size:12px;font-weight:800;text-align:left;padding:8px 10px;border:1px solid #c7cbe8">Colaboradores</th>
-        ${DAYS_FULL.map((d,i)=>`<th style="background:${i===0||i===6?'#9ca3af':'#7b8cde'};color:#fff;font-size:${i===0||i===6?11:13}px;font-weight:800;text-align:center;padding:8px 4px;border:1px solid #c7cbe8">${d}</th>`).join('')}
-      </tr>`;
+      </colgroup>`;
 
-  let current = new Date(startDate);
+  let cur = new Date(startDate);
   for(let w=0; w<totalWeeks; w++){
-    const weekDays = [];
-    for(let d=0; d<7; d++){
-      const date = new Date(current);
-      const dateStr = date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
-      const sourceKey = dateStr.slice(0,7);
-      const monthData = pautaData[sourceKey] || {};
-      weekDays.push({
-        date,
-        dateStr,
-        sourceKey,
-        inMonth: date.getMonth() === mo,
-        isWeekend: d===0 || d===6,
-        isHoliday: !!monthData['feriado_'+dateStr]
-      });
-      current.setDate(current.getDate() + 1);
+    const weekDays=[];
+    for(let d=0;d<7;d++){
+      const isWknd=d===0||d===6;
+      const inMonth=cur.getMonth()===mo;
+      const dateStr=cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+      const isFeriado=data['feriado_'+dateStr];
+      weekDays.push({day:cur.getDate(),month:cur.getMonth(),dateStr,inMonth,isFeriado,isWknd});
+      cur.setDate(cur.getDate()+1);
     }
 
-    html += `<tr>
-      <td style="background:#7b8cde;color:#fff;font-size:13px;font-weight:800;text-align:center;padding:8px 6px;border:1px solid #c7cbe8;letter-spacing:.5px">Colaboradores</td>
-      ${weekDays.map(day=>{
-        const bg = day.isWeekend ? '#d1d5db' : '#e8eaf6';
-        const color = day.isHoliday ? '#ef4444' : (day.isWeekend ? '#6b7280' : (day.inMonth ? '#1a1a2e' : '#aaa'));
-        return `<td style="background:${bg};border:1px solid #c7cbe8;text-align:right;padding:4px 8px;cursor:pointer;height:36px" onclick="toggleFeriado('${day.sourceKey}','${day.dateStr}')" title="${day.isHoliday?'Remover feriado':'Marcar feriado'}"><div style="font-size:18px;font-weight:900;color:${color};opacity:${day.inMonth?1:.45}">${day.date.getDate()}</div>${day.isHoliday?'<div style="font-size:8px;color:#ef4444;font-weight:700;text-align:center">FERIADO</div>':''}</td>`;
+    // Colaboradores + day numbers header row
+    html+=`<tr>
+      <td style="background:${HDR_BG};color:${HDR_TXT};font-size:13px;font-weight:800;text-align:center;padding:8px 6px;border:1px solid #c7cbe8;letter-spacing:.5px">Colaboradores</td>
+      ${weekDays.map(wd=>{
+        const bg=wd.isWknd?WKND_BG:DAY_NUM_BG;
+        const col=wd.isWknd?WKND_TXT:(wd.inMonth?'#1a1a2e':'#aaa');
+        return `<td style="background:${bg};border:1px solid #c7cbe8;text-align:right;padding:4px 8px;cursor:pointer;height:36px" onclick="toggleFeriado('${key}','${wd.dateStr}')" title="${wd.isFeriado?'Remover feriado':'Marcar feriado'}">
+          <div style="font-size:18px;font-weight:900;color:${wd.isFeriado?'#e53e3e':col};opacity:${wd.inMonth?1:.4}">${wd.day}</div>
+          ${wd.isFeriado?`<div style="font-size:8px;color:#e53e3e;font-weight:700;text-align:center">FERIADO</div>`:''}
+        </td>`;
       }).join('')}
     </tr>`;
 
-    MEMBER_ORDER.forEach(memberId=>{
-      const cfg = MEMBER_CFG[memberId];
-      const memberName = teamLookup[memberId]?.name || cfg.label;
-      html += `<tr>
-        <td style="background:#e8eaf6;border:1px solid #c7cbe8;padding:6px 10px;height:52px;vertical-align:middle">
+    // Member rows
+    members.forEach((m,mi)=>{
+      if(!m) return;
+      const memberId=PAUTA_MEMBERS[mi];
+      const cfg=MEMBER_CFG[memberId]||{types:['PLAN'],bg:'#888',text:'#fff'};
+      const isJackson=memberId==='jackson';
+
+      html+=`<tr>
+        <td style="background:${COLLAB_BG};border:1px solid #c7cbe8;padding:6px 10px;height:${CELL_H};vertical-align:middle">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="width:10px;height:10px;border-radius:50%;background:${cfg.bg};flex-shrink:0"></div>
-            <span style="font-size:13px;font-weight:700;color:#1a1a2e">${memberName}</span>
+            <span style="font-size:13px;font-weight:700;color:#1a1a2e">${m.name}</span>
           </div>
         </td>
-        ${weekDays.map(day=>{
-          const monthData = pautaData[day.sourceKey] || {};
-          const cellKey = memberId+'_'+day.dateStr;
-          const legacy = (cfg.legacyIds||[]).map(oldId=>monthData[oldId+'_'+day.dateStr]).find(Boolean);
-          const cell = monthData[cellKey] || legacy || {};
-          const clientName = cell.client ? (clients[cell.client]?.name || cell.client) : '';
-          const hasContent = !!clientName;
-          const cellBg = hasContent ? cfg.bg : (day.isWeekend ? '#d1d5db' : '#fff');
-          const textColor = hasContent ? cfg.text : '#1a1a2e';
-          return `<td style="background:${day.isWeekend&&!hasContent?'#d1d5db':'#fff'};border:1px solid #c7cbe8;padding:2px;vertical-align:top;height:52px;overflow:hidden" onclick="openPautaCell(event,'${day.sourceKey}','${cellKey}','${day.dateStr}','${memberId}')">
-            ${day.isHoliday
-              ? '<div style="height:100%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa">-</div>'
-              : hasContent
-                ? `<div style="background:${cellBg};height:100%;padding:4px 6px;display:flex;flex-direction:column;justify-content:center;gap:1px;cursor:pointer"><div style="font-size:12px;font-weight:700;color:${textColor};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${clientName}</div></div>`
-                : `<div style="height:100%;cursor:pointer;background:${day.isWeekend?'#d1d5db':'#fff'}"></div>`}
+        ${weekDays.map((wd,di)=>{
+          const cellKey=m.id+'_'+wd.dateStr;
+          const cell=data[cellKey]||{};
+          const clientName=cell.client?(clients[cell.client]?.name||cell.client):'';
+          const displayType=isJackson?cell.type:(cell.client||cell.type?cfg.types[0]:null);
+          const hasContent=isJackson?!!cell.type:!!(cell.client||cell.type);
+          const cellBg=hasContent?(TYPE_COLORS[displayType]||cfg.bg):(wd.isWknd?WKND_BG:'#fff');
+          const cellTxt=hasContent?(TYPE_TEXT[displayType]||cfg.text):'inherit';
+
+          return `<td style="background:${wd.isWknd&&!hasContent?WKND_BG:'#fff'};border:1px solid #c7cbe8;padding:2px;vertical-align:top;height:${CELL_H};overflow:hidden"
+            onclick="openPautaCell(event,'${key}','${cellKey}','${wd.dateStr}','${memberId}')">
+            ${wd.isFeriado
+              ?`<div style="height:100%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa">—</div>`
+              :hasContent
+                ?`<div style="background:${cellBg};height:100%;padding:4px 6px;display:flex;flex-direction:column;justify-content:center;gap:1px;cursor:pointer">
+                    ${isJackson?`<div style="font-size:11px;font-weight:800;color:${cellTxt};letter-spacing:.5px">[${displayType}]</div>`:''}
+                    ${clientName?`<div style="font-size:12px;font-weight:700;color:${cellTxt};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${clientName}</div>`:''}
+                  </div>`
+                :`<div style="height:100%;cursor:pointer;background:${wd.isWknd?WKND_BG:'#fff'}"></div>`
+            }
           </td>`;
         }).join('')}
       </tr>`;
     });
   }
 
-  html += '</table></div>';
-  const el = document.getElementById('pauta-inner');
-  if(el) el.innerHTML = html;
+  // Days of week header (after all weeks, shown once at top via sticky or just once before table)
+  html+=`</table></div>`;
 
-  const {db,doc,getDoc} = window._fb;
+  // Prepend day-of-week row right after legend
+  const dowRow = `<table style="width:100%;border-collapse:collapse;table-layout:fixed;border-bottom:2px solid #c7cbe8">
+    <colgroup>
+      <col style="width:130px">${DAYS_FULL.map((_,i)=>`<col style="width:${i===0||i===6?'70px':'1fr'}">`).join('')}
+    </colgroup>
+    <tr>
+      <th style="background:${HDR_BG};color:${HDR_TXT};font-size:12px;font-weight:800;text-align:left;padding:8px 10px;border:1px solid #c7cbe8">Colaboradores</th>
+      ${DAYS_FULL.map((d,i)=>{
+        const isWknd=i===0||i===6;
+        return `<th style="background:${isWknd?'#9ca3af':HDR_BG};color:${HDR_TXT};font-size:${isWknd?11:13}px;font-weight:800;text-align:center;padding:8px 4px;border:1px solid #c7cbe8">${d}</th>`;
+      }).join('')}
+    </tr>
+  </table>`;
+
+  // Insert dow row between legend and table
+  html = html.replace('    <!-- TABLE -->', '    <!-- DOW ROW -->\n'+dowRow+'\n    <!-- TABLE -->');
+  // Remove the duplicate "Colaboradores" column from first data row header
+  html = html.replace(/(<td[^>]*>Colaboradores<\/td>\s*)?(<tr>\s*<td style="background:#7b8cde[^"]*"[^>]*>Colaboradores<\/td>)/g, '$2');
+
+  const el=document.getElementById('pauta-inner');
+  if(el) el.innerHTML=html;
+
+  const {db,doc,getDoc}=window._fb;
   getDoc(doc(db,'settings','magicNumbers')).then(snap=>{
-    if(!snap.exists()) return;
-    const value = snap.data()[MONTHS[mo]];
-    const target = document.getElementById('pauta-magic-display');
-    if(target) target.textContent = value ? formatMagicDate(value) : '-';
+    if(snap.exists()){
+      const dv=snap.data()[MONTHS[mo]];
+      const el2=document.getElementById('pauta-magic-display');
+      if(el2) el2.textContent=dv?formatMagicDate(dv):'—';
+    }
   }).catch(()=>{});
 }
 
 function openPautaCell(event, monthKey, cellKey, dateStr, memberId){
   event.stopPropagation();
-  document.querySelectorAll('.pauta-editor').forEach(el=>el.remove());
+  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
 
-  const monthData = pautaData[monthKey] || {};
-  const memberCfg = {
-    juliana: {legacyIds:['kesia']},
-    jackson: {legacyIds:[]},
-    cintia: {legacyIds:[]}
-  };
-  const legacy = (memberCfg[memberId]?.legacyIds || []).map(oldId=>monthData[oldId+'_'+dateStr]).find(Boolean);
-  const cell = monthData[cellKey] || legacy || {};
-  const clientList = Object.values(clients).filter(c=>c && c.name).sort((a,b)=>a.name.localeCompare(b.name));
+  const data = pautaData[monthKey] || {};
+  const cell = data[cellKey] || {};
+  const clientList = Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
 
   const ed = document.createElement('div');
   ed.className = 'pauta-editor';
   const rect = event.currentTarget.getBoundingClientRect();
-  ed.style.left = Math.min(rect.left, window.innerWidth - 260) + 'px';
-  ed.style.top = (rect.bottom + 4) + 'px';
+  ed.style.left = Math.min(rect.left, window.innerWidth-240)+'px';
+  ed.style.top = (rect.bottom+4)+'px';
+
+  const MEMBER_FIXED = {kesia:'PLAN',cintia:'DES',tatiane:'PDF'};
+  const fixedType = MEMBER_FIXED[memberId];
   ed.innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">${dateStr} - ${(memberCfg[memberId]?.label||memberId)}</div>
+    <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">${dateStr} — ${memberId.charAt(0).toUpperCase()+memberId.slice(1)}</div>
+    ${!fixedType?`<select class="fs" id="pe-type" style="margin-bottom:8px">
+        <option value="">— Limpar —</option>
+        ${['PLAN','REV'].map(t=>`<option value="${t}" ${cell.type===t?'selected':''}>${t}</option>`).join('')}
+      </select>`:`<input type="hidden" id="pe-type" value="${fixedType}">`}
     <select class="fs" id="pe-client" style="margin-bottom:10px">
-      <option value="">- Sem cliente -</option>
+      <option value="">— Sem cliente —</option>
       ${clientList.map(cl=>`<option value="${cl.id}" ${cell.client===cl.id?'selected':''}>${cl.name}</option>`).join('')}
     </select>
     <div class="brow">
       <button class="btn btn-p btn-sm" onclick="savePautaCell('${monthKey}','${cellKey}')">Salvar</button>
       <button class="btn btn-d btn-sm" onclick="clearPautaCell('${monthKey}','${cellKey}')">Limpar</button>
-      <button class="btn btn-s btn-sm" onclick="this.closest('.pauta-editor').remove()">Ã—</button>
+      <button class="btn btn-s btn-sm" onclick="this.closest('.pauta-editor').remove()">×</button>
     </div>`;
 
   document.body.appendChild(ed);
   document.addEventListener('click', function handler(e){
-    if(!ed.contains(e.target)){
-      ed.remove();
-      document.removeEventListener('click', handler);
-    }
+    if(!ed.contains(e.target)){ ed.remove(); document.removeEventListener('click',handler); }
   });
 }
 
 async function savePautaCell(monthKey, cellKey){
-  const select = document.getElementById('pe-client');
-  const clientId = select?.value || '';
-  const [memberId, dateStr] = cellKey.split('_');
+  const type = document.getElementById('pe-type').value;
+  const client = document.getElementById('pe-client').value;
+  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
   if(!pautaData[monthKey]) pautaData[monthKey] = {};
-
-  if(memberId === 'juliana'){
-    delete pautaData[monthKey]['kesia_'+dateStr];
-  }
-
-  if(!clientId){
-    delete pautaData[monthKey][cellKey];
-  }else{
-    const type = memberId === 'juliana' ? 'PLAN' : (memberId === 'jackson' ? 'REV' : 'DES');
-    pautaData[monthKey][cellKey] = { client: clientId, type };
-  }
-
-  document.querySelectorAll('.pauta-editor').forEach(el=>el.remove());
+  if(type){ pautaData[monthKey][cellKey] = {type,client}; }
+  else { delete pautaData[monthKey][cellKey]; }
   await savePautaToFirestore(monthKey);
   const [yr,mo] = monthKey.split('-').map(Number);
-  renderPautaGrid(yr, mo-1);
+  renderPautaGrid(yr, mo-1, monthKey);
 }
 
 async function clearPautaCell(monthKey, cellKey){
-  document.querySelectorAll('.pauta-editor').forEach(el=>el.remove());
-  const [memberId, dateStr] = cellKey.split('_');
-  if(pautaData[monthKey]){
-    delete pautaData[monthKey][cellKey];
-    if(memberId === 'juliana'){
-      delete pautaData[monthKey]['kesia_'+dateStr];
-    }
-  }
+  document.querySelectorAll('.pauta-editor').forEach(e=>e.remove());
+  if(pautaData[monthKey]) delete pautaData[monthKey][cellKey];
   await savePautaToFirestore(monthKey);
   const [yr,mo] = monthKey.split('-').map(Number);
-  renderPautaGrid(yr, mo-1);
+  renderPautaGrid(yr, mo-1, monthKey);
 }
 
 async function toggleFeriado(monthKey, dateStr){
   if(!pautaData[monthKey]) pautaData[monthKey] = {};
-  const key = 'feriado_'+dateStr;
-  if(pautaData[monthKey][key]) delete pautaData[monthKey][key];
-  else pautaData[monthKey][key] = true;
+  const fk = 'feriado_'+dateStr;
+  if(pautaData[monthKey][fk]) delete pautaData[monthKey][fk];
+  else pautaData[monthKey][fk] = true;
   await savePautaToFirestore(monthKey);
   const [yr,mo] = monthKey.split('-').map(Number);
-  renderPautaGrid(yr, mo-1);
+  renderPautaGrid(yr, mo-1, monthKey);
+}
+
+async function savePautaToFirestore(monthKey){
+  const {db,doc,setDoc} = window._fb;
+  try{
+    await setDoc(doc(db,'pauta',monthKey), pautaData[monthKey]||{});
+  }catch(e){ showToast('Erro ao salvar pauta: '+e.message,'err'); }
 }
 
 async function exportPautaImg(){
@@ -5214,397 +4773,31 @@ async function exportPautaImg(){
   }
 }
 
-// ===== GERADOR DE PAUTA AUTOMÁTICA =====
-const FERIADOS_NACIONAIS = {
-  '01-01': 'Confraternização Universal',
-  '04-21': 'Tiradentes',
-  '05-01': 'Dia do Trabalho',
-  '09-07': 'Independência',
-  '10-12': 'N. Sra. Aparecida',
-  '11-02': 'Finados',
-  '11-15': 'Proclamação da República',
-  '12-25': 'Natal'
-};
-
-let _gerarPautaConfig = {
-  inicioCiclo: '',
-  magicNumber: '',
-  clientes: [],
-  feriadosExtra: [],
-  responsaveis: { PLAN: 'juliana', REV: 'jackson', DES: 'cintia' }
-};
-
-function updateGerarPautaConfig(field, value){
-  _gerarPautaConfig[field] = value;
-  renderGerarPautaModal();
-}
-
-function openGerarPautaModal(){
-  try{
-    const clientMap = (typeof clients !== 'undefined' && clients) ? clients : {};
-    const comercialMap = (typeof _comClientes !== 'undefined' && _comClientes) ? _comClientes : {};
-    const baseClients = Object.entries(clientMap).map(([id,c])=>({ id:(c && c.id) || id, ...(c||{}) }));
-    const ativos = Object.entries(comercialMap).map(([id,c])=>({ id:(c && c.id) || id, ...(c||{}) })).filter(c=>c && c.name && c.status === 'ativo');
-    const mergedMap = new Map();
-    [...baseClients, ...ativos].forEach(c=>{ if(c && c.id && c.name) mergedMap.set(c.id, c); });
-    const listaClientes = Array.from(mergedMap.values()).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-    if(!listaClientes.length){
-      showToast('Nenhum cliente encontrado para gerar a pauta.','err');
-      return;
-    }
-
-    const currentIds = (_gerarPautaConfig.clientes || []).map(c=>c.id).join('|');
-    const nextIds = listaClientes.map(c=>c.id).join('|');
-    if(!_gerarPautaConfig.clientes.length || currentIds !== nextIds){
-      _gerarPautaConfig.clientes = listaClientes.map((c,i)=>({
-        id: c.id,
-        name: c.name || 'Cliente',
-        order: i + 1,
-        plan: Number(c.plan) || 1,
-        rev: Number(c.rev) || 1,
-        des: Number(c.des) || 2
-      }));
-    }
-
-    if(!_gerarPautaConfig.inicioCiclo){
-      const hoje = new Date();
-      _gerarPautaConfig.inicioCiclo = hoje.toISOString().split('T')[0];
-    }
-    if(!_gerarPautaConfig.magicNumber){
-      const magic = new Date();
-      magic.setDate(magic.getDate() + 25);
-      _gerarPautaConfig.magicNumber = magic.toISOString().split('T')[0];
-    }
-
-    renderGerarPautaModal();
-  }catch(err){
-    console.error('Erro ao abrir Gerar Pauta:', err);
-    showToast('Erro ao abrir Gerar Pauta: ' + (err && err.message ? err.message : err),'err');
-  }
-}
-
-function renderGerarPautaModal(){
-  try{
-    const cfg = _gerarPautaConfig || {};
-    cfg.clientes = Array.isArray(cfg.clientes) ? cfg.clientes : [];
-    cfg.feriadosExtra = Array.isArray(cfg.feriadosExtra) ? cfg.feriadosExtra : [];
-    cfg.responsaveis = cfg.responsaveis || { PLAN:'juliana', REV:'jackson', DES:'cintia' };
-
-    const diasUteis = calcDiasUteis(cfg.inicioCiclo, cfg.magicNumber, cfg.feriadosExtra);
-    const schedulePreview = calcularCronograma(cfg);
-    const allAssignedDates = schedulePreview.flatMap(s => [...(s.planDates||[]), ...(s.revDates||[]), ...(s.desDates||[])]);
-    const lastAssignedDate = allAssignedDates.length ? new Date(Math.max(...allAssignedDates.map(d => new Date(d).getTime()))) : null;
-    const diasNecessarios = lastAssignedDate ? calcDiasUteis(cfg.inicioCiclo, lastAssignedDate.toISOString().split('T')[0], cfg.feriadosExtra) : 0;
-    const feriadosNoPeriodo = getFeriadosNoPeriodo(cfg.inicioCiclo, cfg.magicNumber);
-    const teamList = (typeof TEAM !== 'undefined' && Array.isArray(TEAM) && TEAM.length) ? TEAM : [];
-    const membros = [
-      teamList.find(t=>t.id==='juliana') || teamList.find(t=>t.id==='kesia') || {id:'juliana',name:'Juliana'},
-      teamList.find(t=>t.id==='jackson') || {id:'jackson',name:'Jackson'},
-      teamList.find(t=>t.id==='cintia') || {id:'cintia',name:'Cintia'}
-    ];
-
-    document.getElementById('gerar-pauta-modal')?.remove();
-    const modal = document.createElement('div');
-    modal.className = 'mo open';
-    modal.id = 'gerar-pauta-modal';
-    modal.innerHTML = `
-      <div class="modal" style="width:min(1240px,98vw);max-height:96vh;overflow:auto">
-        <div class="mhdr">
-          <div class="mhdr-info">
-            <div class="mtitle">Gerar Pauta do Ciclo</div>
-            <div class="mmeta">Distribua os clientes por etapa dentro do periodo operacional</div>
-          </div>
-          <button class="mclose" onclick="document.getElementById('gerar-pauta-modal')?.remove()">&times;</button>
-        </div>
-        <div class="mbody" style="padding:16px;display:flex;flex-direction:column;gap:14px">
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
-            <div class="ff"><label class="flbl">Inicio do ciclo</label><input type="date" class="fi" value="${cfg.inicioCiclo||''}" onchange="updateGerarPautaConfig('inicioCiclo',this.value)"></div>
-            <div class="ff"><label class="flbl">Magic Number</label><input type="date" class="fi" value="${cfg.magicNumber||''}" onchange="updateGerarPautaConfig('magicNumber',this.value)"></div>
-          </div>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-            <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">Responsaveis por etapa</div>
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
-              <div class="ff"><label class="flbl">PLAN</label><select class="fs" onchange="updateGerarPautaResp('PLAN',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.PLAN===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
-              <div class="ff"><label class="flbl">REV</label><select class="fs" onchange="updateGerarPautaResp('REV',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.REV===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
-              <div class="ff"><label class="flbl">DES</label><select class="fs" onchange="updateGerarPautaResp('DES',this.value)">${membros.map(m=>`<option value="${m.id}" ${cfg.responsaveis.DES===m.id?'selected':''}>${m.name}</option>`).join('')}</select></div>
-            </div>
-          </div>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
-              <div>
-                <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:8px">Feriados no periodo</div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px">${feriadosNoPeriodo.map(f=>`<span style="font-size:11px;padding:4px 10px;background:var(--red);color:#fff;border-radius:999px">${f.data} - ${f.nome}</span>`).join('') || '<span style="font-size:12px;color:var(--text3)">Nenhum feriado nacional no periodo</span>'}</div>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <input type="date" class="fi" id="gp-feriado-extra" style="width:160px">
-                <button class="btn btn-s btn-sm" onclick="addFeriadoExtra()">+ Adicionar</button>
-              </div>
-            </div>
-            ${cfg.feriadosExtra.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${cfg.feriadosExtra.map((f,i)=>`<span style="font-size:11px;padding:4px 10px;background:var(--orange);color:#fff;border-radius:999px;display:inline-flex;gap:6px;align-items:center">${f}<button style="background:none;border:none;color:#fff;cursor:pointer" onclick="removeFeriadoExtra(${i})">&times;</button></span>`).join('')}</div>` : ''}
-          </div>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div>
-            <div style="padding:6px 14px 0;font-size:11px;color:var(--text3)">A ordem abaixo define quem entra primeiro no cronograma.</div>
-            <div style="padding:10px 12px 14px;max-height:50vh;overflow-y:auto;overflow-x:hidden">
-              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
-                ${cfg.clientes.map((c,i)=>`
-                  <div style="border:1px solid var(--border);border-radius:12px;background:var(--bg2);padding:10px;display:flex;flex-direction:column;gap:10px">
-                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
-                      <div style="min-width:0">
-                        <div style="font-size:10px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.7px">Ordem ${i+1}</div>
-                        <div style="font-size:15px;font-weight:800;line-height:1.25">${c.name}</div>
-                      </div>
-                      <div style="display:flex;gap:6px;flex-shrink:0">
-                        <button class="btn btn-s btn-sm" style="padding:4px 8px" onclick="moveGpCliente(${i},-1)" ${i===0?'disabled':''}>&uarr;</button>
-                        <button class="btn btn-s btn-sm" style="padding:4px 8px" onclick="moveGpCliente(${i},1)" ${i===cfg.clientes.length-1?'disabled':''}>&darr;</button>
-                      </div>
-                    </div>
-                    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
-                      <div class="ff" style="margin:0"><label class="flbl">PLAN</label><select class="fs" onchange="updateGpClienteDias(${i},'plan',this.value)"><option value="0" ${Number(c.plan||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.plan||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.plan||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.plan||0)===3?'selected':''}>3 dias</option></select></div>
-                      <div class="ff" style="margin:0"><label class="flbl">REV</label><select class="fs" onchange="updateGpClienteDias(${i},'rev',this.value)"><option value="0" ${Number(c.rev||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.rev||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.rev||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.rev||0)===3?'selected':''}>3 dias</option></select></div>
-                      <div class="ff" style="margin:0"><label class="flbl">DES</label><select class="fs" onchange="updateGpClienteDias(${i},'des',this.value)"><option value="0" ${Number(c.des||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.des||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.des||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.des||0)===3?'selected':''}>3 dias</option></select></div>
-                    </div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:2px">
-                      <span style="font-size:11px;color:var(--text3)">Total deste cliente</span>
-                      <span style="font-size:12px;font-weight:900;color:var(--accent)">${Math.max(0,Number(c.plan)||0)+Math.max(0,Number(c.rev)||0)+Math.max(0,Number(c.des)||0)} dias</span>
-                    </div>
-                  </div>`).join('')}
-              </div>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
-            <div style="background:${diasNecessarios<=diasUteis?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)'};border:1px solid ${diasNecessarios<=diasUteis?'rgba(34,197,94,.35)':'rgba(239,68,68,.35)'};border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text3)">Dias uteis</div><div style="font-size:28px;font-weight:900">${diasUteis}</div></div>
-            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text3)">Dias ocupados</div><div style="font-size:28px;font-weight:900">${diasNecessarios}</div></div>
-            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px"><div style="font-size:11px;color:var(--text3)">Saldo</div><div style="font-size:28px;font-weight:900;color:${diasNecessarios<=diasUteis?'#22c55e':'#ef4444'}">${diasUteis-diasNecessarios}</div></div>
-          </div>
-          <div class="brow" style="justify-content:space-between;gap:10px;flex-wrap:wrap">
-            <div style="font-size:12px;color:var(--text3)">${diasNecessarios>diasUteis?'Atencao: o cronograma precisa de mais dias uteis do que o periodo possui.':'Tudo certo para gerar a pauta no periodo selecionado.'}</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-s" onclick="previewGerarPauta()">Pre-visualizar</button>
-              <button class="btn btn-p" onclick="executarGerarPauta()" ${diasNecessarios>diasUteis?'disabled style="opacity:.5;cursor:not-allowed"':''}>Gerar no calendario</button>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-  }catch(err){
-    console.error('Erro ao renderizar modal Gerar Pauta:', err);
-    showToast('Erro ao renderizar Gerar Pauta: ' + (err && err.message ? err.message : err),'err');
-  }
-}
-
-function updateGerarPautaResp(etapa, value){
-  _gerarPautaConfig.responsaveis[etapa] = value;
-}
-
-function updateGpClienteDias(idx, field, value){
-  _gerarPautaConfig.clientes[idx][field] = Math.max(0, parseInt(value,10) || 0);
-  renderGerarPautaModal();
-}
-
-function moveGpCliente(idx, dir){
-  const arr = _gerarPautaConfig.clientes || [];
-  const next = idx + dir;
-  if(next < 0 || next >= arr.length) return;
-  const current = arr[idx];
-  arr[idx] = arr[next];
-  arr[next] = current;
-  arr.forEach((item,i)=>item.order = i+1);
-  renderGerarPautaModal();
-}
-
-function addFeriadoExtra(){
-  const inp = document.getElementById('gp-feriado-extra');
-  if(!inp?.value) return;
-  if(!_gerarPautaConfig.feriadosExtra.includes(inp.value)){
-    _gerarPautaConfig.feriadosExtra.push(inp.value);
-  }
-  renderGerarPautaModal();
-}
-
-function removeFeriadoExtra(idx){
-  _gerarPautaConfig.feriadosExtra.splice(idx, 1);
-  renderGerarPautaModal();
-}
-
-function calcDiasUteis(inicio, fim, feriadosExtra){
-  if(!inicio || !fim) return 0;
-  let count = 0;
-  const d = new Date(inicio+'T00:00:00');
-  const end = new Date(fim+'T00:00:00');
-  while(d <= end){
-    const dow = d.getDay();
-    const dateStr = d.toISOString().split('T')[0];
-    const mmdd = dateStr.slice(5);
-    const isFds = dow === 0 || dow === 6;
-    const isFeriadoNacional = !!FERIADOS_NACIONAIS[mmdd];
-    const isFeriadoExtra = feriadosExtra.includes(dateStr);
-    if(!isFds && !isFeriadoNacional && !isFeriadoExtra) count++;
-    d.setDate(d.getDate() + 1);
-  }
-  return count;
-}
-
-function getFeriadosNoPeriodo(inicio, fim){
-  if(!inicio || !fim) return [];
-  const feriados = [];
-  const d = new Date(inicio+'T00:00:00');
-  const end = new Date(fim+'T00:00:00');
-  while(d <= end){
-    const dateStr = d.toISOString().split('T')[0];
-    const mmdd = dateStr.slice(5);
-    if(FERIADOS_NACIONAIS[mmdd]){
-      feriados.push({ data: d.toLocaleDateString('pt-BR'), nome: FERIADOS_NACIONAIS[mmdd] });
-    }
-    d.setDate(d.getDate() + 1);
-  }
-  return feriados;
-}
-
-function getNextDiaUtil(d, feriadosExtra){
-  const date = new Date(d);
-  while(true){
-    const dow = date.getDay();
-    const dateStr = date.toISOString().split('T')[0];
-    const mmdd = dateStr.slice(5);
-    const isFds = dow === 0 || dow === 6;
-    const isFeriadoNacional = !!FERIADOS_NACIONAIS[mmdd];
-    const isFeriadoExtra = feriadosExtra.includes(dateStr);
-    if(!isFds && !isFeriadoNacional && !isFeriadoExtra) return new Date(date);
-    date.setDate(date.getDate() + 1);
-  }
-}
-
-function addDiasUteis(startDate, dias, feriadosExtra){
-  let d = new Date(startDate);
-  let count = 0;
-  while(count < dias){
-    d.setDate(d.getDate() + 1);
-    const dow = d.getDay();
-    const dateStr = d.toISOString().split('T')[0];
-    const mmdd = dateStr.slice(5);
-    const isFds = dow === 0 || dow === 6;
-    const isFeriadoNacional = !!FERIADOS_NACIONAIS[mmdd];
-    const isFeriadoExtra = feriadosExtra.includes(dateStr);
-    if(!isFds && !isFeriadoNacional && !isFeriadoExtra) count++;
-  }
-  return d;
-}
-
-function previewGerarPauta(){
-  const existing = document.querySelector('#gerar-pauta-modal .preview-area');
-  if(existing){
-    existing.remove();
-    return;
-  }
-  const schedule = calcularCronograma(_gerarPautaConfig);
-  const fmt = arr => arr.length ? arr.map(d=>d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})).join(', ') : '-';
-  let html = '<div style="max-height:320px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html += '<tr style="background:var(--bg3)"><th style="padding:8px;text-align:left;border:1px solid var(--border)">Cliente</th><th style="padding:8px;border:1px solid var(--border)">PLAN</th><th style="padding:8px;border:1px solid var(--border)">REV</th><th style="padding:8px;border:1px solid var(--border)">DES</th></tr>';
-  schedule.forEach(item=>{
-    html += '<tr><td style="padding:8px;border:1px solid var(--border);font-weight:600">'+item.name+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#ef444422">'+fmt(item.planDates)+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#3b82f622">'+fmt(item.revDates)+'</td>';
-    html += '<td style="padding:8px;border:1px solid var(--border);text-align:center;background:#facc1522">'+fmt(item.desDates)+'</td></tr>';
-  });
-  html += '</table></div>';
-  const wrapper = document.createElement('div');
-  wrapper.className = 'preview-area';
-  wrapper.innerHTML = '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px"><div style="font-size:13px;font-weight:700">Pre-visualizacao do cronograma</div><button class="btn btn-s btn-sm" onclick="this.closest(`.preview-area`)?.remove()">Fechar</button></div>'+html+'</div>';
-  const body = document.querySelector('#gerar-pauta-modal .mbody');
-  if(body) body.appendChild(wrapper);
-}
-
-function calcularCronograma(cfg){
-  const schedule = [];
-  const feriados = Array.isArray(cfg.feriadosExtra) ? cfg.feriadosExtra : [];
-  const cycleStart = getNextDiaUtil(new Date(cfg.inicioCiclo+'T00:00:00'), feriados);
-  const memberBusy = {};
-  const dateKey = value => new Date(value).toISOString().split('T')[0];
-
-  const reserve = (memberId, earliestDate, days) => {
-    const total = Math.max(0, Number(days) || 0);
-    if(!memberId || !total) return [];
-    if(!memberBusy[memberId]) memberBusy[memberId] = new Set();
-    let cursor = getNextDiaUtil(new Date(earliestDate), feriados);
-    const out = [];
-    while(out.length < total){
-      const key = dateKey(cursor);
-      if(!memberBusy[memberId].has(key)){
-        memberBusy[memberId].add(key);
-        out.push(new Date(cursor));
-      }
-      if(out.length < total){
-        cursor = addDiasUteis(cursor, 1, feriados);
-      }
-    }
-    return out;
-  };
-
-  (cfg.clientes || []).forEach(cliente=>{
-    const item = { id: cliente.id, name: cliente.name, planDates: [], revDates: [], desDates: [] };
-    item.planDates = reserve(cfg.responsaveis?.PLAN, cycleStart, cliente.plan);
-    const planEnd = item.planDates.length ? item.planDates[item.planDates.length-1] : cycleStart;
-    item.revDates = reserve(cfg.responsaveis?.REV, planEnd, cliente.rev);
-    const revEnd = item.revDates.length ? item.revDates[item.revDates.length-1] : planEnd;
-    item.desDates = reserve(cfg.responsaveis?.DES, revEnd, cliente.des);
-    schedule.push(item);
-  });
-
-  return schedule;
-}
-
-async function executarGerarPauta(){
-  try{
-    const cfg = _gerarPautaConfig;
-    if(!cfg?.inicioCiclo || !cfg?.magicNumber){
-      showToast('Defina o inicio do ciclo e o Magic Number','err');
-      return;
-    }
-    const schedule = calcularCronograma(cfg);
-    if(!schedule.length){
-      showToast('Nenhum cliente para gerar na pauta','err');
-      return;
-    }
-    if(!confirm('Isso vai gerar '+schedule.length+' clientes no calendario de pauta. Continuar?')) return;
-
-    showToast('Gerando pauta...','inf');
-    const {db, doc, setDoc, getDoc} = window._fb;
-    const byMonth = {};
-    const pushStage = (date, memberId, type, clientId) => {
-      if(!date || !memberId) return;
-      const dateStr = date.toISOString().split('T')[0];
-      const monthKey = dateStr.slice(0,7);
-      if(!byMonth[monthKey]) byMonth[monthKey] = {};
-      byMonth[monthKey][memberId+'_'+dateStr] = { client: clientId, type };
-    };
-
-    schedule.forEach(item=>{
-      (item.planDates || []).forEach(date=>pushStage(date, cfg.responsaveis.PLAN, 'PLAN', item.id));
-      (item.revDates || []).forEach(date=>pushStage(date, cfg.responsaveis.REV, 'REV', item.id));
-      (item.desDates || []).forEach(date=>pushStage(date, cfg.responsaveis.DES, 'DES', item.id));
-    });
-
-    for(const monthKey of Object.keys(byMonth)){
-      const snap = await getDoc(doc(db,'pauta',monthKey));
-      const existing = snap.exists() ? snap.data() : {};
-      await setDoc(doc(db,'pauta',monthKey), { ...existing, ...byMonth[monthKey], magicNumber: cfg.magicNumber });
-    }
-
-    document.getElementById('gerar-pauta-modal')?.remove();
-    await loadPautaMonth();
-    showToast('Pauta gerada com sucesso!','ok');
-  }catch(err){
-    console.error('Erro ao gerar pauta:', err);
-    showToast('Erro ao gerar pauta: ' + (err && err.message ? err.message : err),'err');
-  }
+// ===== RELATÓRIO MENSAL POR CLIENTE =====
 let relDate = new Date();
-function changeRelMonth(delta){ relDate = new Date(relDate.getFullYear(), relDate.getMonth()+delta, 1); swCT('relatorio'); }
-async function renderRelatorio(container){ await buildRelatorio(container); }
+
+async function renderRelatorio(container){
+  container.setAttribute('style','flex:1;overflow-y:auto;display:block');
+  container.innerHTML = '<div style="padding:20px"><div class="loading"><div class="spinner"></div> Carregando...</div></div>';
+  await buildRelatorio(container);
+}
+
+function changeRelMonth(d){
+  relDate.setMonth(relDate.getMonth()+d);
+  const ct = document.getElementById('ct');
+  if(ct) buildRelatorio(ct);
+}
+
 async function buildRelatorio(container){
-  const yr = relDate.getFullYear(), mo = relDate.getMonth(), mn = MONTHS[mo];
-  const {db, collection, getDocs, query, where} = window._fb;
   try{
+    const yr = relDate.getFullYear();
+    const mo = relDate.getMonth();
+    const mn = MONTHS[mo];
+    const {db, collection, getDocs, query, where} = window._fb;
+    const client = clients[currentClientId];
+    if(!client){ container.innerHTML='<div style="padding:20px;color:var(--text3)">Cliente não encontrado.</div>'; return; }
+
+    // Load packs and posts
     const [packsSnap, postsSnap] = await Promise.all([
       getDocs(query(collection(db,'packs'), where('clientId','==',currentClientId))),
       getDocs(query(collection(db,'posts'), where('clientId','==',currentClientId)))
@@ -6410,7 +5603,6 @@ async function renderComercial(){
     <div class="ptabs">
       <button class="ptab active" id="ctab-dash"    onclick="swCom('dash',this)">📊 Dashboard</button>
       <button class="ptab"        id="ctab-clientes" onclick="swCom('clientes',this)">🤝 Clientes</button>
-      <button class="ptab"        id="ctab-contratos" onclick="swCom('contratos',this)">📝 Contratos</button>
       <button class="ptab"        id="ctab-custos" onclick="swCom('custos',this)">💸 Custos</button>
       <button class="ptab"        id="ctab-pipeline" onclick="swCom('pipeline',this)">📋 Pipeline</button>
     </div>
@@ -6452,7 +5644,6 @@ function renderComTab(tab){
   if(!el) return;
   if(tab==='dash')     renderComDash(el);
   else if(tab==='clientes') renderComClientes(el);
-  else if(tab==='contratos') renderComContratos(el);
   else if(tab==='custos') renderComCustos(el);
   else if(tab==='pipeline') renderComPipeline(el);
 }
@@ -6758,413 +5949,6 @@ async function deleteComCliente(){
   renderComTab('clientes');
 }
 
-// ── CONTRATOS ──
-const CONTRATO_ENTREGAVEIS_DEFAULT = [
-  { id: 'e1', text: 'Execução do Planejamento Macro', checked: true },
-  { id: 'e2', text: 'Planejamento mensal de conteúdo', checked: true },
-  { id: 'e3', text: 'Elaboração dos textos dos conteúdos (copy)', checked: true },
-  { id: 'e4', text: 'Design dos carrosseis', checked: true },
-  { id: 'e5', text: 'Edição de vídeos', checked: true },
-  { id: 'e6', text: 'Gravação de vídeos (conforme planejamento)', checked: false },
-  { id: 'e7', text: 'Gerenciamento do Direct (mensagens diretas)', checked: false },
-  { id: 'e8', text: 'Gestão e produção de conteúdo para site', checked: false },
-  { id: 'e9', text: 'Suporte e acompanhamento via WhatsApp', checked: true },
-  { id: 'e10', text: 'Monitoramento de métricas', checked: true },
-  { id: 'e11', text: 'Agendamento das publicações', checked: true }
-];
-
-let _contratoData = {
-  contratante: { nome: '', cnpj: '', responsavel: '', cpf: '', email: '', telefone: '', endereco: '' },
-  canais: '',
-  entregaveis: JSON.parse(JSON.stringify(CONTRATO_ENTREGAVEIS_DEFAULT)),
-  entregaveisCustom: '',
-  valor: '',
-  vencimento: '15',
-  inicio: '',
-  duracao: '6',
-  fim: ''
-};
-
-function renderComContratos(el){
-  // Calcular data fim automaticamente
-  if(_contratoData.inicio && _contratoData.duracao){
-    const d = new Date(_contratoData.inicio+'T00:00:00');
-    d.setMonth(d.getMonth() + parseInt(_contratoData.duracao));
-    _contratoData.fim = d.toISOString().split('T')[0];
-  }
-
-  el.innerHTML = `
-    <div class="dcard">
-      <div class="dcard-hdr">📝 Gerador de Contratos</div>
-      <div class="dcard-body">
-        <p style="font-size:13px;color:var(--text3);margin-bottom:16px">Preencha os dados abaixo para gerar o contrato de prestação de serviços da Aluma.</p>
-        
-        <!-- CONTRATANTE -->
-        <div style="background:var(--bg3);padding:16px;border-radius:var(--r);margin-bottom:16px">
-          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">👤 DADOS DO CONTRATANTE</div>
-          <div class="fgrid">
-            <div class="ff"><label class="flbl">Nome / Razão Social *</label><input class="fi" id="ct-nome" value="${_contratoData.contratante.nome}" onchange="updateContratoField('contratante','nome',this.value)" placeholder="Hospital Beneficente..."></div>
-            <div class="ff"><label class="flbl">CNPJ *</label><input class="fi" id="ct-cnpj" value="${_contratoData.contratante.cnpj}" onchange="updateContratoField('contratante','cnpj',this.value)" placeholder="00.000.000/0001-00"></div>
-            <div class="ff"><label class="flbl">Responsável *</label><input class="fi" id="ct-responsavel" value="${_contratoData.contratante.responsavel}" onchange="updateContratoField('contratante','responsavel',this.value)" placeholder="Nome completo"></div>
-            <div class="ff"><label class="flbl">CPF do Responsável *</label><input class="fi" id="ct-cpf" value="${_contratoData.contratante.cpf}" onchange="updateContratoField('contratante','cpf',this.value)" placeholder="000.000.000-00"></div>
-            <div class="ff"><label class="flbl">Email</label><input class="fi" id="ct-email" value="${_contratoData.contratante.email}" onchange="updateContratoField('contratante','email',this.value)" placeholder="contato@empresa.com"></div>
-            <div class="ff"><label class="flbl">Telefone</label><input class="fi" id="ct-telefone" value="${_contratoData.contratante.telefone}" onchange="updateContratoField('contratante','telefone',this.value)" placeholder="+55 (00) 00000-0000"></div>
-            <div class="ff" style="grid-column:span 2"><label class="flbl">Endereço completo</label><input class="fi" id="ct-endereco" value="${_contratoData.contratante.endereco}" onchange="updateContratoField('contratante','endereco',this.value)" placeholder="Rua, número, bairro, cidade/UF, CEP"></div>
-          </div>
-        </div>
-
-        <!-- VIGÊNCIA -->
-        <div style="background:var(--bg3);padding:16px;border-radius:var(--r);margin-bottom:16px">
-          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">📅 VIGÊNCIA DO CONTRATO</div>
-          <div class="fgrid">
-            <div class="ff"><label class="flbl">Data de início *</label><input type="date" class="fi" id="ct-inicio" value="${_contratoData.inicio}" onchange="updateContratoField('root','inicio',this.value);renderComContratos(document.getElementById('com-content'))"></div>
-            <div class="ff"><label class="flbl">Duração *</label>
-              <select class="fi" id="ct-duracao" onchange="updateContratoField('root','duracao',this.value);renderComContratos(document.getElementById('com-content'))">
-                <option value="3" ${_contratoData.duracao==='3'?'selected':''}>3 meses</option>
-                <option value="6" ${_contratoData.duracao==='6'?'selected':''}>6 meses</option>
-                <option value="12" ${_contratoData.duracao==='12'?'selected':''}>12 meses</option>
-              </select>
-            </div>
-            <div class="ff"><label class="flbl">Data de término</label><input type="date" class="fi" id="ct-fim" value="${_contratoData.fim}" disabled style="opacity:.7"></div>
-          </div>
-        </div>
-
-        <!-- INVESTIMENTO -->
-        <div style="background:var(--bg3);padding:16px;border-radius:var(--r);margin-bottom:16px">
-          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">💰 INVESTIMENTO</div>
-          <div class="fgrid">
-            <div class="ff"><label class="flbl">Valor mensal (R$) *</label><input type="number" class="fi" id="ct-valor" value="${_contratoData.valor}" onchange="updateContratoField('root','valor',this.value)" placeholder="3000"></div>
-            <div class="ff"><label class="flbl">Dia de vencimento</label>
-              <select class="fi" id="ct-vencimento" onchange="updateContratoField('root','vencimento',this.value)">
-                <option value="1" ${_contratoData.vencimento==='1'?'selected':''}>Dia 1</option>
-                <option value="5" ${_contratoData.vencimento==='5'?'selected':''}>Dia 5</option>
-                <option value="10" ${_contratoData.vencimento==='10'?'selected':''}>Dia 10</option>
-                <option value="15" ${_contratoData.vencimento==='15'?'selected':''}>Dia 15</option>
-                <option value="20" ${_contratoData.vencimento==='20'?'selected':''}>Dia 20</option>
-                <option value="25" ${_contratoData.vencimento==='25'?'selected':''}>Dia 25</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- ESCOPO -->
-        <div style="background:var(--bg3);padding:16px;border-radius:var(--r);margin-bottom:16px">
-          <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px">🎯 ESCOPO DO TRABALHO</div>
-          
-          <div class="ff" style="margin-bottom:14px">
-            <label class="flbl">Canais contemplados *</label>
-            <input class="fi" id="ct-canais" value="${_contratoData.canais}" onchange="updateContratoField('root','canais',this.value)" placeholder="Instagram e LinkedIn da Empresa X">
-          </div>
-
-          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">Entregáveis (selecione os que se aplicam):</div>
-          <div style="display:grid;gap:8px;margin-bottom:14px">
-            ${_contratoData.entregaveis.map((e,i)=>`
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text)">
-                <input type="checkbox" ${e.checked?'checked':''} onchange="toggleContratoEntregavel(${i})">
-                <span>${e.text}</span>
-              </label>
-            `).join('')}
-          </div>
-
-          <div class="ff">
-            <label class="flbl">Entregáveis adicionais (opcional)</label>
-            <textarea class="fi" id="ct-custom" rows="3" onchange="updateContratoField('root','entregaveisCustom',this.value)" placeholder="Descreva aqui entregáveis específicos que não estão na lista acima...">${_contratoData.entregaveisCustom}</textarea>
-          </div>
-        </div>
-
-        <!-- AÇÕES -->
-        <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn btn-s" onclick="resetContratoForm()">🗑 Limpar</button>
-          <button class="btn btn-p" onclick="gerarContratoPDF()">📄 Gerar PDF do Contrato</button>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function updateContratoField(section, field, value){
-  if(section === 'contratante'){
-    _contratoData.contratante[field] = value;
-  } else {
-    _contratoData[field] = value;
-  }
-}
-
-function toggleContratoEntregavel(idx){
-  _contratoData.entregaveis[idx].checked = !_contratoData.entregaveis[idx].checked;
-}
-
-function resetContratoForm(){
-  if(!confirm('Limpar todos os campos do contrato?')) return;
-  _contratoData = {
-    contratante: { nome: '', cnpj: '', responsavel: '', cpf: '', email: '', telefone: '', endereco: '' },
-    canais: '',
-    entregaveis: JSON.parse(JSON.stringify(CONTRATO_ENTREGAVEIS_DEFAULT)),
-    entregaveisCustom: '',
-    valor: '',
-    vencimento: '15',
-    inicio: '',
-    duracao: '6',
-    fim: ''
-  };
-  renderComContratos(document.getElementById('com-content'));
-  showToast('Formulário limpo','inf');
-}
-
-function gerarContratoPDF(){
-  const ct = _contratoData;
-  
-  // Validações
-  if(!ct.contratante.nome || !ct.contratante.cnpj || !ct.contratante.responsavel || !ct.contratante.cpf){
-    showToast('Preencha os dados obrigatórios do contratante','err');
-    return;
-  }
-  if(!ct.inicio || !ct.valor || !ct.canais){
-    showToast('Preencha início, valor e canais','err');
-    return;
-  }
-
-  const entregaveisSelecionados = ct.entregaveis.filter(e=>e.checked);
-  if(!entregaveisSelecionados.length && !ct.entregaveisCustom.trim()){
-    showToast('Selecione pelo menos um entregável','err');
-    return;
-  }
-
-  showToast('Gerando contrato...','inf');
-
-  // Formatar dados
-  const inicioDate = new Date(ct.inicio+'T00:00:00');
-  const fimDate = new Date(ct.fim+'T00:00:00');
-  const inicioStr = inicioDate.toLocaleDateString('pt-BR');
-  const fimStr = fimDate.toLocaleDateString('pt-BR');
-  const duracaoTexto = ct.duracao === '3' ? '03 (três)' : ct.duracao === '6' ? '06 (seis)' : '12 (doze)';
-  const valorFmt = parseFloat(ct.valor).toLocaleString('pt-BR',{minimumFractionDigits:2});
-  const hoje = new Date();
-  const hojeStr = hoje.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-
-  // CSS do PDF
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:'Inter',Arial,sans-serif;font-size:11px;line-height:1.6;color:#1a1a2e;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    @page{size:A4;margin:20mm 18mm;}
-    .page{page-break-after:always;}
-    .page:last-child{page-break-after:auto;}
-    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #8483ff;}
-    .logo{font-size:24px;font-weight:800;color:#8483ff;}
-    .logo-sub{font-size:9px;letter-spacing:2px;color:#666;text-transform:uppercase;}
-    .tag{background:#8483ff;color:#fff;font-size:9px;font-weight:700;padding:4px 12px;border-radius:4px;letter-spacing:1px;}
-    h1{font-size:18px;font-weight:700;color:#1a1a2e;margin-bottom:6px;}
-    h2{font-size:14px;font-weight:700;color:#8483ff;margin:20px 0 12px;padding-bottom:6px;border-bottom:1px solid #e8e8f0;}
-    h3{font-size:12px;font-weight:700;color:#1a1a2e;margin:14px 0 8px;}
-    .section{background:#f8f8fc;padding:14px;border-radius:8px;margin-bottom:14px;}
-    .section-title{font-size:11px;font-weight:700;color:#8483ff;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-    .party{padding:12px;background:#fff;border-radius:6px;border:1px solid #e8e8f0;}
-    .party-tag{font-size:8px;font-weight:700;color:#fff;background:#8483ff;padding:2px 8px;border-radius:3px;display:inline-block;margin-bottom:8px;}
-    .party-name{font-size:13px;font-weight:700;color:#1a1a2e;margin-bottom:4px;}
-    .party-info{font-size:10px;color:#666;line-height:1.5;}
-    .clause{margin-bottom:12px;}
-    .clause-num{font-weight:700;color:#8483ff;margin-right:4px;}
-    .highlight{background:#8483ff22;padding:10px 12px;border-radius:6px;border-left:3px solid #8483ff;margin:10px 0;}
-    .list{margin:8px 0 8px 16px;}
-    .list li{margin-bottom:4px;}
-    .valor-box{background:#1a1a2e;color:#fff;padding:16px;border-radius:8px;text-align:center;margin:14px 0;}
-    .valor-box .valor{font-size:28px;font-weight:800;color:#8483ff;}
-    .valor-box .valor-sub{font-size:10px;color:#aaa;margin-top:4px;}
-    .footer{margin-top:30px;padding-top:16px;border-top:1px solid #e8e8f0;}
-    .sign-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;}
-    .sign-box{text-align:center;}
-    .sign-line{border-top:1px solid #1a1a2e;padding-top:8px;margin-top:50px;}
-    .sign-name{font-weight:600;font-size:11px;}
-    .sign-cpf{font-size:9px;color:#666;}
-    .legal-note{font-size:9px;color:#888;margin-top:20px;text-align:center;font-style:italic;}
-  `;
-
-  // Gerar lista de entregáveis
-  const entregaveisHtml = entregaveisSelecionados.map((e,i)=>`
-    <li><strong>${i+1}. ${e.text.split(':')[0]}:</strong> ${getEntregavelDescricao(e.id)}</li>
-  `).join('');
-
-  const customHtml = ct.entregaveisCustom.trim() ? `
-    <li><strong>${entregaveisSelecionados.length+1}. Serviços adicionais:</strong> ${ct.entregaveisCustom}</li>
-  ` : '';
-
-  // HTML do contrato
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Contrato - ${ct.contratante.nome}</title><style>${css}</style></head><body>
-
-<!-- PÁGINA 1 -->
-<div class="page">
-  <div class="header">
-    <div>
-      <div class="logo">⚡ aluma</div>
-      <div class="logo-sub">Marketing de Conteúdo</div>
-    </div>
-    <div class="tag">CONTRATO</div>
-  </div>
-
-  <h1>Contrato de Prestação de Serviços para Gerenciamento de Redes Sociais</h1>
-  <p style="color:#666;margin-bottom:20px">Instrumento particular de prestação de serviços que entre si celebram:</p>
-
-  <div class="grid">
-    <div class="party">
-      <div class="party-tag">CONTRATADA</div>
-      <div class="party-name">44.922.705 JACKSON FREIRES GOMES</div>
-      <div class="party-info">
-        CNPJ: 44.922.705/0001-31<br>
-        Responsável: Jackson Freires Gomes<br>
-        CPF: 450.870.078-05<br>
-        Email: alumastudio.sm@gmail.com<br>
-        Tel: +55 (19) 99785-0756<br>
-        Rua Santina Martello Matarazzo, Bairro Mariluz 1, São Pedro/SP, CEP 13520-000
-      </div>
-    </div>
-    <div class="party">
-      <div class="party-tag">CONTRATANTE</div>
-      <div class="party-name">${ct.contratante.nome}</div>
-      <div class="party-info">
-        CNPJ: ${ct.contratante.cnpj}<br>
-        Responsável: ${ct.contratante.responsavel}<br>
-        CPF: ${ct.contratante.cpf}<br>
-        ${ct.contratante.email?`Email: ${ct.contratante.email}<br>`:''}
-        ${ct.contratante.telefone?`Tel: ${ct.contratante.telefone}<br>`:''}
-        ${ct.contratante.endereco||''}
-      </div>
-    </div>
-  </div>
-
-  <p style="margin-top:16px;font-size:10px;color:#666">As partes concordam que este contrato pode ser assinado eletronicamente com validade jurídica assegurada, nos termos da Lei n. 14.063/20.</p>
-
-  <h2>1. Objeto do Contrato</h2>
-  <p>O presente instrumento tem por objeto a prestação de serviços de criação, desenvolvimento, planejamento estratégico e gerenciamento de conteúdo para redes sociais, conforme escopo detalhado na Cláusula 3.</p>
-
-  <h2>2. Vigência</h2>
-  <div class="highlight">
-    <p><strong>Início:</strong> ${inicioStr}</p>
-    <p><strong>Duração:</strong> ${duracaoTexto} meses</p>
-    <p><strong>Término previsto:</strong> ${fimStr}</p>
-  </div>
-  <p>O presente contrato tem vigência a partir de <strong>${inicioStr}</strong>, data em que se inicia formalmente a prestação dos serviços contratados. A assinatura poderá ocorrer em data anterior, tendo como finalidade formalizar o acordo entre as partes e viabilizar atividades preparatórias.</p>
-  <p style="margin-top:8px">O período contratual inicial será de <strong>${duracaoTexto} meses</strong>, podendo ser renovado mediante acordo expresso entre as partes, por igual período ou conforme novas condições a serem formalizadas em aditivo contratual.</p>
-
-  <h2>3. Escopo do Trabalho</h2>
-  <p><strong>Canais contemplados:</strong> ${ct.canais}</p>
-  <p style="margin-top:10px">A CONTRATADA prestará os seguintes serviços:</p>
-  <ul class="list">
-    ${entregaveisHtml}
-    ${customHtml}
-  </ul>
-</div>
-
-<!-- PÁGINA 2 -->
-<div class="page">
-  <div class="header">
-    <div>
-      <div class="logo">⚡ aluma</div>
-      <div class="logo-sub">Marketing de Conteúdo</div>
-    </div>
-    <div class="tag">CONTRATO - PÁG. 2</div>
-  </div>
-
-  <h2>4. Diretrizes do Trabalho</h2>
-  <p><span class="clause-num">4.1.</span> Todo o conteúdo será desenvolvido com base na estratégia macro previamente alinhada com a CONTRATANTE.</p>
-  <p><span class="clause-num">4.2.</span> A CONTRATADA disponibilizará até o dia 25 de cada mês o planejamento de conteúdo completo referente ao mês subsequente.</p>
-  <p><span class="clause-num">4.3.</span> O CONTRATANTE compreende que sua participação é fundamental em todo o processo, aprovando conteúdos, fornecendo fotos e gravando vídeos quando necessário.</p>
-  <p><span class="clause-num">4.4.</span> Demandas adicionais fora do escopo previsto deverão ser solicitadas com antecedência mínima de 15 dias úteis.</p>
-
-  <h2>5. Investimento</h2>
-  <div class="valor-box">
-    <div class="valor">R$ ${valorFmt}</div>
-    <div class="valor-sub">Valor mensal pelos serviços prestados</div>
-  </div>
-  <p><span class="clause-num">5.1.</span> A primeira mensalidade será devida em <strong>${inicioStr}</strong>. As demais mensalidades vencem todo dia <strong>${ct.vencimento}</strong> de cada mês.</p>
-  <p><span class="clause-num">5.2.</span> O pagamento será realizado via plataforma Asaas (PIX/Boleto), conforme cobranças enviadas ao email e/ou WhatsApp do CONTRATANTE.</p>
-  <p><span class="clause-num">5.3.</span> O atraso superior a 30 dias autoriza o rompimento do contrato, aplicação de juros de mora de 1% ao mês, além de multa de 5% do valor em atraso.</p>
-
-  <h2>6. Permanência e Cancelamento</h2>
-  <p><span class="clause-num">6.1.</span> Caso qualquer das partes deseje encerrar o contrato antes do término da vigência, será aplicada multa compensatória equivalente a 30% do valor total restante.</p>
-  <p><span class="clause-num">6.2.</span> Após renovação, em caso de rompimento sem motivo justo, será devida multa correspondente a uma mensalidade.</p>
-  <p><span class="clause-num">6.3.</span> Alterações no escopo podem ser realizadas mediante aditivo contratual.</p>
-
-  <h2>7. Confidencialidade</h2>
-  <p>Este contrato não impede que a CONTRATADA trabalhe para outras empresas do mesmo ramo. Contudo, todas as informações do negócio da CONTRATANTE são confidenciais e serão tratadas com sigilo.</p>
-
-  <h2>8. Proteção de Dados</h2>
-  <p><span class="clause-num">8.1.</span> O CONTRATANTE declara expresso consentimento para que a CONTRATADA colete, trate e compartilhe os dados necessários ao cumprimento do contrato, nos termos da LGPD.</p>
-  <p><span class="clause-num">8.2.</span> Os ativos provenientes do serviço (pixel, lista de emails, leads) são de propriedade da CONTRATANTE.</p>
-</div>
-
-<!-- PÁGINA 3 -->
-<div class="page">
-  <div class="header">
-    <div>
-      <div class="logo">⚡ aluma</div>
-      <div class="logo-sub">Marketing de Conteúdo</div>
-    </div>
-    <div class="tag">CONTRATO - PÁG. 3</div>
-  </div>
-
-  <h2>9. Disposições Gerais</h2>
-  <p><span class="clause-num">9.1.</span> A CONTRATADA não se responsabiliza pelo mau funcionamento ou sanções das plataformas, sobretudo nos casos em que advertiu o cliente.</p>
-  <p><span class="clause-num">9.2.</span> A tolerância com relação ao descumprimento de qualquer termo não será considerada como aceitação em termos diferentes.</p>
-  <p><span class="clause-num">9.3.</span> Não existe subordinação ou vínculo trabalhista entre as partes.</p>
-  <p><span class="clause-num">9.4.</span> Qualquer mudança de endereço, email ou WhatsApp deve ser informada, sob pena de se presumirem recebidas as comunicações.</p>
-  <p><span class="clause-num">9.5.</span> Este contrato é título executivo extrajudicial, nos termos do artigo 784, III, §4º do Código de Processo Civil.</p>
-  <p><span class="clause-num">9.6.</span> Fica eleito o foro da Comarca de São Pedro/SP para dirimir quaisquer controvérsias.</p>
-
-  <div class="footer">
-    <p style="text-align:center;font-weight:600">São Pedro, ${hojeStr}.</p>
-    
-    <div class="sign-grid">
-      <div class="sign-box">
-        <div class="sign-line">
-          <div class="sign-name">Jackson Freires Gomes</div>
-          <div class="sign-cpf">CPF: 450.870.078-05</div>
-          <div class="sign-cpf">CONTRATADA</div>
-        </div>
-      </div>
-      <div class="sign-box">
-        <div class="sign-line">
-          <div class="sign-name">${ct.contratante.responsavel}</div>
-          <div class="sign-cpf">CPF: ${ct.contratante.cpf}</div>
-          <div class="sign-cpf">CONTRATANTE</div>
-        </div>
-      </div>
-    </div>
-
-    <p class="legal-note">Este documento foi gerado eletronicamente e possui validade jurídica nos termos da Lei nº 14.063/2020.</p>
-  </div>
-</div>
-
-</body></html>`;
-
-  // Abrir em nova janela para impressão/PDF
-  const w = window.open('','_blank');
-  if(!w){ showToast('Permita pop-ups para gerar o PDF','err'); return; }
-  w.document.write(html);
-  w.document.close();
-  setTimeout(()=>{ w.focus(); w.print(); }, 800);
-  showToast('Contrato gerado! Use Ctrl+P para salvar como PDF.','ok');
-}
-
-function getEntregavelDescricao(id){
-  const desc = {
-    'e1': 'Execução e desdobramento das diretrizes, ações e estratégias definidas no Planejamento Macro previamente aprovado.',
-    'e2': 'Elaboração do planejamento mensal que define formatos, temas, objetivos e distribuição dos conteúdos a serem produzidos.',
-    'e3': 'Criação dos textos de carrosseis, legendas e roteiros de reels, alinhados ao posicionamento e objetivos estratégicos.',
-    'e4': 'Desenvolvimento do design dos conteúdos em formato de carrossel.',
-    'e5': 'Edição dos vídeos produzidos pelo CONTRATANTE ou em conjunto com a equipe da CONTRATADA.',
-    'e6': 'Participação no processo de gravação de vídeos conforme planejamento acordado. Deslocamentos presenciais terão condições definidas em comum acordo.',
-    'e7': 'Monitoramento e gestão das mensagens diretas do Instagram, zelando pela comunicação institucional.',
-    'e8': 'Escrita e produção de materiais textuais destinados ao site do CONTRATANTE.',
-    'e9': 'Suporte e acompanhamento estratégico por meio de grupo exclusivo no WhatsApp.',
-    'e10': 'Monitoramento e análise periódica das métricas de desempenho, incluindo alcance, engajamento e insights.',
-    'e11': 'Agendamento dos conteúdos aprovados conforme planejamento definido para cada canal.'
-  };
-  return desc[id] || '';
-}
-
 // ── PIPELINE ──
 function renderComPipeline(el){
   const fmt = v => v?'R$ '+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:0}):'';
@@ -7424,15 +6208,14 @@ async function deleteProspect(){
         <div class="ff"><label class="flbl">Tipo</label>
           <select class="fs" id="np-type"><option>Feed</option><option>Stories</option><option>Reels</option><option>TikTok</option><option>Facebook</option><option>LinkedIn</option></select>
         </div>
-        <div class="ff"><label class="flbl">Mês do conteúdo</label>
-          <select class="fs" id="np-month" onchange="updateNewPackOperationalPreview()"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
+        <div class="ff"><label class="flbl">Mês</label>
+          <select class="fs" id="np-month"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
         </div>
-        <div class="ff"><label class="flbl">Mês operacional</label><input class="fi" id="np-operational-month" readonly placeholder="Calculado automaticamente"></div>
       </div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Responsável</label>
         <div class="assignee-grid" id="np-assignees"></div>
       </div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due" onchange="updateNewPackOperationalPreview()"></div>
+      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due"></div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Link Canva</label><input class="fi" id="np-canva" placeholder="canva.com/design/..."></div>
       <div class="brow">
         <button class="btn btn-p" onclick="saveNewPack()">Criar pack</button>
@@ -7444,14 +6227,14 @@ async function deleteProspect(){
 
 <!-- EDIT CLIENT -->
 <div class="mo" id="edit-client-mo">
-  <div class="modal modal-sm" style="max-width:720px;width:min(720px,96vw)">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle" id="ec-title">Editar cliente</div><div class="mmeta">Dados do cliente e desligamento seguro</div></div><button class="mclose" onclick="closeEditClient()">Ã—</button></div>
-    <div class="mbody" style="padding:20px;display:flex;flex-direction:column;gap:16px">
-      <div style="display:flex;align-items:center;gap:14px">
+  <div class="modal modal-sm">
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle" id="ec-title">Editar cliente</div></div><button class="mclose" onclick="closeEditClient()">×</button></div>
+    <div style="padding:20px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
         <div id="ec-photo-preview" style="width:64px;height:64px;border-radius:50%;background:var(--bg4);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;cursor:pointer;overflow:hidden;flex-shrink:0" onclick="document.getElementById('ec-photo-inp').click()"></div>
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">Foto do cliente</div>
-          <button class="btn btn-s btn-sm" onclick="document.getElementById('ec-photo-inp').click()">Alterar foto</button>
+          <button class="btn btn-s btn-sm" onclick="document.getElementById('ec-photo-inp').click()">📷 Alterar foto</button>
           <input type="file" id="ec-photo-inp" accept="image/*" style="display:none" onchange="handleClientPhoto(this.files)">
         </div>
       </div>
@@ -7463,26 +6246,14 @@ async function deleteProspect(){
         <div class="ff"><label class="flbl">Nicho</label><input class="fi" id="ec-niche"></div>
         <div class="ff"><label class="flbl">Cor</label><input type="color" class="fi" id="ec-color" style="padding:3px;height:36px;cursor:pointer"></div>
       </div>
-      <div class="ff">
-        <label class="flbl">Instagram Business ID <span style="font-weight:400;color:var(--text3)">(para metricas)</span></label>
+      <div class="ff" style="margin-top:10px">
+        <label class="flbl">📊 Instagram Business ID <span style="font-weight:400;color:var(--text3)">(para métricas)</span></label>
         <input class="fi" id="ec-instagram-id" placeholder="Ex: 17841445778218708">
       </div>
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-        <div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:10px">Checklist de desligamento</div>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px">
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ec-off-access"> Acessos removidos</label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ec-off-last"> Ãšltima entrega concluÃ­da</label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ec-off-files"> Arquivos organizados</label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" id="ec-off-finance"> Financeiro alinhado</label>
-        </div>
-        <div class="ff" style="margin-top:12px"><label class="flbl">ObservaÃ§Ãµes finais</label><textarea class="fta" id="ec-off-notes" rows="3" placeholder="Ex: cliente cancelou em comum acordo, materiais entregues, pendÃªncias finais..."></textarea></div>
-      </div>
-      <div class="brow" style="gap:8px;flex-wrap:wrap">
+      <div class="brow">
         <button class="btn btn-p" onclick="saveEditClient()">Salvar</button>
         <button class="btn btn-s" onclick="closeEditClient()">Cancelar</button>
-        <button class="btn btn-s btn-sm" id="ec-inactivate-btn" onclick="setClientStatus('inativo')">Mover para inativos</button>
-        <button class="btn btn-s btn-sm" id="ec-reactivate-btn" style="display:none" onclick="setClientStatus('ativo')">Reativar cliente</button>
-        <button class="btn btn-d btn-sm" style="margin-left:auto" onclick="deleteClient()">Excluir definitivo</button>
+        <button class="btn btn-d btn-sm" style="margin-left:auto" onclick="deleteClient()">🗑 Excluir</button>
       </div>
     </div>
   </div>
@@ -7749,7 +6520,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=15').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=21').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
@@ -7757,16 +6528,6 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
 
 
 
