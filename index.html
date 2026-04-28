@@ -2525,10 +2525,17 @@ function normalizeComment(cm){
 }
 function renderCommentHtml(comment, idx=null, pid=null){
   const c = normalizeComment(comment);
-  const imgs = c.images.length ? `<div class="comment-imgs">${c.images.map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}</div>` : '';
-  const files = c.files.length ? `<div class="comment-files">${c.files.map(file=>{ const fileName=String(file.name||'arquivo').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); return `<a class="comment-file" href="${file.url}" target="_blank" rel="noopener">Arquivo: ${fileName}</a>`; }).join('')}</div>` : '';
-  const actions = (pid!==null && idx!==null) ? `<button class="btn btn-s btn-sm" style="padding:2px 8px" onclick="editComment('${pid}',${idx})">Editar</button>` : '';
-  return `<div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${imgs}${files}<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px"><div class="comment-time">${c.time||''}</div>${actions}</div>`;
+  const esc = value => String(value || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const imgs = c.images.length
+    ? '<div class="comment-imgs">' + c.images.map(src => '<img class="comment-img" src="' + src + '" onclick="window.open(this.src)">').join('') + '</div>'
+    : '';
+  const files = c.files.length
+    ? '<div class="comment-files">' + c.files.map(file => '<a class="comment-file" href="' + String(file.url||'') + '" target="_blank" rel="noopener">Arquivo: ' + esc(file.name||'arquivo') + '</a>').join('') + '</div>'
+    : '';
+  const actions = (pid!==null && idx!==null)
+    ? '<button class="btn btn-s btn-sm" style="padding:2px 8px" onclick="editComment(' + "'" + pid + "'" + ',' + idx + ')">Editar</button>'
+    : '';
+  return '<div class="comment-author">' + (c.author||'?') + '</div><div class="comment-text">' + (c.text||'') + '</div>' + imgs + files + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px"><div class="comment-time">' + (c.time||'') + '</div>' + actions + '</div>';
 }
 async function addComment(pid){
   const inp=document.getElementById('ci-'+pid);
