@@ -2527,7 +2527,7 @@ function normalizeComment(cm){
 function renderCommentHtml(comment, idx=null, pid=null){
   const c = normalizeComment(comment);
   const imgs = c.images.length ? `<div class="comment-imgs">${c.images.map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}</div>` : '';
-  const files = c.files.length ? `<div class="comment-files">${c.files.map(file=>`<a class="comment-file" href="${file.url}" target="_blank" rel="noopener">Arquivo: ${safe(file.name||'arquivo')}</a>`).join('')}</div>` : '';
+  const files = c.files.length ? `<div class="comment-files">${c.files.map(file=>{ const fileName=String(file.name||'arquivo').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); return `<a class="comment-file" href="${file.url}" target="_blank" rel="noopener">Arquivo: ${fileName}</a>`; }).join('')}</div>` : '';
   const actions = (pid!==null && idx!==null) ? `<button class="btn btn-s btn-sm" style="padding:2px 8px" onclick="editComment('${pid}',${idx})">Editar</button>` : '';
   return `<div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${imgs}${files}<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px"><div class="comment-time">${c.time||''}</div>${actions}</div>`;
 }
@@ -5357,7 +5357,7 @@ function renderGerarPautaModal(){
             ${cfg.feriadosExtra.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${cfg.feriadosExtra.map((f,i)=>`<span style="font-size:11px;padding:4px 10px;background:var(--orange);color:#fff;border-radius:999px;display:inline-flex;gap:6px;align-items:center">${f}<button style="background:none;border:none;color:#fff;cursor:pointer" onclick="removeFeriadoExtra(${i})">&times;</button></span>`).join('')}</div>` : ''}
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div><div style="padding:6px 14px 0;font-size:11px;color:var(--text3)">Use 0 quando a etapa nao for necessaria. A ordem abaixo define quem entra primeiro no calendario.</div>
+            <div style="padding:14px 14px 0;font-size:12px;font-weight:800;color:var(--accent)">Clientes e dias por etapa</div><div style="padding:6px 14px 0;font-size:11px;color:var(--text3)">Escolha a duracao de cada etapa. Nenhum remove a etapa do cronograma.</div>
             <div style="padding:14px;overflow:auto;max-height:360px">
               <table style="width:100%;border-collapse:collapse;min-width:860px">
                 <thead>
@@ -5381,10 +5381,10 @@ function renderGerarPautaModal(){
                         <span>${i+1}. ${c.name}</span>
                       </div>
                     </td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="0" max="5" value="${c.plan}" onchange="updateGpClienteDias(${i},'plan',this.value)" style="width:64px;text-align:center"></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="0" max="5" value="${c.rev}" onchange="updateGpClienteDias(${i},'rev',this.value)" style="width:64px;text-align:center"></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="0" max="10" value="${c.des}" onchange="updateGpClienteDias(${i},'des',this.value)" style="width:64px;text-align:center"></td>
-                    <td style="padding:6px;border-bottom:1px solid var(--border)"><input type="number" min="0" max="3" value="${c.envio}" onchange="updateGpClienteDias(${i},'envio',this.value)" style="width:64px;text-align:center"></td>
+                    <td style="padding:6px;border-bottom:1px solid var(--border)"><select class="fs" onchange="updateGpClienteDias(${i},'plan',this.value)" style="width:110px"><option value="0" ${Number(c.plan||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.plan||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.plan||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.plan||0)===3?'selected':''}>3 dias</option></select></td>
+                    <td style="padding:6px;border-bottom:1px solid var(--border)"><select class="fs" onchange="updateGpClienteDias(${i},'rev',this.value)" style="width:110px"><option value="0" ${Number(c.rev||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.rev||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.rev||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.rev||0)===3?'selected':''}>3 dias</option></select></td>
+                    <td style="padding:6px;border-bottom:1px solid var(--border)"><select class="fs" onchange="updateGpClienteDias(${i},'des',this.value)" style="width:110px"><option value="0" ${Number(c.des||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.des||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.des||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.des||0)===3?'selected':''}>3 dias</option></select></td>
+                    <td style="padding:6px;border-bottom:1px solid var(--border)"><select class="fs" onchange="updateGpClienteDias(${i},'envio',this.value)" style="width:110px"><option value="0" ${Number(c.envio||0)===0?'selected':''}>Nenhum</option><option value="1" ${Number(c.envio||0)===1?'selected':''}>1 dia</option><option value="2" ${Number(c.envio||0)===2?'selected':''}>2 dias</option><option value="3" ${Number(c.envio||0)===3?'selected':''}>3 dias</option></select></td>
                     <td style="padding:10px;border-bottom:1px solid var(--border);text-align:center;font-weight:800;color:var(--accent)">${Math.max(0,Number(c.plan)||0)+Math.max(0,Number(c.rev)||0)+Math.max(0,Number(c.des)||0)+Math.max(0,Number(c.envio)||0)}</td>
                   </tr>`).join('')}
                 </tbody>
@@ -5429,7 +5429,7 @@ function updateGerarPautaResp(etapa, value){
 }
 
 function updateGpClienteDias(idx, field, value){
-  _gerarPautaConfig.clientes[idx][field] = parseInt(value) || 1;
+  _gerarPautaConfig.clientes[idx][field] = Math.max(0, parseInt(value,10) || 0);
   renderGerarPautaModal();
 }
 
