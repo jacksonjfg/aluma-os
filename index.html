@@ -2101,19 +2101,118 @@ function openFinalImg(pid, idx){
   document.body.appendChild(ov);
 }
 
-async function handleFinalFileUp(pid, files){
+let _pendingFinalUpload = null;
+function normalizeFinalUploadItems(files){
+  return [...(files||[])].map(file=>({
+    file,
+    name:file.name,
+    type:file.type||'',
+    preview:(file.type||'').startsWith('image/') ? URL.createObjectURL(file) : ''
+  }));
+}
+function clearPendingFinalUpload(){
+  (_pendingFinalUpload?.items||[]).forEach(item=>{ if(item.preview) URL.revokeObjectURL(item.preview); });
+  _pendingFinalUpload = null;
+}
+function closeFinalUploadReview(){
+  document.getElementById('final-upload-review-mo')?.remove();
+  clearPendingFinalUpload();
+}
+function renderFinalUploadReview(){
+  const ov=document.getElementById('final-upload-review-mo');
+  if(!ov || !_pendingFinalUpload) return;
+  const items=_pendingFinalUpload.items||[];
+  const body=ov.querySelector('[data-final-review-body]');
+  const title=ov.querySelector('[data-final-review-title]');
+  if(title) title.textContent = `Conferir arquivos finais (${items.length})`;
+  if(body){
+    body.innerHTML = items.length ? `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px">
+        ${items.map((item,idx)=>`
+          <div style="border:1px solid var(--border);background:var(--bg3);border-radius:12px;padding:8px;position:relative">
+            <button class="btn btn-d btn-sm" style="position:absolute;top:6px;right:6px;padding:2px 7px;font-size:11px" onclick="removePendingFinalUpload(${idx})">×</button>
+            <div style="height:128px;border-radius:10px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+              ${item.preview
+                ? `<img src="${item.preview}" style="width:100%;height:100%;object-fit:cover">`
+                : `<div style="padding:10px;text-align:center;font-size:13px;font-weight:700;color:var(--text3)">PDF<br><span style="font-size:11px;font-weight:500">${item.name.split('.').pop()?.toUpperCase()||'ARQ'}</span></div>`}
+            </div>
+            <div style="font-size:11px;font-weight:700;color:var(--text2);line-height:1.35;word-break:break-word">${item.name}</div>
+          </div>`).join('')}
+      </div>`
+      : `<div style="font-size:13px;color:var(--text3);text-align:center;padding:22px 0">Nenhum arquivo selecionado.</div>`;
+  }
+}
+function openFinalUploadReview(pid, files, append=false){
   if(!posts[pid] || !files || !files.length) return;
-  showToast('Enviando ' + files.length + ' arquivo(s)...', 'inf');
+  const newItems=normalizeFinalUploadItems(files);
+  if(!_pendingFinalUpload || _pendingFinalUpload.pid!==pid){
+    if(_pendingFinalUpload) clearPendingFinalUpload();
+    _pendingFinalUpload = {pid, items:newItems};
+  }else{
+    _pendingFinalUpload.items = append ? [..._pendingFinalUpload.items, ...newItems] : newItems;
+  }
+  let ov=document.getElementById('final-upload-review-mo');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.className='mo open';
+    ov.id='final-upload-review-mo';
+    ov.style.zIndex='180';
+    ov.innerHTML=`<div class="modal" style="width:min(860px,96vw);max-height:88vh;display:flex;flex-direction:column">
+      <div class="mhdr">
+        <div class="mhdr-info">
+          <div class="mtitle" data-final-review-title>Conferir arquivos finais</div>
+          <div class="mmeta">Revise os slides antes de enviar para o post.</div>
+        </div>
+        <button class="mclose" onclick="closeFinalUploadReview()">×</button>
+      </div>
+      <div style="padding:18px;overflow:auto" data-final-review-body></div>
+      <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <label class="btn btn-s btn-sm" style="cursor:pointer">
+          + Adicionar mais
+          <input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="appendFinalUploadFiles(this)">
+        </label>
+        <div class="brow">
+          <button class="btn btn-s" onclick="closeFinalUploadReview()">Cancelar</button>
+          <button class="btn btn-p" onclick="confirmFinalUpload()">Confirmar envio</button>
+        </div>
+      </div>
+    </div>`;
+    ov.addEventListener('click',e=>{ if(e.target===ov) closeFinalUploadReview(); });
+    document.body.appendChild(ov);
+  }
+  renderFinalUploadReview();
+}
+function appendFinalUploadFiles(input){
+  if(!_pendingFinalUpload) return;
+  openFinalUploadReview(_pendingFinalUpload.pid, input.files, true);
+  input.value='';
+}
+function removePendingFinalUpload(idx){
+  if(!_pendingFinalUpload) return;
+  const [removed]=_pendingFinalUpload.items.splice(idx,1);
+  if(removed?.preview) URL.revokeObjectURL(removed.preview);
+  renderFinalUploadReview();
+}
+function handleFinalFileUp(pid, files){
+  openFinalUploadReview(pid, files, !!_pendingFinalUpload && _pendingFinalUpload.pid===pid);
+}
+async function confirmFinalUpload(){
+  if(!_pendingFinalUpload?.items?.length) return;
+  const pid=_pendingFinalUpload.pid;
+  const uploadItems=[..._pendingFinalUpload.items];
+  showToast('Enviando ' + uploadItems.length + ' arquivo(s)...', 'inf');
   try{
     const arr = [...(posts[pid].finalFiles || [])];
-    for(const f of files){
+    for(const item of uploadItems){
+      const f=item.file;
       const url = await uploadPostImage(pid, f, 'final');
       arr.push({name: f.name, url, type: f.type});
     }
     await spfDirect(pid, 'finalFiles', arr);
     const el = document.getElementById('final-files-' + pid);
     if(el) el.innerHTML = renderFinalFiles(posts[pid]);
-    showToast(files.length + ' arquivo(s) adicionado(s)!', 'ok');
+    closeFinalUploadReview();
+    showToast(uploadItems.length + ' arquivo(s) adicionado(s)!', 'ok');
   } catch(err){
     console.error('Final file upload error:', err);
     showToast('Erro: ' + err.message, 'err');
@@ -2467,7 +2566,7 @@ function renderPF(post){
         ${renderFinalFiles(post)}
       </div>
       <label class="img-attach-area" style="display:block;cursor:pointer;margin-top:6px;padding:8px">
-        <input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="handleFinalFileUp('${post.id}',this.files)">
+        <input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="handleFinalFileUp('${post.id}',this.files);this.value=''">
         <div style="font-size:12px;color:var(--text2);font-weight:500">📎 Adicionar slide</div>
       </label>
     </div>
