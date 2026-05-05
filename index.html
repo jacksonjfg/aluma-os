@@ -1981,8 +1981,52 @@ async function editPackDue(pid){
 }
 
 // ===== PACK MODAL =====
+let _packViewState={postListScroll:0,perPost:{}};
+let _packSessionState={};
+function clearPackEditorPanel(title='Selecione um post', note=''){
+  const el=document.getElementById('pm-content');
+  if(!el) return;
+  el.style.cssText='';
+  el.innerHTML=`<div class="empty"><div class="empty-ico">📝</div><div class="empty-title">${title}</div>${note?`<div class="empty-note">${note}</div>`:''}</div>`;
+}
+function capturePackViewState(){
+  const postList=document.getElementById('pm-posts');
+  if(postList) _packViewState.postListScroll=postList.scrollTop||0;
+  if(currentPostId){
+    const left=document.getElementById('pf-left');
+    const comments=document.getElementById('cl-'+currentPostId);
+    _packViewState.perPost[currentPostId]={
+      leftScroll:left?left.scrollTop||0:0,
+      commentScroll:comments?comments.scrollTop||0:0
+    };
+  }
+}
+function restorePackViewState(postId){
+  requestAnimationFrame(()=>{
+    const postList=document.getElementById('pm-posts');
+    if(postList) postList.scrollTop=_packViewState.postListScroll||0;
+    const saved=postId?_packViewState.perPost?.[postId]:null;
+    const left=document.getElementById('pf-left');
+    if(left) left.scrollTop=saved?.leftScroll||0;
+    const comments=postId?document.getElementById('cl-'+postId):null;
+    if(comments) comments.scrollTop=saved?.commentScroll||0;
+  });
+}
+function persistCurrentPackState(){
+  if(!currentPackId) return;
+  capturePackViewState();
+  _packSessionState[currentPackId]={
+    activePost:currentPostId||null,
+    postListScroll:_packViewState.postListScroll||0,
+    perPost:JSON.parse(JSON.stringify(_packViewState.perPost||{}))
+  };
+}
 async function openPack(packId){
-  currentPackId=packId; currentPostId=null;
+  if(currentPackId && currentPackId!==packId) persistCurrentPackState();
+  currentPackId=packId;
+  const savedState=_packSessionState[packId];
+  currentPostId=savedState?.activePost||null;
+  _packViewState=savedState?{postListScroll:savedState.postListScroll||0,perPost:savedState.perPost||{}}:{postListScroll:0,perPost:{}};
   // If packs not loaded for this client yet
   if(!packs[packId]){
     const {db,doc,getDoc}=window._fb;
@@ -2000,6 +2044,18 @@ async function loadPosts(packId){
   const snap=await getDocs(query(collection(db,'posts'),where('packId','==',packId)));
   posts={}; snap.forEach(d=>{posts[d.id]={id:d.id,...d.data()};});
   renderPostsList();
+  const list=Object.values(posts);
+  if(!list.length){
+    currentPostId=null;
+    clearPackEditorPanel('Nenhum post neste pack ainda','Crie um novo post para começar.');
+    return;
+  }
+  if(currentPostId && posts[currentPostId]){
+    renderPF(posts[currentPostId]);
+    return;
+  }
+  currentPostId=null;
+  clearPackEditorPanel('Selecione um post','Escolha um post na lista para editar.');
 }
 function renderPostsList(){
   const el=document.getElementById('pm-posts');
@@ -2031,7 +2087,14 @@ function renderPostsList(){
   updPCnt(Object.keys(posts).length);
 }
 async function updPCnt(n){ if(!currentPackId) return; const {db,doc,updateDoc}=window._fb; await updateDoc(doc(db,'packs',currentPackId),{postCount:n}); }
-function openPost(pid){ currentPostId=pid; renderPostsList(); renderPF(posts[pid]); }
+function openPost(pid){
+  if(!posts[pid]) return;
+  capturePackViewState();
+  currentPostId=pid;
+  renderPostsList();
+  renderPF(posts[pid]);
+  persistCurrentPackState();
+}
 
 
 // ===== FINAL FILES HELPERS =====
@@ -2137,6 +2200,10 @@ function renderFinalUploadReview(){
                 : `<div style="padding:10px;text-align:center;font-size:13px;font-weight:700;color:var(--text3)">PDF<br><span style="font-size:11px;font-weight:500">${item.name.split('.').pop()?.toUpperCase()||'ARQ'}</span></div>`}
             </div>
             <div style="font-size:11px;font-weight:700;color:var(--text2);line-height:1.35;word-break:break-word">${item.name}</div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button class="btn btn-s btn-sm" style="flex:1;padding:5px 8px" onclick="movePendingFinalUpload(${idx},-1)" ${idx===0?'disabled':''}>↑ Antes</button>
+              <button class="btn btn-s btn-sm" style="flex:1;padding:5px 8px" onclick="movePendingFinalUpload(${idx},1)" ${idx===items.length-1?'disabled':''}>↓ Depois</button>
+            </div>
           </div>`).join('')}
       </div>`
       : `<div style="font-size:13px;color:var(--text3);text-align:center;padding:22px 0">Nenhum arquivo selecionado.</div>`;
@@ -2191,6 +2258,14 @@ function removePendingFinalUpload(idx){
   if(!_pendingFinalUpload) return;
   const [removed]=_pendingFinalUpload.items.splice(idx,1);
   if(removed?.preview) URL.revokeObjectURL(removed.preview);
+  renderFinalUploadReview();
+}
+function movePendingFinalUpload(idx, dir){
+  if(!_pendingFinalUpload) return;
+  const items=_pendingFinalUpload.items||[];
+  const target=idx+dir;
+  if(target<0 || target>=items.length) return;
+  [items[idx],items[target]]=[items[target],items[idx]];
   renderFinalUploadReview();
 }
 function handleFinalFileUp(pid, files){
@@ -2309,9 +2384,30 @@ function buildEditMeta(meta){
 async function spfRichAndRender(field, editorId){
   const el=document.getElementById(editorId);
   if(!el) return;
+  capturePackViewState();
   await spf(field,getRichText(el));
   renderPF(posts[currentPostId]);
   renderPostsList();
+  persistCurrentPackState();
+}
+async function saveBriefingField(editorId){
+  const el=document.getElementById(editorId);
+  if(!el || !currentPostId || !posts[currentPostId]) return;
+  const left=document.getElementById('pf-left');
+  const prevScroll=left?left.scrollTop||0:0;
+  const value=getRichText(el);
+  const before=String(posts[currentPostId].designBriefing||'');
+  if(String(value||'')!==before){
+    await spf('designBriefing',value);
+  }
+  const metaEl=document.getElementById('brief-meta-'+currentPostId);
+  if(metaEl){
+    const html=buildEditMeta(posts[currentPostId].designBriefingMeta);
+    metaEl.innerHTML=html||'';
+    metaEl.style.display=html?'block':'none';
+  }
+  if(left) left.scrollTop=prevScroll;
+  persistCurrentPackState();
 }
 function syncCurrentRichDraft(){
   if(!currentPostId || !posts[currentPostId]) return;
@@ -2539,10 +2635,10 @@ function renderPF(post){
     </div>
 
     <div class="fsect">✏️ Texto do Conteúdo</div>
-    ${briefMeta?`<div class="rich-meta">${briefMeta}</div>`:''}
+    <div id="brief-meta-${post.id}" class="rich-meta" style="${briefMeta?'':'display:none'}">${briefMeta||''}</div>
     <div class="ff" style="margin-bottom:11px">
       ${richToolbar('rt-brief-'+post.id,false,true)}
-      <div class="rich-area" contenteditable="true" id="rt-brief-${post.id}" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="spfRichAndRender('designBriefing','rt-brief-${post.id}')" oninput="autoLinkify(this)" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
+      <div class="rich-area" contenteditable="true" id="rt-brief-${post.id}" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="saveBriefingField('rt-brief-${post.id}')" oninput="autoLinkify(this)" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
     </div>
 
     <div class="fsect">💬 Legenda</div>
@@ -2587,6 +2683,7 @@ function renderPF(post){
   <!-- toggle button when panel is hidden -->
   <button id="pf-comments-toggle" style="display:none;position:absolute;right:0;top:50%;transform:translateY(-50%);background:var(--bg3);border:1px solid var(--border);border-right:none;border-radius:7px 0 0 7px;padding:10px 6px;cursor:pointer;color:var(--text2);font-size:12px;writing-mode:vertical-rl" onclick="toggleCommentPanel()">💬 Comentários</button>
   `;
+  restorePackViewState(post.id);
 }
 
 function toggleCommentPanel(){
@@ -2916,9 +3013,9 @@ async function deletePost(pid){
   await deleteDoc(doc(db,'posts',pid)); delete posts[pid]; currentPostId=null;
   await updPCnt(Object.keys(posts).length);
   renderPostsList();
-  document.getElementById('pm-content').innerHTML=`<div class="empty"><div class="empty-ico">📝</div><div class="empty-title">Post excluído</div></div>`;
+  clearPackEditorPanel('Post excluído');
 }
-function closePackModal(){ document.getElementById('pack-mo').classList.remove('open'); if(currentView==='client'&&clientTab==='packs') loadKanban(); }
+function closePackModal(){ persistCurrentPackState(); document.getElementById('pack-mo').classList.remove('open'); if(currentView==='client'&&clientTab==='packs') loadKanban(); }
 
 // ===== CLIENT CALENDAR =====
 async function renderClientCalInto(container){ container.setAttribute('style','flex:1;overflow:hidden;display:flex;flex-direction:column');
