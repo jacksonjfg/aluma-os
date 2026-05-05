@@ -1330,13 +1330,37 @@ async function renderDashData(){
   const finalStatuses=['entregue','em_alteracoes','agendamento','concluido'];
   const currentMember=currentMemberProfile();
   const personalMemberId=currentMember?.id||'';
+  const personalAccessKeys=currentAccessKeys();
   const packDemandItems=AP
     .filter(p=>!clients[p.clientId]?.inactive && p.dueDate&&!finalStatuses.includes(p.status))
+    .filter(p=>arrayMatchesAccess(p.assignees||[], personalAccessKeys))
     .map(p=>({pack:p,due:parseDueDate(p.dueDate)}))
     .filter(x=>x.due)
     .sort((a,b)=>a.due-b.due);
   const statusLabel=(id)=>(STATUSES.find(s=>s.id===id)||{}).label||id||'';
+  const commentDemandItems=APs
+    .filter(post=>!clients[post.clientId]?.inactive)
+    .flatMap(post=>(post.comments||[]).map(normalizeComment).filter(cm=>!cm.resolved && commentMentionsCurrent(cm)).map(cm=>({type:'comment',post,comment:cm,due:todayBase})))
+    .sort((a,b)=>(b.comment?.createdAt||0)-(a.comment?.createdAt||0));
+  const personalTodayItems=[
+    ...commentDemandItems,
+    ...packDemandItems.filter(item=>item.due<tomorrowBase)
+  ];
+  const personalUpcomingItems=packDemandItems.filter(item=>item.due>=tomorrowBase&&item.due<=weekBase).slice(0,8);
+  syncMentionNotifications(APs);
   const demandCard=(item)=>{
+    if(item.type==='comment'){
+      const post=item.post||{};
+      const client=clients[post.clientId]||{};
+      const cm=item.comment||{};
+      return `<button type="button" onclick="currentClientId='${post.clientId}';openPack('${post.packId}');setTimeout(()=>{ if(posts['${post.id}']) openPost('${post.id}'); },180)" style="width:100%;text-align:left;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 11px;cursor:pointer;display:flex;gap:9px;align-items:flex-start">
+        <span style="width:8px;height:8px;border-radius:99px;background:var(--accent);margin-top:6px;flex-shrink:0"></span>
+        <span style="min-width:0;flex:1">
+          <span style="display:block;font-size:12.5px;font-weight:750;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Comentário em ${client.name||'Cliente'}</span>
+          <span style="display:block;font-size:11px;color:var(--text3);margin-top:3px;line-height:1.45">💬 ${escHtml(cm.author||'Equipe')}: ${escHtml((cm.text||'').slice(0,88))}${(cm.text||'').length>88?'…':''}</span>
+        </span>
+      </button>`;
+    }
     const p=item.pack;
     const client=clients[p.clientId]||{};
     const dueTxt=smartDate(p.dueDate);
@@ -1357,8 +1381,6 @@ async function renderDashData(){
     <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin:0 0 7px">${title}</div>
     <div style="display:flex;flex-direction:column;gap:7px">${items.length?items.map(demandCard).join(''):`<div style="font-size:12px;color:var(--text3);padding:10px 11px;background:var(--bg3);border:1px dashed var(--border);border-radius:8px">${empty}</div>`}</div>
   </div>`;
-  const personalTodayItems=packDemandItems.filter(item=>item.due<tomorrowBase);
-  const personalUpcomingItems=packDemandItems.filter(item=>item.due>=tomorrowBase&&item.due<=weekBase).slice(0,8);
   const demandHtml=personalMemberId?`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:12px">
     <div style="display:flex;align-items:center;gap:9px;min-width:0">
       <div style="width:30px;height:30px;border-radius:50%;background:${currentMember?.color||'var(--accent)'};color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">${(currentMember?.name||currentUserData?.name||'?').charAt(0).toUpperCase()}</div>
@@ -2284,6 +2306,34 @@ function dropPendingFinalUpload(idx){
 function endPendingFinalUploadDrag(){
   _pendingFinalUploadDragIdx = null;
 }
+function confirmReplaceFinalFiles(duplicates){
+  return new Promise(resolve=>{
+    const list=duplicates.map(name=>`<li style="margin:4px 0">${escHtml(name)}</li>`).join('');
+    const ov=document.createElement('div');
+    ov.className='mo open';
+    ov.innerHTML=`<div class="modal modal-sm" style="max-width:560px">
+      <div class="mhdr">
+        <div class="mhdr-info">
+          <div class="mtitle">Arquivo com o mesmo nome</div>
+          <div class="mmeta">Encontramos ${duplicates.length} arquivo(s) com o mesmo nome nos Arquivos Finais.</div>
+        </div>
+        <button class="mclose" onclick="this.closest('.mo').remove()">×</button>
+      </div>
+      <div style="padding:18px 20px;color:var(--text2);font-size:13px;line-height:1.55">
+        <div style="margin-bottom:10px">Deseja substituir os arquivos existentes com o mesmo nome?</div>
+        <ul style="padding-left:18px;margin:0 0 8px">${list}</ul>
+      </div>
+      <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-s" onclick="this.closest('.mo').remove();window.__finalDupResolve?.('keep')">Manter os dois</button>
+        <button class="btn btn-d" onclick="this.closest('.mo').remove();window.__finalDupResolve?.('cancel')">Cancelar</button>
+        <button class="btn btn-p" onclick="this.closest('.mo').remove();window.__finalDupResolve?.('replace')">Substituir</button>
+      </div>
+    </div>`;
+    window.__finalDupResolve=(result)=>{ try{ delete window.__finalDupResolve; }catch(e){} resolve(result); };
+    ov.addEventListener('click',e=>{ if(e.target===ov){ ov.remove(); window.__finalDupResolve?.('cancel'); } });
+    document.body.appendChild(ov);
+  });
+}
 function handleFinalFileUp(pid, files){
   openFinalUploadReview(pid, files, !!_pendingFinalUpload && _pendingFinalUpload.pid===pid);
 }
@@ -2294,10 +2344,22 @@ async function confirmFinalUpload(){
   showToast('Enviando ' + uploadItems.length + ' arquivo(s)...', 'inf');
   try{
     const arr = [...(posts[pid].finalFiles || [])];
+    const dupNames=uploadItems
+      .map(item=>item.name)
+      .filter(name=>arr.some(existing=>String(existing.name||'').trim().toLowerCase()===String(name||'').trim().toLowerCase()));
+    let replaceMode=false;
+    if(dupNames.length){
+      const choice=await confirmReplaceFinalFiles([...new Set(dupNames)]);
+      if(choice==='cancel') return;
+      replaceMode=choice==='replace';
+    }
     for(const item of uploadItems){
       const f=item.file;
       const url = await uploadPostImage(pid, f, 'final');
-      arr.push({name: f.name, url, type: f.type});
+      const payload={name: f.name, url, type: f.type};
+      const existingIdx=arr.findIndex(existing=>String(existing.name||'').trim().toLowerCase()===String(f.name||'').trim().toLowerCase());
+      if(replaceMode && existingIdx>=0) arr.splice(existingIdx,1,payload);
+      else arr.push(payload);
     }
     await spfDirect(pid, 'finalFiles', arr);
     const el = document.getElementById('final-files-' + pid);
@@ -2583,9 +2645,9 @@ function renderPF(post){
   const imgs=(post.images||[]).map((src,i)=>`<div class="img-thumb"><img src="${src}" style="cursor:pointer" onclick="openImgFull('${post.id}',${i})"><button class="img-thumb-del" onclick="delImg('${post.id}',${i})">×</button></div>`).join('');
   const postAssignees=post.assignees||[];
   const assigneeChips=TEAM.map(m=>`<div class="assignee-chip ${postAssignees.includes(m.id)?'selected':''}" onclick="togglePostAssignee('${post.id}','${m.id}',this)"><div class="assignee-avatar" style="background:${m.color}">${m.name[0]}</div>${m.name}</div>`).join('');
-  const comments=(post.comments||[]);
+  const comments=(post.comments||[]).map(normalizeComment);
   const briefMeta=buildEditMeta(post.designBriefingMeta);
-  const cmtHtml=comments.length?comments.map(c=>`<div class="comment-item"><div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${(c.images||[]).map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}<div class="comment-time">${c.time||''}</div></div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentário ainda</div>';
+  const cmtHtml=renderCommentsHtml(post);
 
   el.style.cssText='display:flex;gap:0;overflow:hidden;padding:0;min-height:100%;';
   el.innerHTML=`
@@ -2684,11 +2746,12 @@ function renderPF(post){
     </div>
     <!-- Comments section -->
     <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-      <span style="font-size:12px;font-weight:700;color:var(--text2)">💬 Comentários <span style="background:var(--ag);color:var(--accent);padding:1px 6px;border-radius:8px;font-size:10px">${comments.length}</span></span>
+      <span style="font-size:12px;font-weight:700;color:var(--text2)">💬 Comentários <span id="comment-count-${post.id}" style="background:var(--ag);color:var(--accent);padding:1px 6px;border-radius:8px;font-size:10px">${comments.length}</span></span>
       <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:5px" onclick="toggleCommentPanel()" title="Ocultar">✕</button>
     </div>
     <div id="cl-${post.id}" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px">${cmtHtml}</div>
     <div style="padding:10px;border-top:1px solid var(--border);flex-shrink:0">
+      <div id="comment-reply-${post.id}" style="display:none;align-items:center;justify-content:space-between;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:11px;color:var(--text2);margin-bottom:7px"></div>
       <textarea class="fta" id="ci-${post.id}" rows="2" placeholder="Escrever comentário..." style="margin-bottom:7px;font-size:12.5px"></textarea>
       <div style="display:flex;gap:6px">
         <button class="btn btn-p btn-sm" style="flex:1" onclick="addComment('${post.id}')">Enviar</button>
@@ -2791,29 +2854,37 @@ async function addComment(pid){
   if(!text){ showToast('Digite um comentário','err'); return; }
   if(!posts[pid]){ showToast('Post não encontrado','err'); return; }
   const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuário';
-  const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-  const newComment={author,text,time:now,images:[]};
-  // Build clean array — no functions, no undefined
-  const existing=[];
-  (posts[pid].comments||[]).forEach(cm=>{
-    existing.push({author:String(cm.author||''),text:String(cm.text||''),time:String(cm.time||''),images:Array.isArray(cm.images)?cm.images.filter(x=>typeof x==='string'):[]});
+  const createdAt=Date.now();
+  const mentions=extractCommentMentions(text);
+  const replyId=window._commentReply?.[pid]||'';
+  const newComment=normalizeComment({
+    id:'c_'+createdAt+'_'+Math.random().toString(36).slice(2,7),
+    author,
+    authorId:currentUser?.uid||'',
+    text,
+    time:commentNowLabel(createdAt),
+    createdAt,
+    images:[],
+    mentions,
+    parentId:replyId
   });
+  const existing=(posts[pid].comments||[]).map(normalizeComment);
   existing.push(newComment);
-  posts[pid].comments=existing;
   try{
-    const {db,doc,updateDoc}=window._fb;
-    await updateDoc(doc(db,'posts',pid),{comments:existing});
+    await savePostComments(pid,existing);
     if(inp) inp.value='';
-    // Append to UI
-    const cl=document.getElementById('cl-'+pid);
-    if(cl){
-      // Remove "no comments" placeholder
-      cl.querySelectorAll('div').forEach(d=>{ if(d.textContent==='Nenhum comentário ainda') d.remove(); });
-      const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=`<div class="comment-author">${author}</div><div class="comment-text">${text}</div><div class="comment-time">${now}</div>`;
-      cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
+    clearCommentReply(pid);
+    rerenderComments(pid);
+    const cl=document.getElementById('cl-'+pid); if(cl) cl.scrollTop=cl.scrollHeight;
+    if(mentions.length){
+      showToast('Comentário enviado com menção!','ok');
+    }else{
+      showToast('Comentário enviado!','ok');
     }
-    showToast('Comentário enviado!','ok');
+    if(mentions.length){
+      const client=clients[posts[pid].clientId]||{};
+      addNotif({icon:'💬',title:`Comentário em ${client.name||'cliente'}`,sub:`Você marcou ${mentions.length>1?'pessoas':'alguém'} em ${posts[pid].title||'um post'}`,time:createdAt});
+    }
   } catch(err){
     console.error('Comment save error:',err);
     showToast('Erro ao salvar: '+err.message,'err');
@@ -2822,7 +2893,6 @@ async function addComment(pid){
 async function addCommentImg(pid,files){
   if(!posts[pid]||!files||!files.length) return;
   const author=currentUserData?.name||currentUser?.email?.split('@')[0]||'Usuário';
-  const now=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   const imgs=[];
   showToast('Enviando imagem...','inf');
   try{
@@ -2832,21 +2902,15 @@ async function addCommentImg(pid,files){
         imgs.push(url);
       } catch(e){ imgs.push(await toB64(f)); } // fallback
     }
-    const newComment={author,text:'📎 imagem',time:now,images:imgs};
-    const existing=[];
-    (posts[pid].comments||[]).forEach(cm=>{
-      existing.push({author:String(cm.author||''),text:String(cm.text||''),time:String(cm.time||''),images:Array.isArray(cm.images)?cm.images.filter(x=>typeof x==='string'):[]});
-    });
+    const createdAt=Date.now();
+    const replyId=window._commentReply?.[pid]||'';
+    const newComment=normalizeComment({id:'c_'+createdAt+'_'+Math.random().toString(36).slice(2,7),author,authorId:currentUser?.uid||'',text:'📎 imagem',time:commentNowLabel(createdAt),createdAt,images:imgs,parentId:replyId});
+    const existing=(posts[pid].comments||[]).map(normalizeComment);
     existing.push(newComment);
-    posts[pid].comments=existing;
-    const {db,doc,updateDoc}=window._fb;
-    await updateDoc(doc(db,'posts',pid),{comments:existing});
-    const cl=document.getElementById('cl-'+pid);
-    if(cl){
-      const div=document.createElement('div'); div.className='comment-item';
-      div.innerHTML=`<div class="comment-author">${author}</div><div class="comment-text">📎 imagem</div>${imgs.map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}<div class="comment-time">${now}</div>`;
-      cl.appendChild(div); cl.scrollTop=cl.scrollHeight;
-    }
+    await savePostComments(pid,existing);
+    clearCommentReply(pid);
+    rerenderComments(pid);
+    const cl=document.getElementById('cl-'+pid); if(cl) cl.scrollTop=cl.scrollHeight;
     showToast('Imagem enviada!','ok');
   } catch(err){
     console.error('Comment img error:',err);
@@ -3870,6 +3934,168 @@ function addNotif(n){
   updateNotifBadge();
   renderNotifList();
   try{ localStorage.setItem('_notifs',JSON.stringify(window._notifs.slice(0,30))); }catch(e){}
+}
+function escHtml(v=''){
+  return String(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function commentNowLabel(ts){
+  return new Date(ts||Date.now()).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+function extractCommentMentions(text=''){
+  const source=String(text||'');
+  const lower=accessNorm(source);
+  const hits=[];
+  TEAM.forEach(member=>{
+    const full=accessNorm(member.name);
+    const first=full.split(' ')[0];
+    const patterns=[`@${full}`,`@${first}`].filter(Boolean);
+    if(patterns.some(p=>lower.includes(p))){
+      hits.push(member.id, member.name);
+    }
+  });
+  return [...new Set(hits.filter(Boolean))];
+}
+function normalizeComment(cm={}){
+  return {
+    id:String(cm.id||('c_'+Date.now()+'_'+Math.random().toString(36).slice(2,7))),
+    author:String(cm.author||cm.authorName||''),
+    authorId:String(cm.authorId||''),
+    text:String(cm.text||''),
+    time:String(cm.time||''),
+    createdAt:Number(cm.createdAt||Date.now()),
+    images:Array.isArray(cm.images)?cm.images.filter(x=>typeof x==='string'):(Array.isArray(cm.files)?cm.files.map(f=>f.url||f.data||'').filter(Boolean):[]),
+    mentions:Array.isArray(cm.mentions)?cm.mentions.filter(Boolean):extractCommentMentions(cm.text||''),
+    parentId:cm.parentId?String(cm.parentId):'',
+    resolved:!!cm.resolved,
+    resolvedAt:Number(cm.resolvedAt||0),
+    resolvedBy:String(cm.resolvedBy||''),
+    replyCount:Number(cm.replyCount||0)
+  };
+}
+function commentMentionsCurrent(cm){
+  return arrayMatchesAccess(cm.mentions||[], currentAccessKeys());
+}
+function commentTextHtml(text=''){
+  let html=escHtml(text).replace(/\n/g,'<br>');
+  TEAM.forEach(member=>{
+    const name=member.name;
+    const first=name.split(' ')[0];
+    [name,first].filter(Boolean).forEach(label=>{
+      const safeLabel=label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      html=html.replace(new RegExp(`@${safeLabel}`,'gi'),match=>`<span style="color:${member.color||'var(--accent)'};font-weight:800">${match}</span>`);
+    });
+  });
+  return html;
+}
+function findCommentById(pid, cid){
+  const list=(posts[pid]?.comments||[]).map(normalizeComment);
+  return list.find(c=>c.id===cid)||null;
+}
+function renderCommentsHtml(post){
+  const comments=(post.comments||[]).map(normalizeComment);
+  if(!comments.length) return '<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentário ainda</div>';
+  const byParent={};
+  comments.forEach(c=>{
+    const key=c.parentId||'root';
+    (byParent[key]=byParent[key]||[]).push(c);
+  });
+  Object.values(byParent).forEach(arr=>arr.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)));
+  const renderBranch=(comment,depth=0)=>{
+    const replies=(byParent[comment.id]||[]);
+    const mentionBadge=comment.mentions?.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0">${comment.mentions.map(m=>`<span style="font-size:10px;font-weight:800;color:var(--accent);background:rgba(132,131,255,.12);border:1px solid rgba(132,131,255,.22);border-radius:999px;padding:2px 7px">${escHtml(String(m).replace(/^@?/, '@'))}</span>`).join('')}</div>`:'';
+    const resolvedBadge=comment.resolved?`<span style="font-size:10px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.22);border-radius:999px;padding:2px 7px">Resolvido${comment.resolvedBy?` por ${escHtml(comment.resolvedBy)}`:''}</span>`:'';
+    return `<div class="comment-item" style="margin-left:${depth?18:0}px;border-left:${depth?'2px solid var(--border)':'1px solid var(--border)'}">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+        <div style="min-width:0">
+          <div class="comment-author">${escHtml(comment.author||'?')}</div>
+          ${comment.parentId?`<div style="font-size:10px;color:var(--text3);margin-top:-1px">resposta</div>`:''}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">${resolvedBadge}</div>
+      </div>
+      <div class="comment-text">${commentTextHtml(comment.text||'')}</div>
+      ${mentionBadge}
+      ${comment.images?.length?`<div class="comment-imgs">${comment.images.map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}</div>`:''}
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:6px">
+        <div class="comment-time">${escHtml(comment.time||commentNowLabel(comment.createdAt))}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-s btn-sm" onclick="replyToComment('${post.id}','${comment.id}')">Responder</button>
+          <button class="btn btn-s btn-sm" onclick="toggleCommentResolved('${post.id}','${comment.id}')">${comment.resolved?'Reabrir':'Marcar como resolvido'}</button>
+        </div>
+      </div>
+      ${replies.length?`<div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">${replies.map(r=>renderBranch(r,depth+1)).join('')}</div>`:''}
+    </div>`;
+  };
+  return (byParent.root||[]).map(c=>renderBranch(c,0)).join('');
+}
+function replyToComment(pid,cid){
+  const comment=findCommentById(pid,cid);
+  window._commentReply=window._commentReply||{};
+  window._commentReply[pid]=cid;
+  const box=document.getElementById('comment-reply-'+pid);
+  if(box && comment){
+    box.style.display='flex';
+    box.innerHTML=`<span>Respondendo ${escHtml(comment.author||'comentário')}</span><button class="btn btn-s btn-sm" onclick="clearCommentReply('${pid}')">Cancelar</button>`;
+  }
+  const inp=document.getElementById('ci-'+pid);
+  if(inp){
+    inp.placeholder=`Responder ${comment?.author||'comentário'}...`;
+    inp.focus();
+  }
+}
+function clearCommentReply(pid){
+  window._commentReply=window._commentReply||{};
+  delete window._commentReply[pid];
+  const box=document.getElementById('comment-reply-'+pid);
+  if(box){ box.style.display='none'; box.innerHTML=''; }
+  const inp=document.getElementById('ci-'+pid);
+  if(inp) inp.placeholder='Escrever comentário...';
+}
+async function savePostComments(pid, comments){
+  const normalized=comments.map(normalizeComment);
+  posts[pid].comments=normalized;
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'posts',pid),{comments:normalized});
+}
+function rerenderComments(pid){
+  const post=posts[pid];
+  const cl=document.getElementById('cl-'+pid);
+  if(cl && post) cl.innerHTML=renderCommentsHtml(post);
+  const hdr=document.getElementById('comment-count-'+pid);
+  if(hdr && post) hdr.textContent=(post.comments||[]).length;
+}
+async function toggleCommentResolved(pid,cid){
+  if(!posts[pid]) return;
+  const comments=(posts[pid].comments||[]).map(normalizeComment);
+  const idx=comments.findIndex(c=>c.id===cid);
+  if(idx<0) return;
+  const by=currentUserData?.name||currentUser?.email?.split('@')[0]||'Equipe';
+  comments[idx].resolved=!comments[idx].resolved;
+  comments[idx].resolvedAt=comments[idx].resolved?Date.now():0;
+  comments[idx].resolvedBy=comments[idx].resolved?by:'';
+  await savePostComments(pid,comments);
+  rerenderComments(pid);
+  renderNotifList();
+  showToast(comments[idx].resolved?'Comentário resolvido!':'Comentário reaberto!','ok');
+}
+function syncMentionNotifications(allPosts=[]){
+  const keys=currentAccessKeys();
+  const seenKey='_mention_notif_seen';
+  let seen={};
+  try{ seen=JSON.parse(localStorage.getItem(seenKey)||'{}')||{}; }catch(e){ seen={}; }
+  let changed=false;
+  allPosts.forEach(post=>{
+    (post.comments||[]).map(normalizeComment).forEach(cm=>{
+      if(cm.resolved || !commentMentionsCurrent(cm) || cm.authorId===currentUser?.uid) return;
+      if(seen[cm.id]) return;
+      const client=clients[post.clientId]||{};
+      addNotif({icon:'💬',title:`Comentário em ${client.name||'cliente'}`,sub:`${cm.author||'Equipe'} marcou você em ${post.title||'um post'}`,time:cm.createdAt||Date.now()});
+      seen[cm.id]=Date.now();
+      changed=true;
+    });
+  });
+  if(changed){
+    try{ localStorage.setItem(seenKey,JSON.stringify(seen)); }catch(e){}
+  }
 }
 function addStatusNotif(packName,clientName,oldStatus,newStatus,changedBy){
   const sNew=STATUSES.find(s=>s.id===newStatus)?.label||newStatus;
