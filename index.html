@@ -37,7 +37,11 @@
 /* FONT — Inter é a alternativa mais legível disponível no Google Fonts */
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:13.5px;line-height:1.55;transition:background .2s,color .2s;-webkit-font-smoothing:antialiased;}
 h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
-::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+*{scrollbar-width:auto;scrollbar-color:#7c83ff rgba(132,131,255,.16);}
+::-webkit-scrollbar{width:14px;height:14px;}
+::-webkit-scrollbar-track{background:rgba(132,131,255,.12);border-radius:999px;}
+::-webkit-scrollbar-thumb{background:#7c83ff;border-radius:999px;border:3px solid rgba(12,12,24,.18);}
+::-webkit-scrollbar-thumb:hover{background:#666ef7;}
 /* LOGIN */
 #login-screen{display:flex;align-items:center;justify-content:center;height:100vh;background:var(--bg);}
 #login-screen::before{content:'';position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(132,131,255,.07) 0%,transparent 65%);top:-80px;left:-80px;}
@@ -72,6 +76,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 /* SIDEBAR */
 .sidebar{width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
 .sb-sect{padding:12px 8px 3px;}
+.sidebar-general{display:none;}
 .sb-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:0 8px;margin-bottom:3px;}
 .sb-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);transition:all .15s;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
 .sb-item:hover{background:var(--bg3);color:var(--text);}
@@ -154,6 +159,10 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto;}
 .mo.open{display:flex;}
 .modal{background:var(--bg2);border:1px solid var(--border);border-radius:15px;width:100%;max-width:920px;min-height:540px;display:flex;flex-direction:column;overflow:hidden;animation:min .18s ease;box-shadow:0 24px 64px rgba(0,0,0,.55);}
+.modal-pack{max-width:94vw;min-height:calc(100vh - 42px);height:calc(100vh - 42px);}
+.modal-pack .mbody{min-height:0;}
+.modal-pack .msidebar{width:270px;}
+.modal-pack .mmain{padding:0;}
 .modal-sm{max-width:480px;min-height:auto;}
 @keyframes min{from{opacity:0;transform:translateY(10px) scale(.98);}to{opacity:1;transform:translateY(0) scale(1);}}
 .mhdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;}
@@ -320,6 +329,14 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .rich-area{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;line-height:1.55;min-height:60px;word-break:break-word;white-space:pre-wrap;}
 .rich-area:focus{border-color:var(--accent);}
 .rich-area a{color:var(--accent);text-decoration:underline;cursor:pointer;}
+.rich-meta{font-size:11px;color:var(--text3);font-weight:500;margin:-2px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.history-list{display:flex;flex-direction:column;gap:10px;max-height:56vh;overflow-y:auto;padding-right:4px}
+.history-card{border:1px solid var(--border);border-radius:12px;background:var(--bg3);padding:12px}
+.history-card.active{border-color:rgba(132,131,255,.35);background:rgba(132,131,255,.09)}
+.history-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.history-card-title{font-size:12px;font-weight:700;color:var(--text2)}
+.history-card-meta{font-size:11px;color:var(--text3)}
+.history-card-body{font-size:12px;line-height:1.55;color:var(--text2);white-space:pre-wrap;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;max-height:160px;overflow:auto}
 .rich-tools{display:flex;align-items:center;gap:6px;margin-bottom:6px;position:relative;}
 .rich-tool-btn{height:26px;padding:0 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;}
 .rich-tool-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--ag);}
@@ -476,10 +493,15 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 
   /* Pack modal — full screen */
   .mo { padding: 0; align-items: flex-end; }
+  .sidebar-general { display:block; }
   .modal {
     border-radius: 16px 16px 0 0;
     max-width: 100%; max-height: 95vh;
     min-height: 60vh;
+  }
+  .modal-pack {
+    height: calc(100vh - 54px);
+    min-height: calc(100vh - 54px);
   }
   .modal-sm { border-radius: 16px 16px 0 0; max-width: 100%; }
   .mbody { flex-direction: column; }
@@ -603,6 +625,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 /* ===== COMERCIAL ===== */
 .pipeline-board{display:flex;gap:10px;overflow-x:auto;padding:4px 0 12px;min-height:300px;}
 .pipeline-col{min-width:200px;flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;}
+.pipeline-col.drag-over{border-color:var(--accent);box-shadow:0 0 0 1px rgba(132,131,255,.25) inset}
 .pipeline-col-hdr{padding:10px 12px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .pipeline-col-body{flex:1;padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:400px;}
 .pipeline-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;cursor:pointer;transition:border-color .15s;}
@@ -708,6 +731,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
       <button class="ttab" onclick="setView('tarefas')">✅ Tarefas</button>
       <button class="ttab" onclick="setView('pauta')">📅 Pauta</button>
       <button class="ttab" onclick="setView('comercial')">💼 Comercial</button>
+      <button class="ttab" onclick="setView('financeiro')">💸 Financeiro</button>
       <button class="ttab" onclick="setView('perfilAluma')">⚡ Perfil Aluma</button>
     </div>
     <div class="tright">
@@ -742,7 +766,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
   <div class="app-body">
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
     <div class="sidebar" id="main-sidebar">
-      <div class="sb-sect">
+      <div class="sb-sect sidebar-general">
         <div class="sb-lbl">Geral</div>
         <button class="sb-item" onclick="setView('dashboard')"><span>📊</span>Dashboard</button>
         <button class="sb-item" onclick="setView('todos')"><span>🗂</span>Todos os Clientes</button>
@@ -751,12 +775,14 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
         <button class="sb-item" onclick="setView('tarefas')"><span>✅</span>Tarefas</button>
         <button class="sb-item" onclick="setView('pauta')"><span>📅</span>Pauta</button>
         <button class="sb-item" onclick="setView('comercial')"><span>💼</span>Comercial</button>
+        <button class="sb-item" onclick="setView('financeiro')"><span>💸</span>Financeiro</button>
         <button class="sb-item" onclick="setView('perfilAluma')"><span>⚡</span>Perfil Aluma</button>
       </div>
       <div class="sb-sect" style="padding-bottom:2px"><div class="sb-lbl">Clientes</div></div>
       <div class="sb-clients" id="sb-clients"><div class="loading"><div class="spinner"></div></div></div>
       <div class="sb-bottom">
         <button class="sb-item" id="btn-add-sb" style="display:none;color:var(--accent)" onclick="showAddClient()"><span>＋</span>Novo cliente</button>
+        <button class="sb-item" id="btn-inactive-sb" style="display:none;opacity:.72;font-size:12px" onclick="showInactiveClientsModal()"><span>🗄</span>Inativos</button>
       </div>
     </div>
     <div class="main" id="main"><div class="loading"><div class="spinner"></div></div></div>
@@ -765,7 +791,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 
 <!-- PACK MODAL -->
 <div class="mo" id="pack-mo">
-  <div class="modal">
+  <div class="modal modal-pack">
     <div class="mhdr" style="background:linear-gradient(135deg,rgba(132,131,255,0.18) 0%,rgba(132,131,255,0.06) 100%);border-bottom-color:rgba(132,131,255,0.25)">
       <div class="mhdr-info">
         <div class="mtitle" id="pm-title" style="color:var(--accent)">Pack</div>
@@ -776,7 +802,8 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
         <button class="btn btn-s btn-sm" onclick="copyApprovalLink(currentPackId)" title="Link público para aprovação do cliente">🔗 Aprovação</button>
         <button class="btn btn-s btn-sm" onclick="gerarRoteiros(currentPackId)">📝 Roteiros</button>
         <button class="btn btn-s btn-sm" onclick="duplicatePack(currentPackId)">⧉ Duplicar</button>
-        <button class="btn btn-d btn-sm" onclick="deletePack(currentPackId)">🗑 Remover</button>
+        <button class="btn btn-s btn-sm" onclick="openChangeHistory()">🕘 Histórico</button>
+        <button class="btn btn-d btn-sm" onclick="deletePack(currentPackId)">🗑 Excluir pack</button>
         <button class="mclose" onclick="closePackModal()">×</button>
       </div>
     </div>
@@ -900,6 +927,17 @@ const FORMATS=['Carrossel','Reels','Estático','Stories','TikTok','Foto','Linked
 const FUNNEL=['Topo','Meio','Fundo','Autoridade','Conexão','Venda'];
 const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const PRESET_TIMES=['09:00','11:00','12:00','18:00','19:00'];
+function previousMonthName(monthName){
+  const idx=MONTHS.indexOf(monthName);
+  if(idx<0) return '';
+  return MONTHS[(idx+11)%12];
+}
+function getPackOperationalMonth(pack){
+  return pack?.operationalMonth || previousMonthName(pack?.month);
+}
+function statusColorById(status){
+  return (typeof STATUS_SOLID!=='undefined'&&STATUS_SOLID[status]) || '#8483ff';
+}
 const DAILY_VERSES=[
   {ref:'Provérbios 16:3',text:'Consagre ao Senhor tudo o que você faz, e os seus planos serão bem-sucedidos.'},
   {ref:'Provérbios 3:5-6',text:'Confie no Senhor de todo o seu coração e não se apoie em seu próprio entendimento.'},
@@ -930,7 +968,7 @@ function updateTopDate(){
 }
 // TEAM is now dynamic — loaded from Firestore 'team' collection
 let TEAM=[
-  {id:'kesia',name:'Kesia',role:'Social Media',color:'#f472b6'},
+  {id:'juliana',name:'Juliana',role:'Social Media',color:'#f472b6'},
   {id:'tatiane',name:'Tatiane',role:'Atendimento',color:'#fb923c'},
   {id:'cintia',name:'Cíntia',role:'Designer',color:'#c084fc'},
   {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'},
@@ -947,7 +985,7 @@ async function loadTeam(){
 async function seedDefaultTeam(){
   const {db,doc,setDoc}=window._fb;
   const defaults=[
-    {id:'kesia',name:'Kesia',role:'Social Media',color:'#f472b6'},
+    {id:'juliana',name:'Juliana',role:'Social Media',color:'#f472b6'},
     {id:'tatiane',name:'Tatiane',role:'Atendimento',color:'#fb923c'},
     {id:'cintia',name:'Cintia',role:'Designer',color:'#c084fc'},
     {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'},
@@ -1043,6 +1081,7 @@ async function loadUD(){
     document.getElementById('btn-add-top').style.display='flex'; 
     document.getElementById('btn-add-sb').style.display='flex'; 
   }
+  if(document.getElementById('btn-inactive-sb')) document.getElementById('btn-inactive-sb').style.display = hasInactiveClients() ? 'flex' : 'none';
   // Controle de acesso: esconde Tarefas e Comercial para não-admins
   applyAccessControl();
 }
@@ -1075,6 +1114,16 @@ function currentAccessKeys(){
     member?.name
   ].filter(Boolean).map(v=>String(v).trim()).filter(Boolean))];
 }
+function hasCommercialAccess(){
+  if(currentUserData?.role === 'admin') return true;
+  const member = currentMemberProfile();
+  const keys = currentAccessKeys().map(accessNorm);
+  return !!(currentUserData?.allowCommercial || keys.includes('juliana') || accessNorm(member?.id)==='juliana' || accessNorm(member?.name).includes('juliana'));
+}
+function canManagePacks(){
+  if(currentUserData?.role === 'admin') return true;
+  return hasCommercialAccess();
+}
 function arrayMatchesAccess(values, keys=currentAccessKeys()){
   const haystack = (values || []).map(accessNorm).filter(Boolean);
   const needles = keys.map(accessNorm).filter(Boolean);
@@ -1082,11 +1131,11 @@ function arrayMatchesAccess(values, keys=currentAccessKeys()){
 }
 function canAccessClientRecord(client, relatedPacks=[]){
   if(currentUserData?.role === 'admin') return true;
-  return arrayMatchesAccess(client?.members || []) || relatedPacks.some(p=>arrayMatchesAccess(p.assignees || []));
+  if(client?.inactive) return false;
+  return true;
 }
 function canAccessTaskRecord(task){
-  if(currentUserData?.role === 'admin') return true;
-  return arrayMatchesAccess(task?.assignees || []);
+  return true;
 }
 async function fetchVisibleTasks(){
   const {db,collection,getDocs}=window._fb;
@@ -1097,18 +1146,25 @@ async function fetchVisibleTasks(){
 }
 function applyAccessControl(){
   const isAdmin = currentUserData?.role === 'admin';
-  // Topbar tabs - só Comercial é restrito
+  const canCommercial = hasCommercialAccess();
+  // Topbar tabs - Comercial/Financeiro/Perfil
   document.querySelectorAll('.ttab').forEach(tab => {
-    if(tab.textContent.includes('Comercial') || tab.textContent.includes('Perfil Aluma')){
-      tab.style.display = isAdmin ? '' : 'none';
+    if(tab.textContent.includes('Comercial') || tab.textContent.includes('Financeiro') || tab.textContent.includes('Perfil Aluma')){
+      if(tab.textContent.includes('Perfil Aluma')) tab.style.display = isAdmin ? '' : 'none';
+      else if(tab.textContent.includes('Financeiro')) tab.style.display = isAdmin ? '' : 'none';
+      else tab.style.display = canCommercial ? '' : 'none';
     }
   });
-  // Sidebar items - só Comercial é restrito
+  // Sidebar items - Comercial/Financeiro/Perfil
   document.querySelectorAll('.sb-item').forEach(item => {
-    if(item.textContent.includes('Comercial') || item.textContent.includes('Perfil Aluma')){
-      item.style.display = isAdmin ? '' : 'none';
+    if(item.textContent.includes('Comercial') || item.textContent.includes('Financeiro') || item.textContent.includes('Perfil Aluma')){
+      if(item.textContent.includes('Perfil Aluma')) item.style.display = isAdmin ? '' : 'none';
+      else if(item.textContent.includes('Financeiro')) item.style.display = isAdmin ? '' : 'none';
+      else item.style.display = canCommercial ? '' : 'none';
     }
   });
+  const inactiveBtn=document.getElementById('btn-inactive-sb');
+  if(inactiveBtn) inactiveBtn.style.display = isAdmin && hasInactiveClients() ? 'flex' : 'none';
 }
 
 async function initApp(){ await loadTeam(); await loadClients(); setView('dashboard'); initPresence(); }
@@ -1138,8 +1194,10 @@ async function loadClients(){
 
 function renderSidebar(){
   const el=document.getElementById('sb-clients');
-  const list=Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
-  if(!list.length){ el.innerHTML='<div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente ainda</div>'; return; }
+  const inactiveBtn=document.getElementById('btn-inactive-sb');
+  if(inactiveBtn) inactiveBtn.style.display = currentUserData?.role==='admin'&&hasInactiveClients() ? 'flex' : 'none';
+  const list=Object.values(clients).filter(c=>!c.inactive).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!list.length){ el.innerHTML='<div style="padding:9px 11px;font-size:12px;color:var(--text3)">Nenhum cliente ativo</div>'; return; }
   el.innerHTML=list.map(c=>`
     <button class="sb-item ${currentClientId===c.id?'active':''}" onclick="openClient('${c.id}')">
       <span style="width:7px;height:7px;border-radius:50%;background:${c.color||'#8483ff'};flex-shrink:0"></span>
@@ -1157,7 +1215,7 @@ async function loadCnt(cid){
 // ===== VIEWS =====
 function setView(view,cid){
   document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('active'));
-  const map={dashboard:0,todos:1,calendario:2,equipe:3,tarefas:4,pauta:5,comercial:6,perfilAluma:7};
+  const map={dashboard:0,todos:1,calendario:2,equipe:3,tarefas:4,pauta:5,comercial:6,financeiro:7,perfilAluma:8};
   const tabs=document.querySelectorAll('.ttab');
   if(map[view]!==undefined) tabs[map[view]]?.classList.add('active');
   currentView=view; if(cid) currentClientId=cid;
@@ -1169,6 +1227,7 @@ function setView(view,cid){
   else if(view==='tarefas') renderTarefas();
   else if(view==='pauta') renderPauta();
   else if(view==='comercial') renderComercial();
+  else if(view==='financeiro') renderFinanceiro();
   else if(view==='perfilAluma') renderPerfilAluma();
 }
 
@@ -1202,11 +1261,12 @@ async function renderDashData(){
   const [pSnap,psSnap]=await Promise.all([getDocs(collection(db,'packs')),getDocs(collection(db,'posts'))]);
   const AP=[]; pSnap.forEach(d=>AP.push({id:d.id,...d.data()}));
   const APs=[]; psSnap.forEach(d=>APs.push({id:d.id,...d.data()}));
-  const mP=AP.filter(p=>p.month===mn);
-  const mPs=APs.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d.getMonth()===mo&&d.getFullYear()===yr; });
+  const mP=AP.filter(p=>getPackOperationalMonth(p)===mn && !clients[p.clientId]?.inactive);
+  const monthPackIds=new Set(mP.map(p=>p.id));
+  const mPs=APs.filter(p=>monthPackIds.has(p.packId));
   const dp=mP.filter(p=>p.status==='concluido').length;
   const sc={}; STATUSES.forEach(s=>sc[s.id]=0); mP.forEach(p=>{if(sc[p.status]!==undefined)sc[p.status]++;});
-  const cp={}; Object.values(clients).forEach(c=>{cp[c.id]={total:0,done:0,name:c.name,color:c.color||'#8483ff'};});
+  const cp={}; Object.values(clients).filter(c=>!c.inactive).forEach(c=>{cp[c.id]={total:0,done:0,name:c.name,color:c.color||'#8483ff'};});
   mP.forEach(p=>{if(cp[p.clientId]){cp[p.clientId].total++;if(p.status==='concluido')cp[p.clientId].done++;}});
   const inner=document.getElementById('dash-inner'); if(!inner) return;
 
@@ -1267,11 +1327,11 @@ async function renderDashData(){
   const todayBase=dayStart(new Date());
   const tomorrowBase=addDays(todayBase,1);
   const weekBase=addDays(todayBase,7);
-  const finalStatuses=['entregue','agendamento','concluido'];
+  const finalStatuses=['entregue','em_alteracoes','agendamento','concluido'];
   const currentMember=currentMemberProfile();
   const personalMemberId=currentMember?.id||'';
   const packDemandItems=AP
-    .filter(p=>p.dueDate&&!finalStatuses.includes(p.status))
+    .filter(p=>!clients[p.clientId]?.inactive && p.dueDate&&!finalStatuses.includes(p.status))
     .map(p=>({pack:p,due:parseDueDate(p.dueDate)}))
     .filter(x=>x.due)
     .sort((a,b)=>a.due-b.due);
@@ -1429,13 +1489,16 @@ function changeDM(d){ dashDate.setMonth(dashDate.getMonth()+d); renderDashData()
 let todosTab='kanban';
 async function renderTodos(){
   const main=document.getElementById('main');
+  const activeClients=Object.values(clients).filter(c=>!c.inactive);
+  const inactiveCount=Object.values(clients).filter(c=>c.inactive).length;
   main.innerHTML=`<div class="ph">
     <div class="ptitle">🗂 Todos os Clientes</div>
-    <div class="psub">${Object.keys(clients).length} clientes na carteira</div>
+    <div class="psub">${activeClients.length} clientes ativos${inactiveCount?` · ${inactiveCount} inativos`:''}</div>
     <div class="ptabs">
       <button class="ptab ${todosTab==='kanban'?'active':''}" onclick="switchTodosTab('kanban')">📦 Kanban Geral</button>
       <button class="ptab ${todosTab==='cal'?'active':''}" onclick="switchTodosTab('cal')">📅 Calendário</button>
       <div style="flex:1"></div>
+      ${currentUserData?.role==='admin'&&inactiveCount?'<button class="btn btn-s btn-sm" style="margin:4px 0" onclick="showInactiveClientsModal()">🗄 Inativos</button>':''}
       ${currentUserData?.role==='admin'?'<button class="btn btn-p btn-sm" style="margin:4px 0" onclick="showAddClient()">+ Novo cliente</button>':''}</div>
   </div>
   <div id="todos-tab" style="flex:1;overflow:hidden;display:flex;flex-direction:column"></div>`;
@@ -1457,6 +1520,7 @@ async function renderGlobalKanban(container){
   container.innerHTML=`<div class="kanban-outer"><div class="kanban-board" id="global-kb"><div class="loading"><div class="spinner"></div></div></div></div>`;
   const snap=await getDocs(collection(db,'packs'));
   let allP=[]; snap.forEach(d=>allP.push({id:d.id,...d.data()}));
+  allP=allP.filter(p=>!clients[p.clientId]?.inactive);
   const board=document.getElementById('global-kb'); if(!board) return;
   board.innerHTML=STATUSES.map(s=>{
     const col=allP.filter(p=>p.status===s.id);
@@ -1560,7 +1624,9 @@ function toggleGlobalMDD(id){
 }
 async function setGlobalPackMonth(id,m){
   const {db,doc,updateDoc}=window._fb;
-  await updateDoc(doc(db,'packs',id),{month:m});
+  if(packs[id]) packs[id].operationalMonth=previousMonthName(m);
+  if(packs[id]) packs[id].month=m;
+  await updateDoc(doc(db,'packs',id),{month:m,operationalMonth:previousMonthName(m)});
   document.querySelectorAll('.mdd').forEach(d=>d.classList.add('hidden'));
   showToast('Mês atualizado!','ok');
   renderGlobalKanban(document.getElementById('todos-tab'));
@@ -1584,7 +1650,7 @@ async function renderClientDetail(){
       <button class="ptab ${clientTab==='metricas'?'active':''}" onclick="swCT('metricas')">📈 Métricas IG</button>
       <div style="flex:1"></div>
       <button class="btn btn-s btn-sm" style="margin:4px 0" onclick="showEditClient()">✏️ Editar</button>
-      ${currentUserData?.role==='admin'?'<button class="btn btn-p btn-sm" style="margin:4px 0" onclick="showNewPack()">+ Novo pack</button>':''}</div>
+      ${canManagePacks()?'<button class="btn btn-p btn-sm" style="margin:4px 0" onclick="showNewPack()">+ Novo pack</button>':''}</div>
   </div>
   <div id="ct" style="flex:1;display:flex;flex-direction:column"></div>`;
   renderCT();
@@ -1722,7 +1788,7 @@ async function loadKanban(){
       </div>
       <div class="kcol-body">
         ${col.map(p=>renderCard(p)).join('')}
-        ${currentUserData?.role==='admin'?`<button class="kadd-btn" onclick="createPackInStatus('${s.id}')">+ Adicionar</button>`:''}
+        ${canManagePacks()?`<button class="kadd-btn" onclick="createPackInStatus('${s.id}')">+ Adicionar</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1786,7 +1852,9 @@ async function dropPack(e,to){
 function toggleMDD(id){ const dd=document.getElementById('mdd-'+id); const h=dd.classList.contains('hidden'); document.querySelectorAll('.mdd').forEach(d=>d.classList.add('hidden')); if(h) dd.classList.remove('hidden'); }
 async function setPackMonth(id,m){
   const {db,doc,updateDoc}=window._fb;
-  packs[id].month=m; await updateDoc(doc(db,'packs',id),{month:m});
+  packs[id].month=m;
+  packs[id].operationalMonth=previousMonthName(m);
+  await updateDoc(doc(db,'packs',id),{month:m,operationalMonth:previousMonthName(m)});
   document.querySelectorAll('.mdd').forEach(d=>d.classList.add('hidden')); loadKanban();
 }
 
@@ -1948,11 +2016,14 @@ function renderPostsList(){
     const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
     const sColors={p:'#fb923c',c:'#60a5fa',d:'#facc15',r:'#f472b6',pdf:'#c084fc',e:'#f97316',ent:'#2dd4bf',alt:'#ff5252',ag:'#818cf8',con:'#4ade80'};
     const sc=sColors[s.cls]||'#8483ff';
+    const idxLabel=`Post ${String((p.order||0)+1).padStart(2,'0')} - `;
+    const formatTag=p.format?`<span class="ktag tag-${(p.format||'feed').toLowerCase().replace(/\s/g,'')}" style="font-size:9.5px;margin-top:4px;display:inline-flex">${p.format}</span>`:'';
     return `<div class="mpost-item ${currentPostId===p.id?'active':''}" onclick="openPost('${p.id}')">
       <div class="mpost-dot d${s.cls}"></div>
       <div style="flex:1;min-width:0">
-        <div class="mpost-name">${p.title||'Post'}</div>
+        <div class="mpost-name">${idxLabel}${p.title||'Tema'}</div>
         <div style="font-size:10px;font-weight:600;color:${sc};margin-top:1px">${s.label}</div>
+        ${formatTag}
       </div>
     </div>`;
   }).join('')}
@@ -2099,7 +2170,50 @@ function getRichText(el){
   const text=('innerText' in el ? el.innerText : (el.textContent||''));
   return text.replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
 }
-function autoLinkify(el){}
+function placeCaretAtEnd(el){
+  if(!el) return;
+  const range=document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel=window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+function normalizePastedText(text){
+  return String(text||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n');
+}
+function handleRichPaste(event, targetId){
+  event.preventDefault();
+  const text=normalizePastedText(event.clipboardData?.getData('text/plain')||'');
+  const el=document.getElementById(targetId);
+  if(!el) return;
+  el.focus();
+  if(document.queryCommandSupported&&document.queryCommandSupported('insertText')) document.execCommand('insertText',false,text);
+  else {
+    el.textContent=(getRichText(el)+(getRichText(el)?'\n':'')+text).trim();
+    placeCaretAtEnd(el);
+  }
+  autoLinkify(el);
+}
+function autoLinkify(el){
+  if(!el) return;
+  const text=getRichText(el);
+  posts[currentPostId] && (el.dataset.draft=text);
+}
+function buildEditMeta(meta){
+  if(!meta?.by && !meta?.at) return '';
+  const dt=meta?.at?new Date(meta.at):null;
+  const time=dt&&!Number.isNaN(dt.getTime())?dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+  const date=dt&&!Number.isNaN(dt.getTime())?dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'';
+  return `Editado pela última vez por ${meta.by||'Equipe'}${time?` às ${time}`:''}${date?` · ${date}`:''}`;
+}
+async function spfRichAndRender(field, editorId){
+  const el=document.getElementById(editorId);
+  if(!el) return;
+  await spf(field,getRichText(el));
+  renderPF(posts[currentPostId]);
+  renderPostsList();
+}
 function syncCurrentRichDraft(){
   if(!currentPostId || !posts[currentPostId]) return;
   [
@@ -2129,10 +2243,11 @@ async function spfAndRender(field,value){
   renderPostsList();
 }
 const EMOJI_SET=['😀','😁','😊','😍','😉','😎','🤩','👏','🙌','💜','✨','🔥','✅','📌','📍','🎯','🚀','💡','📝','📅','⏰','📣','💬','❤️'];
-function richToolbar(targetId,withCopy=false){
+function richToolbar(targetId,withCopy=false,withHistory=false){
   const pickerId='emoji-'+targetId;
   return `<div class="rich-tools">
     <button class="rich-tool-btn" type="button" onmousedown="event.preventDefault()" onclick="toggleEmojiPicker('${pickerId}')">Emoji</button>
+    ${withHistory?`<button class="rich-tool-btn" type="button" onclick="openBriefHistory()">Histórico</button>`:''}
     ${withCopy?`<button class="rich-tool-btn" type="button" onclick="copyRichText('${targetId}')">Copiar</button>`:''}
     <div class="emoji-picker" id="${pickerId}">${EMOJI_SET.map(e=>`<button class="emoji-btn" type="button" onmousedown="event.preventDefault()" onclick="insertEmoji('${targetId}','${e}');closeEmojiPickers()">${e}</button>`).join('')}</div>
   </div>`;
@@ -2156,7 +2271,8 @@ function copyRichText(targetId){
   const el=document.getElementById(targetId);
   if(!el) return;
   const text=getRichText(el);
-  const done=()=>showToast('Legenda copiada!','ok');
+  const msg=targetId.includes('caption')?'Legenda copiada!':'Texto copiado!';
+  const done=()=>showToast(msg,'ok');
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
   else fallbackCopy(text,done);
 }
@@ -2164,6 +2280,45 @@ function fallbackCopy(text,done){
   const ta=document.createElement('textarea');
   ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
   document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done();
+}
+function openBriefHistory(){
+  if(!currentPostId||!posts[currentPostId]) return;
+  const post=posts[currentPostId];
+  const versions=[
+    ...(post.designBriefing ? [{text:post.designBriefing,by:post.designBriefingMeta?.by||'Equipe',at:post.designBriefingMeta?.at||post.updatedAt||Date.now(),current:true}] : []),
+    ...((post.designBriefingVersions||[]).map(v=>({...v,current:false})))
+  ];
+  const html=versions.length?versions.map((v,idx)=>`
+    <div class="history-card ${v.current?'active':''}">
+      <div class="history-card-head">
+        <div>
+          <div class="history-card-title">${v.current?'Versão atual':`Versão ${versions.length-idx}`}</div>
+          <div class="history-card-meta">${buildEditMeta({by:v.by,at:v.at})||'Sem identificação'}</div>
+        </div>
+        ${!v.current?`<button class="btn btn-s btn-sm" onclick="restoreBriefVersion(${idx-1})">Restaurar</button>`:''}
+      </div>
+      <div class="history-card-body">${renderRichText(v.text||'')}</div>
+    </div>`).join(''):'<div class="empty"><div class="empty-title">Nenhuma versão anterior ainda</div></div>';
+  const ov=document.createElement('div');
+  ov.className='mo open';
+  ov.id='brief-history-mo';
+  ov.innerHTML=`<div class="modal modal-sm" style="max-width:680px;min-height:auto">
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Histórico do texto do conteúdo</div><div class="mmeta">Restaure uma versão anterior quando precisar.</div></div><button class="mclose" onclick="closeBriefHistory()">×</button></div>
+    <div style="padding:18px 20px 20px">${html}</div>
+  </div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeBriefHistory(); });
+  document.body.appendChild(ov);
+}
+function closeBriefHistory(){ document.getElementById('brief-history-mo')?.remove(); }
+async function restoreBriefVersion(historyIdx){
+  if(!currentPostId||!posts[currentPostId]) return;
+  const versions=posts[currentPostId].designBriefingVersions||[];
+  const picked=versions[historyIdx];
+  if(!picked) return;
+  await spfDirect(currentPostId,'designBriefing',picked.text||'');
+  closeBriefHistory();
+  renderPF(posts[currentPostId]);
+  showToast('Versão restaurada!','ok');
 }
 
 function postMediaItems(post){
@@ -2221,12 +2376,13 @@ function renderPF(post){
   const postAssignees=post.assignees||[];
   const assigneeChips=TEAM.map(m=>`<div class="assignee-chip ${postAssignees.includes(m.id)?'selected':''}" onclick="togglePostAssignee('${post.id}','${m.id}',this)"><div class="assignee-avatar" style="background:${m.color}">${m.name[0]}</div>${m.name}</div>`).join('');
   const comments=(post.comments||[]);
+  const briefMeta=buildEditMeta(post.designBriefingMeta);
   const cmtHtml=comments.length?comments.map(c=>`<div class="comment-item"><div class="comment-author">${c.author||'?'}</div><div class="comment-text">${c.text||''}</div>${(c.images||[]).map(src=>`<img class="comment-img" src="${src}" onclick="window.open(this.src)">`).join('')}<div class="comment-time">${c.time||''}</div></div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentário ainda</div>';
 
-  el.style.cssText='display:flex;gap:0;overflow:hidden;padding:0;';
+  el.style.cssText='display:flex;gap:0;overflow:hidden;padding:0;min-height:100%;';
   el.innerHTML=`
   <!-- LEFT: main form -->
-  <div id="pf-left" style="flex:1;overflow-y:auto;padding:18px 20px;min-width:0">
+  <div id="pf-left" style="flex:1;overflow-y:auto;padding:22px 28px;min-width:0">
     <div class="pfhdr">POST ${String(idx).padStart(2,'0')} — <span contenteditable="true" onblur="updTitle(this.textContent)" style="outline:none;border-bottom:1px dashed var(--border2);min-width:100px">${post.title||'Sem título'}</span></div>
 
     <!-- STATUS INLINE -->
@@ -2241,12 +2397,14 @@ function renderPF(post){
       </div>
       ${post.postDate?`<span style="font-size:12px;color:var(--text3)">📅 ${new Date(post.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
       ${post.format?`<span class="ktag tag-${post.format.toLowerCase()}" style="font-size:11px">${post.format}</span>`:''}
+      <span style="margin-left:auto"></span>
+      <button class="btn btn-d btn-sm" onclick="deletePost('${post.id}')">🗑 Excluir post</button>
     </div>
 
     ${renderPostVisualGallery(post)}
 
     <div class="fsect">📊 Campos</div>
-    <div class="fgrid" style="margin-bottom:10px">
+    <div class="fgrid" style="grid-template-columns:minmax(220px,1.15fr) minmax(160px,.7fr) minmax(150px,.55fr);margin-bottom:10px">
       <div class="ff"><label class="flbl">Data e hora</label>
         <div class="time-field-wrap">
           <input type="datetime-local" class="fi" id="pf-dt-${post.id}" value="${post.postDate||''}" onchange="spfAndRender('postDate',this.value)">
@@ -2260,12 +2418,14 @@ function renderPF(post){
       </div>
       <div class="ff"><label class="flbl">Formato</label><select class="fs" onchange="spfAndRender('format',this.value)">${FORMATS.map(f=>`<option ${post.format===f?'selected':''}>${f}</option>`).join('')}</select></div>
       <div class="ff"><label class="flbl">Funil</label><select class="fs" onchange="spf('funnel',this.value)"><option value="">—</option>${FUNNEL.map(f=>`<option ${post.funnel===f?'selected':''}>${f}</option>`).join('')}</select></div>
-      <div class="ff" style="grid-column:1/-1"><label class="flbl">Link do post publicado</label>
+    </div>
+    <div class="fgrid" style="grid-template-columns:1fr 1fr;margin-bottom:11px">
+      <div class="ff"><label class="flbl">Link do post publicado</label>
         <div class="lwrap"><input class="fi" type="url" value="${post.postLink||''}" placeholder="https://instagram.com/p/..." onchange="spfR('postLink',this.value)">
           ${post.postLink?`<a href="${post.postLink}" target="_blank" class="lbtn">Abrir ↗</a>`:`<span class="lbtn" style="opacity:.4;cursor:default">Abrir ↗</span>`}
         </div>
       </div>
-      <div class="ff" style="grid-column:1/-1"><label class="flbl">📁 Pasta no Google Drive</label>
+      <div class="ff"><label class="flbl">📁 Pasta no Google Drive</label>
         <div class="lwrap"><input class="fi" type="url" value="${post.driveLink||''}" placeholder="https://drive.google.com/..." onchange="spfR('driveLink',this.value)">
           ${post.driveLink?`<a href="${post.driveLink}" target="_blank" class="lbtn">Abrir ↗</a>`:`<span class="lbtn" style="opacity:.4;cursor:default">Abrir ↗</span>`}
         </div>
@@ -2274,11 +2434,7 @@ function renderPF(post){
 
     <div class="fsect">📋 Briefing & Referências</div>
     <div class="ff" style="margin-bottom:9px"><label class="flbl">Informações importantes</label>
-      <div class="rich-area" contenteditable="true" id="rt-ref-${post.id}"
-        onblur="spf('references',getRichText(this))"
-        oninput="autoLinkify(this)"
-        style="min-height:60px">${renderRichText(post.references||'')}
-      </div>
+      <div class="rich-area" contenteditable="true" id="rt-ref-${post.id}" onpaste="handleRichPaste(event,'rt-ref-${post.id}')" onblur="spf('references',getRichText(this))" oninput="autoLinkify(this)" style="min-height:72px">${renderRichText(post.references||'')}</div>
     </div>
     <div class="ff" style="margin-bottom:11px"><label class="flbl">Link de referência</label>
       <div class="lwrap"><input class="fi" type="url" value="${post.refLink||''}" placeholder="https://..." onchange="spfR('refLink',this.value)">
@@ -2287,30 +2443,23 @@ function renderPF(post){
     </div>
 
     <div class="fsect">✏️ Texto do Conteúdo</div>
+    ${briefMeta?`<div class="rich-meta">${briefMeta}</div>`:''}
     <div class="ff" style="margin-bottom:11px">
-      ${richToolbar('rt-brief-'+post.id)}
-      <div class="rich-area" contenteditable="true" id="rt-brief-${post.id}"
-        onblur="spf('designBriefing',getRichText(this))"
-        oninput="autoLinkify(this)"
-        style="min-height:80px">${renderRichText(post.designBriefing||'')}
-      </div>
+      ${richToolbar('rt-brief-'+post.id,false,true)}
+      <div class="rich-area" contenteditable="true" id="rt-brief-${post.id}" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="spfRichAndRender('designBriefing','rt-brief-${post.id}')" oninput="autoLinkify(this)" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
     </div>
 
     <div class="fsect">💬 Legenda</div>
     <div class="ff" style="margin-bottom:14px">
       ${richToolbar('rt-caption-'+post.id,true)}
-      <div class="rich-area" contenteditable="true" id="rt-caption-${post.id}"
-        onblur="spf('caption',getRichText(this))"
-        oninput="autoLinkify(this)"
-        style="min-height:90px">${renderRichText(post.caption||'')}
-      </div>
+      <div class="rich-area" contenteditable="true" id="rt-caption-${post.id}" onpaste="handleRichPaste(event,'rt-caption-${post.id}')" onblur="spf('caption',getRichText(this))" oninput="autoLinkify(this)" style="min-height:110px">${renderRichText(post.caption||'')}</div>
     </div>
 
-    <div class="brow">${currentUserData?.role==='admin'?`<button class="btn btn-d btn-sm" onclick="deletePost('${post.id}')">🗑 Excluir</button>`:''}</div>
+    <div class="brow"><button class="btn btn-d btn-sm" onclick="deletePost('${post.id}')">🗑 Excluir post</button></div>
   </div>
 
   <!-- RIGHT: Arquivos finais + comments panel -->
-  <div id="pf-comments-panel" style="width:280px;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .2s">
+  <div id="pf-comments-panel" style="width:320px;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .2s">
     <!-- Arquivos Finais (MOVED HERE - above comments) -->
     <div style="padding:12px;border-bottom:1px solid var(--border);flex-shrink:0">
       <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px">
@@ -2351,7 +2500,7 @@ function toggleCommentPanel(){
   if(!panel||!btn) return;
   if(panel.style.display==='none'||panel.style.width==='0px'){
     panel.style.display='flex'; panel.style.flexDirection='column';
-    panel.style.width='260px'; btn.style.display='none';
+    panel.style.width='320px'; btn.style.display='none';
     el.style.position='';
   } else {
     panel.style.display='none'; btn.style.display='block';
@@ -2502,22 +2651,172 @@ async function spf(field,value){ if(!currentPostId) return; await spfDirect(curr
 async function spfR(field,value){ await saveCurrentRichDraft(); await spf(field,value); renderPF(posts[currentPostId]); }
 async function spfDirect(pid,field,value){
   const {db,doc,updateDoc}=window._fb;
+  const prev=posts[pid]?.[field];
   posts[pid][field]=value;
-  await updateDoc(doc(db,'posts',pid),{[field]:value});
+  const payload={[field]:value,updatedAt:Date.now()};
+  posts[pid].updatedAt=payload.updatedAt;
+  if(field==='designBriefing'){
+    const by=currentUserData?.name||currentUser?.email?.split('@')[0]||'Equipe';
+    const at=Date.now();
+    payload.designBriefingMeta={by,at};
+    posts[pid].designBriefingMeta={by,at};
+    if(String(prev||'').trim()!==String(value||'').trim()){
+      const versions=Array.isArray(posts[pid].designBriefingVersions)?[...posts[pid].designBriefingVersions]:[];
+      if(String(prev||'').trim()){
+        versions.unshift({text:String(prev),by,at,restored:false});
+      }
+      posts[pid].designBriefingVersions=versions.slice(0,12);
+      payload.designBriefingVersions=posts[pid].designBriefingVersions;
+    }
+  }
+  await updateDoc(doc(db,'posts',pid),payload);
 }
 
 async function addPost(){
   const {db,addDoc,collection}=window._fb;
   const order=Object.keys(posts).length;
   const num=String(order+1).padStart(2,'0');
-  const ref=await addDoc(collection(db,'posts'),{packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',caption:'',images:[],comments:[],assignees:[],createdAt:Date.now()});
-  posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',caption:'',images:[],comments:[],assignees:[],createdAt:Date.now()};
+  const ref=await addDoc(collection(db,'posts'),{packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()});
+  posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()};
   await updPCnt(Object.keys(posts).length);
   renderPostsList(); openPost(ref.id); showToast('Post adicionado','ok');
 }
+function confirmDangerAction(title,message,confirmLabel='Excluir'){
+  return new Promise(resolve=>{
+    const ov=document.createElement('div');
+    ov.className='mo open';
+    ov.innerHTML=`<div class="modal modal-sm">
+      <div class="mhdr">
+        <div class="mhdr-info">
+          <div class="mtitle">${title}</div>
+          <div class="mmeta">Confirme esta ação para continuar.</div>
+        </div>
+        <button class="mclose" onclick="this.closest('.mo').remove();window.__confirmDangerResolve?.(false)">×</button>
+      </div>
+      <div style="padding:20px">
+        <div style="font-size:14px;line-height:1.6;color:var(--text2);margin-bottom:18px;white-space:pre-wrap">${message}</div>
+        <div class="brow">
+          <button class="btn btn-s" type="button">Cancelar</button>
+          <button class="btn btn-d" type="button">${confirmLabel}</button>
+        </div>
+      </div>
+    </div>`;
+    const finish=(value)=>{ resolve(value); ov.remove(); delete window.__confirmDangerResolve; };
+    window.__confirmDangerResolve=finish;
+    const [cancelBtn,confirmBtn]=ov.querySelectorAll('.brow button');
+    cancelBtn.onclick=()=>finish(false);
+    confirmBtn.onclick=()=>finish(true);
+    ov.addEventListener('click',e=>{ if(e.target===ov) finish(false); });
+    document.body.appendChild(ov);
+  });
+}
+async function logChangeHistory(entry){
+  try{
+    const {db,collection,addDoc}=window._fb;
+    await addDoc(collection(db,'change_history'),{
+      ...entry,
+      by:currentUserData?.name||currentUser?.email?.split('@')[0]||'Equipe',
+      userId:currentUser?.uid||'',
+      createdAt:Date.now()
+    });
+  }catch(err){
+    console.error('logChangeHistory',err);
+  }
+}
+async function openChangeHistory(){
+  const {db,collection,getDocs,query,where,limit}=window._fb;
+  const entries=[];
+  try{
+    let q;
+    if(currentPackId){
+      q=query(collection(db,'change_history'),where('packId','==',currentPackId),limit(40));
+    }else if(currentClientId){
+      q=query(collection(db,'change_history'),where('clientId','==',currentClientId),limit(40));
+    }else{
+      q=query(collection(db,'change_history'),limit(40));
+    }
+    const snap=await getDocs(q);
+    snap.forEach(d=>entries.push({id:d.id,...d.data()}));
+    entries.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  }catch(err){
+    console.error('openChangeHistory',err);
+    showToast('Não consegui carregar o histórico agora','err');
+    return;
+  }
+  const labelFor=(entry)=>{
+    if(entry.kind==='delete_post') return 'Exclusão de post';
+    if(entry.kind==='delete_pack') return 'Exclusão de pack';
+    if(entry.kind==='restore_post') return 'Restauração de post';
+    if(entry.kind==='restore_pack') return 'Restauração de pack';
+    return 'Alteração';
+  };
+  const descFor=(entry)=>{
+    if(entry.kind==='delete_post') return `${entry.post?.title||'Post sem título'} foi excluído.`;
+    if(entry.kind==='delete_pack') return `${entry.pack?.type||'Pack'} — ${(clients[entry.clientId]?.name||entry.clientName||'Cliente')} foi excluído com ${(entry.posts||[]).length} post(s).`;
+    if(entry.kind==='restore_post') return `${entry.post?.title||'Post sem título'} foi restaurado.`;
+    if(entry.kind==='restore_pack') return `${entry.pack?.type||'Pack'} foi restaurado com ${(entry.posts||[]).length} post(s).`;
+    return entry.description||'Sem detalhes';
+  };
+  const ov=document.createElement('div');
+  ov.className='mo open';
+  ov.innerHTML=`<div class="modal" style="width:min(860px,96vw);max-height:88vh;display:flex;flex-direction:column">
+    <div class="mhdr">
+      <div class="mhdr-info">
+        <div class="mtitle">Histórico de Alterações</div>
+        <div class="mmeta">Aqui ficam as exclusões e restaurações mais importantes deste pack.</div>
+      </div>
+      <button class="mclose" onclick="this.closest('.mo').remove()">×</button>
+    </div>
+    <div style="padding:18px;overflow:auto">
+      <div class="history-list">
+        ${entries.length?entries.map(entry=>`
+          <div class="history-card">
+            <div class="history-card-head">
+              <div>
+                <div class="history-card-title">${labelFor(entry)}</div>
+                <div class="history-card-meta">${buildEditMeta({by:entry.by,at:entry.createdAt})||'Sem identificação'}</div>
+              </div>
+              ${['delete_post','delete_pack'].includes(entry.kind)?`<button class="btn btn-s btn-sm" onclick="restoreHistoryEntry('${entry.id}',this.closest('.mo'))">Restaurar</button>`:''}
+            </div>
+            <div class="history-card-body">${descFor(entry)}</div>
+          </div>`).join(''):`<div style="font-size:13px;color:var(--text3);text-align:center;padding:18px 0">Nenhuma alteração catalogada ainda.</div>`}
+      </div>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+async function restoreHistoryEntry(entryId,modalEl){
+  const {db,doc,getDoc,setDoc}=window._fb;
+  const snap=await getDoc(doc(db,'change_history',entryId));
+  if(!snap.exists()){ showToast('Não encontrei esse item no histórico','err'); return; }
+  const entry={id:snap.id,...snap.data()};
+  if(entry.kind==='delete_post' && entry.post){
+    await setDoc(doc(db,'posts',entry.post.id),entry.post);
+    posts[entry.post.id]=entry.post;
+    await updPCnt(Object.keys(posts).length);
+    await logChangeHistory({kind:'restore_post',clientId:entry.clientId,packId:entry.packId,post:entry.post});
+    if(currentPackId===entry.packId){ renderPostsList(); openPost(entry.post.id); }
+    showToast('Post restaurado','ok');
+  }else if(entry.kind==='delete_pack' && entry.pack){
+    await setDoc(doc(db,'packs',entry.pack.id),entry.pack);
+    for(const p of (entry.posts||[])){ await setDoc(doc(db,'posts',p.id),p); }
+    await logChangeHistory({kind:'restore_pack',clientId:entry.clientId,packId:entry.pack.id,pack:entry.pack,posts:entry.posts||[]});
+    showToast('Pack restaurado','ok');
+    await loadKanban();
+  }else{
+    showToast('Esse item não pode ser restaurado','err');
+    return;
+  }
+  if(modalEl) modalEl.remove();
+}
 async function deletePost(pid){
-  if(!confirm('Excluir este post?')) return;
+  const post=posts[pid];
+  if(!post) return;
+  const ok=await confirmDangerAction('Excluir post',`Tem certeza que deseja excluir este post?\n\n"${post.title||'Post sem título'}"\n\nVocê poderá restaurá-lo pelo Histórico de Alterações.`,'Excluir post');
+  if(!ok) return;
   const {db,doc,deleteDoc}=window._fb;
+  await logChangeHistory({kind:'delete_post',clientId:post.clientId||currentClientId,packId:post.packId||currentPackId,post});
   await deleteDoc(doc(db,'posts',pid)); delete posts[pid]; currentPostId=null;
   await updPCnt(Object.keys(posts).length);
   renderPostsList();
@@ -2553,7 +2852,7 @@ async function renderCalendario(container){
       <div class="cal-filters">
         <select class="calf" onchange="calFC=this.value;renderCalGrid2()">
           <option value="">Todos os clientes</option>
-          ${Object.values(clients).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+          ${Object.values(clients).filter(c=>!c.inactive).map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
         </select>
         <select class="calf" onchange="calFF=this.value;renderCalGrid2()">
           <option value="">Todos os formatos</option>
@@ -2573,6 +2872,7 @@ async function renderCalGrid2(){
   const t=document.getElementById('cal-title'); if(t) t.textContent=`${MONTHS[mo]} ${yr}`;
   const snap=await getDocs(collection(db,'posts'));
   let all=[]; snap.forEach(d=>all.push({id:d.id,...d.data()}));
+  all=all.filter(p=>!clients[p.clientId]?.inactive);
   if(calFC) all=all.filter(p=>p.clientId===calFC);
   if(calFF) all=all.filter(p=>p.format===calFF);
   const fil=all.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d.getMonth()===mo&&d.getFullYear()===yr; });
@@ -2602,7 +2902,7 @@ function buildCalGrid(cid,yr,mo,postsArr,showClient){
       ondrop="dropCalPost(event,'${dateStr}',${yr},${mo})">
       <div class="cal-dn">${dayNum}</div>
       ${dp.slice(0,3).map(p=>{
-        const cl=clients[p.clientId]; const color=cl?.color||'#8483ff';
+        const cl=clients[p.clientId]; const color=statusColorById(p.status);
         const cn=showClient?(cl?.name||'?').split(' ')[0]+': ':'';
         const time=p.postDate?new Date(p.postDate).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' ':'';
         const idx=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0)).findIndex(x=>x.id===p.id)+1;
@@ -2742,8 +3042,8 @@ async function saveClient(){
   const color=document.getElementById('c-color').value;
   if(!name){ showToast('Nome obrigatório','err'); return; }
   const {db,addDoc,collection}=window._fb;
-  const ref=await addDoc(collection(db,'clients'),{name,handle,niche,color,createdAt:Date.now(),members:[currentUser.uid]});
-  clients[ref.id]={id:ref.id,name,handle,niche,color,members:[currentUser.uid]};
+  const ref=await addDoc(collection(db,'clients'),{name,handle,niche,color,createdAt:Date.now(),members:[currentUser.uid],inactive:false,offboardingChecklist:{acessos:false,ultimaEntrega:false,arquivos:false,financeiro:false,obs:''}});
+  clients[ref.id]={id:ref.id,name,handle,niche,color,members:[currentUser.uid],inactive:false,offboardingChecklist:{acessos:false,ultimaEntrega:false,arquivos:false,financeiro:false,obs:''}};
   closeClientModal(); renderSidebar();
   if(currentView==='todos') renderTodos(); else renderClientes();
   showToast(`${name} adicionado!`,'ok');
@@ -2751,6 +3051,7 @@ async function saveClient(){
 
 // ===== NEW PACK =====
 function showNewPack(){
+  if(!canManagePacks()){ showToast('Você não tem permissão para criar packs','err'); return; }
   document.getElementById('pack-new-mo').classList.add('open');
   renderAssigneeChips('np-assignees');
 }
@@ -2767,17 +3068,20 @@ async function saveNewPack(){
   const canvaLink=document.getElementById('np-canva').value.trim();
   const dueDate=document.getElementById('np-due').value;
   const assignees=getSelectedACs();
+  const operationalMonth=previousMonthName(month);
   const {db,addDoc,collection}=window._fb;
-  const ref=await addDoc(collection(db,'packs'),{clientId:currentClientId,type,month,canvaLink,dueDate,assignees,status:'planejamento',postCount:0,createdAt:Date.now()});
-  packs[ref.id]={id:ref.id,clientId:currentClientId,type,month,canvaLink,dueDate,assignees,status:'planejamento',postCount:0};
+  const ref=await addDoc(collection(db,'packs'),{clientId:currentClientId,type,month,operationalMonth,canvaLink,dueDate,assignees,status:'planejamento',postCount:0,createdAt:Date.now()});
+  packs[ref.id]={id:ref.id,clientId:currentClientId,type,month,operationalMonth,canvaLink,dueDate,assignees,status:'planejamento',postCount:0};
   document.getElementById('pack-new-mo').classList.remove('open');
   loadKanban(); showToast('Pack criado!','ok');
 }
 async function createPackInStatus(status){
+  if(!canManagePacks()){ showToast('Você não tem permissão para criar packs','err'); return; }
   const {db,addDoc,collection}=window._fb;
   const month=MONTHS[new Date().getMonth()];
-  const ref=await addDoc(collection(db,'packs'),{clientId:currentClientId,type:'Feed',month,status,assignees:[],postCount:0,createdAt:Date.now()});
-  packs[ref.id]={id:ref.id,clientId:currentClientId,type:'Feed',month,status,assignees:[],postCount:0};
+  const operationalMonth=previousMonthName(month);
+  const ref=await addDoc(collection(db,'packs'),{clientId:currentClientId,type:'Feed',month,operationalMonth,status,assignees:[],postCount:0,createdAt:Date.now()});
+  packs[ref.id]={id:ref.id,clientId:currentClientId,type:'Feed',month,operationalMonth,status,assignees:[],postCount:0};
   loadKanban();
 }
 
@@ -3082,9 +3386,12 @@ async function deletePack(packId){
   if(!packId) return;
   const pack=packs[packId];
   const client=clients[pack?.clientId]||clients[currentClientId]||{name:''};
-  if(!confirm('Remover o pack "'+( pack?.type||'Pack')+' — '+client.name+'"?\nIsso também remove todos os posts.')) return;
   const {db,doc,deleteDoc,collection,getDocs,query,where}=window._fb;
   const postsSnap=await getDocs(query(collection(db,'posts'),where('packId','==',packId)));
+  const postItems=[]; postsSnap.forEach(d=>postItems.push({id:d.id,...d.data()}));
+  const ok=await confirmDangerAction('Excluir pack inteiro',`Tem certeza que deseja excluir o pack inteiro?\n\n"${(pack?.type||'Pack')} — ${client.name}"\n\nEssa ação removerá todos os ${postItems.length} post(s) deste pack, mas será possível restaurar pelo Histórico de Alterações.`,'Excluir pack');
+  if(!ok) return;
+  await logChangeHistory({kind:'delete_pack',clientId:pack?.clientId||currentClientId,clientName:client.name||'',packId:packId,pack:{id:packId,...pack},posts:postItems});
   const dels=[]; postsSnap.forEach(d=>dels.push(deleteDoc(doc(db,'posts',d.id))));
   await Promise.all(dels);
   await deleteDoc(doc(db,'packs',packId));
@@ -4358,6 +4665,15 @@ function showEditClient(){
   document.getElementById('ec-niche').value=cl.niche||'';
   document.getElementById('ec-color').value=cl.color||'#8483ff';
   document.getElementById('ec-instagram-id').value=cl.instagramId||'';
+  document.getElementById('ec-activity').value=cl.inactive?'inactive':'active';
+  const off=cl.offboardingChecklist||{};
+  document.getElementById('ec-off-acessos').checked=!!off.acessos;
+  document.getElementById('ec-off-entrega').checked=!!off.ultimaEntrega;
+  document.getElementById('ec-off-arquivos').checked=!!off.arquivos;
+  document.getElementById('ec-off-financeiro').checked=!!off.financeiro;
+  document.getElementById('ec-off-obs').value=off.obs||'';
+  const inactiveBtn=document.getElementById('ec-inactive-btn');
+  if(inactiveBtn) inactiveBtn.textContent=cl.inactive?'Reativar cliente':'Mover para inativo';
   editClientPhotoB64=cl.photo||'';
   const prev=document.getElementById('ec-photo-preview');
   if(cl.photo){
@@ -4367,7 +4683,32 @@ function showEditClient(){
   }
   document.getElementById('edit-client-mo').classList.add('open');
 }
+async function handleClientPhoto(files){
+  const file=files?.[0];
+  if(!file) return;
+  const preview=document.getElementById('ec-photo-preview');
+  const clientName=document.getElementById('ec-name')?.value.trim()||clients[editingClientId||currentClientId]?.name||'Cliente';
+  const clientColor=document.getElementById('ec-color')?.value||clients[editingClientId||currentClientId]?.color||'#8483ff';
+  try{
+    if(window._fb?.storage && (editingClientId||currentClientId)){
+      editClientPhotoB64=await uploadClientPhoto(editingClientId||currentClientId,file);
+    }else{
+      editClientPhotoB64=await toB64(file);
+    }
+  }catch(err){
+    editClientPhotoB64=await toB64(file);
+  }
+  if(preview){
+    preview.innerHTML=editClientPhotoB64
+      ? `<img src="${editClientPhotoB64}" style="width:100%;height:100%;object-fit:cover">`
+      : `<div style="font-size:22px;font-weight:800;color:${clientColor}">${(clientName||'?')[0]}</div>`;
+  }
+  const inp=document.getElementById('ec-photo-inp');
+  if(inp) inp.value='';
+  showToast('Foto atualizada para salvar no cliente','ok');
+}
 function closeEditClient(){ document.getElementById('edit-client-mo').classList.remove('open'); }
+function hasInactiveClients(){ return Object.values(clients).some(c=>c.inactive); }
 async function saveEditClient(){
   if(!editingClientId) return;
   const {db,doc,updateDoc}=window._fb;
@@ -4377,7 +4718,15 @@ async function saveEditClient(){
   const color=document.getElementById('ec-color').value;
   if(!name){ showToast('Nome obrigatório','err'); return; }
   const instagramId=document.getElementById('ec-instagram-id')?.value.trim()||'';
-  const data={name,handle,niche,color,instagramId};
+  const inactive=document.getElementById('ec-activity')?.value==='inactive';
+  const offboardingChecklist={
+    acessos:!!document.getElementById('ec-off-acessos')?.checked,
+    ultimaEntrega:!!document.getElementById('ec-off-entrega')?.checked,
+    arquivos:!!document.getElementById('ec-off-arquivos')?.checked,
+    financeiro:!!document.getElementById('ec-off-financeiro')?.checked,
+    obs:document.getElementById('ec-off-obs')?.value||''
+  };
+  const data={name,handle,niche,color,instagramId,inactive,offboardingChecklist};
   if(editClientPhotoB64) data.photo=editClientPhotoB64;
   await updateDoc(doc(db,'clients',editingClientId),data);
   clients[editingClientId]={...clients[editingClientId],...data};
@@ -4385,6 +4734,40 @@ async function saveEditClient(){
   await loadClients();
   if(currentClientId===editingClientId) renderClientDetail(currentClientId);
   showToast('Cliente atualizado!','ok');
+}
+async function toggleClientInactive(){
+  if(!editingClientId) return;
+  const cl=clients[editingClientId];
+  const nextInactive=!cl.inactive;
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'clients',editingClientId),{inactive:nextInactive});
+  clients[editingClientId]={...cl,inactive:nextInactive};
+  if(currentClientId===editingClientId && nextInactive) currentClientId=null;
+  closeEditClient();
+  await loadClients();
+  if(nextInactive) setView('todos');
+  else openClient(editingClientId);
+  showToast(nextInactive?'Cliente movido para inativos':'Cliente reativado','ok');
+}
+function showInactiveClientsModal(){
+  const list=Object.values(clients).filter(c=>c.inactive).sort((a,b)=>a.name.localeCompare(b.name));
+  const ov=document.createElement('div');
+  ov.className='mo open';
+  ov.innerHTML=`<div class="modal modal-sm"><div class="mhdr"><div class="mhdr-info"><div class="mtitle">Clientes inativos</div></div><button class="mclose" onclick="this.closest('.mo').remove()">×</button></div><div style="padding:20px;display:flex;flex-direction:column;gap:10px;max-height:72vh;overflow:auto">${list.length?list.map(c=>`<div style="border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg3)"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div><div style="font-size:13px;font-weight:700">${c.name}</div><div style="font-size:11px;color:var(--text3)">${c.niche||'Sem nicho'}</div></div><div style="display:flex;gap:6px"><button class="btn btn-s btn-sm" onclick="reactivateClient('${c.id}',this.closest('.mo'))">Reativar</button><button class="btn btn-s btn-sm" onclick="openInactiveClientEditor('${c.id}',this.closest('.mo'))">Abrir</button></div></div></div>`).join(''):`<div style="font-size:13px;color:var(--text3);text-align:center;padding:18px 0">Nenhum cliente inativo.</div>`}</div></div>`;
+  document.body.appendChild(ov);
+}
+function openInactiveClientEditor(id,modal){
+  modal?.remove();
+  currentClientId=id;
+  showEditClient();
+}
+async function reactivateClient(id,modal){
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'clients',id),{inactive:false});
+  clients[id]={...clients[id],inactive:false};
+  modal?.remove();
+  await loadClients();
+  showToast('Cliente reativado','ok');
 }
 async function deleteClient(){
   if(!editingClientId||!confirm('Excluir este cliente? Isso também remove todos os packs e posts.')) return;
@@ -4459,6 +4842,29 @@ function renderKanban(packsByStatus){
 // ===== PAUTA =====
 let pautaDate = new Date();
 let pautaData = {}; // { 'YYYY-MM': { 'memberId_YYYY-MM-DD': {type,client,feriado} } }
+let _pautaDrag = null;
+
+function pautaMemberDisplayName(id, fallback){
+  if(id==='kesia') return 'Juliana';
+  return fallback||id.charAt(0).toUpperCase()+id.slice(1);
+}
+
+function pautaMemberConfig(){
+  return {
+    kesia:   {types:['PLAN'], bg:'#e53e3e', text:'#fff', fixedType:'PLAN', label:'Juliana'},
+    jackson: {types:['PLAN','REV'], bg:'#3b82f6', text:'#fff', fixedType:null, label:'Jackson'},
+    cintia:  {types:['DES'],  bg:'#facc15', text:'#111', fixedType:'DES', label:'Cintia'}
+  };
+}
+function findPautaMemberForSlot(slot){
+  if(slot==='kesia'){
+    return TEAM.find(t=>t.id==='juliana')
+      || TEAM.find(t=>String(t.name||'').toLowerCase().includes('juliana'))
+      || TEAM.find(t=>t.id==='kesia')
+      || TEAM.find(t=>String(t.name||'').toLowerCase().includes('kesia'));
+  }
+  return TEAM.find(t=>t.id===slot) || TEAM.find(t=>String(t.name||'').toLowerCase().startsWith(slot.slice(0,4)));
+}
 
 async function renderPauta(){
   const main = document.getElementById('main');
@@ -4507,18 +4913,12 @@ function renderPautaGrid(yr, mo, key){
   const data = pautaData[key] || {};
   const mn = MONTHS[mo];
 
-  const MEMBER_CFG = {
-    kesia:   {types:['PLAN'], bg:'#e53e3e', text:'#fff'},
-    jackson: {types:['PLAN','REV'], bg:'#3b82f6', text:'#fff'},
-    cintia:  {types:['DES'],  bg:'#facc15', text:'#111'},
-    tatiane: {types:['PDF'],  bg:'#d946ef', text:'#fff'}
-  };
-  const TYPE_COLORS = {PLAN:'#e53e3e', REV:'#3b82f6', DES:'#facc15', PDF:'#d946ef'};
-  const TYPE_TEXT   = {PLAN:'#fff',    REV:'#fff',    DES:'#111',    PDF:'#fff'};
+  const MEMBER_CFG = pautaMemberConfig();
+  const TYPE_COLORS = {PLAN:'#e53e3e', REV:'#3b82f6', DES:'#facc15'};
+  const TYPE_TEXT   = {PLAN:'#fff',    REV:'#fff',    DES:'#111'};
 
-  const PAUTA_MEMBERS = ['kesia','jackson','cintia','tatiane'];
-  const members = PAUTA_MEMBERS.map(id=>TEAM.find(t=>t.id===id)||TEAM.find(t=>t.name.toLowerCase().startsWith(id.slice(0,4)))).filter(Boolean);
-  const clientList = Object.values(clients).sort((a,b)=>a.name.localeCompare(b.name));
+  const PAUTA_MEMBERS = ['kesia','jackson','cintia'];
+  const members = PAUTA_MEMBERS.map(id=>findPautaMemberForSlot(id)).filter(Boolean);
 
   const firstDay = new Date(yr, mo, 1);
   const startDow = firstDay.getDay();
@@ -4564,7 +4964,7 @@ function renderPautaGrid(yr, mo, key){
       ${members.filter(Boolean).map((m,mi)=>{
         const cfg=MEMBER_CFG[PAUTA_MEMBERS[mi]]||{bg:'#888',text:'#fff'};
         return `<div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#333">
-          <div style="width:12px;height:12px;border-radius:50%;background:${cfg.bg}"></div>${m.name}
+          <div style="width:12px;height:12px;border-radius:50%;background:${cfg.bg}"></div>${cfg.label||pautaMemberDisplayName(PAUTA_MEMBERS[mi],m.name)}
         </div>`;
       }).join('')}
       <div style="display:flex;gap:6px;margin-left:auto">
@@ -4615,7 +5015,7 @@ function renderPautaGrid(yr, mo, key){
         <td style="background:${COLLAB_BG};border:1px solid #c7cbe8;padding:6px 10px;height:${CELL_H};vertical-align:middle">
           <div style="display:flex;align-items:center;gap:6px">
             <div style="width:10px;height:10px;border-radius:50%;background:${cfg.bg};flex-shrink:0"></div>
-            <span style="font-size:13px;font-weight:700;color:#1a1a2e">${m.name}</span>
+            <span style="font-size:13px;font-weight:700;color:#1a1a2e">${cfg.label||pautaMemberDisplayName(memberId,m.name)}</span>
           </div>
         </td>
         ${weekDays.map((wd,di)=>{
@@ -4628,11 +5028,14 @@ function renderPautaGrid(yr, mo, key){
           const cellTxt=hasContent?(TYPE_TEXT[displayType]||cfg.text):'inherit';
 
           return `<td style="background:${wd.isWknd&&!hasContent?WKND_BG:'#fff'};border:1px solid #c7cbe8;padding:2px;vertical-align:top;height:${CELL_H};overflow:hidden"
-            onclick="openPautaCell(event,'${key}','${cellKey}','${wd.dateStr}','${memberId}')">
+            onclick="openPautaCell(event,'${key}','${cellKey}','${wd.dateStr}','${memberId}')"
+            ondragover="event.preventDefault();this.style.boxShadow='inset 0 0 0 2px rgba(123,140,222,.55)'"
+            ondragleave="this.style.boxShadow=''"
+            ondrop="dropPautaCard(event,'${key}','${cellKey}','${wd.dateStr}','${memberId}',this)">
             ${wd.isFeriado
               ?`<div style="height:100%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:11px;color:#aaa">—</div>`
               :hasContent
-                ?`<div style="background:${cellBg};height:100%;padding:4px 6px;display:flex;flex-direction:column;justify-content:center;gap:1px;cursor:pointer">
+                ?`<div draggable="true" ondragstart="startPautaDrag(event,'${key}','${cellKey}','${wd.dateStr}','${memberId}')" ondragend="endPautaDrag(this)" style="background:${cellBg};height:100%;padding:4px 6px;display:flex;flex-direction:column;justify-content:center;gap:1px;cursor:grab;border-radius:4px">
                     ${isJackson?`<div style="font-size:11px;font-weight:800;color:${cellTxt};letter-spacing:.5px">[${displayType}]</div>`:''}
                     ${clientName?`<div style="font-size:12px;font-weight:700;color:${cellTxt};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${clientName}</div>`:''}
                   </div>`
@@ -4690,31 +5093,111 @@ function openPautaCell(event, monthKey, cellKey, dateStr, memberId){
   const ed = document.createElement('div');
   ed.className = 'pauta-editor';
   const rect = event.currentTarget.getBoundingClientRect();
-  ed.style.left = Math.min(rect.left, window.innerWidth-240)+'px';
-  ed.style.top = (rect.bottom+4)+'px';
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const preferredWidth = Math.min(360, vw - 24);
+  const left = Math.max(12, Math.min(rect.left, vw - preferredWidth - 12));
+  const showAbove = rect.bottom + 340 > vh && rect.top > 360;
+  const top = showAbove ? Math.max(12, rect.top - 328) : Math.min(vh - 340, rect.bottom + 8);
+  ed.style.position='fixed';
+  ed.style.left=left+'px';
+  ed.style.top=top+'px';
+  ed.style.width=preferredWidth+'px';
+  ed.style.maxHeight='320px';
+  ed.style.zIndex='120';
 
-  const MEMBER_FIXED = {kesia:'PLAN',cintia:'DES',tatiane:'PDF'};
+  const MEMBER_FIXED = {kesia:'PLAN',cintia:'DES'};
   const fixedType = MEMBER_FIXED[memberId];
+  const memberLabel = pautaMemberDisplayName(memberId);
   ed.innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">${dateStr} — ${memberId.charAt(0).toUpperCase()+memberId.slice(1)}</div>
-    ${!fixedType?`<select class="fs" id="pe-type" style="margin-bottom:8px">
-        <option value="">— Limpar —</option>
-        ${['PLAN','REV'].map(t=>`<option value="${t}" ${cell.type===t?'selected':''}>${t}</option>`).join('')}
-      </select>`:`<input type="hidden" id="pe-type" value="${fixedType}">`}
-    <select class="fs" id="pe-client" style="margin-bottom:10px">
-      <option value="">— Sem cliente —</option>
-      ${clientList.map(cl=>`<option value="${cl.id}" ${cell.client===cl.id?'selected':''}>${cl.name}</option>`).join('')}
-    </select>
-    <div class="brow">
-      <button class="btn btn-p btn-sm" onclick="savePautaCell('${monthKey}','${cellKey}')">Salvar</button>
-      <button class="btn btn-d btn-sm" onclick="clearPautaCell('${monthKey}','${cellKey}')">Limpar</button>
-      <button class="btn btn-s btn-sm" onclick="this.closest('.pauta-editor').remove()">×</button>
+    <div style="background:var(--bg1);border:1px solid var(--border);border-radius:14px;box-shadow:0 20px 50px rgba(8,11,24,.18);display:flex;flex-direction:column;overflow:hidden">
+      <div class="mhdr" style="border-bottom:1px solid var(--border)">
+        <div class="mhdr-info">
+          <div class="mtitle">Editar pauta</div>
+          <div class="mmeta">${dateStr} · ${memberLabel}</div>
+        </div>
+        <button class="mclose" onclick="this.closest('.pauta-editor').remove()">×</button>
+      </div>
+      <div style="padding:14px;overflow:auto;display:flex;flex-direction:column;gap:12px;max-height:258px">
+        ${!fixedType?`<div class="ff"><label class="flbl">Etapa</label><select class="fs" id="pe-type">
+            <option value="">— Limpar —</option>
+            ${['PLAN','REV'].map(t=>`<option value="${t}" ${cell.type===t?'selected':''}>${t}</option>`).join('')}
+          </select></div>`:`<input type="hidden" id="pe-type" value="${fixedType}"><div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Etapa fixa: ${fixedType}</div>`}
+        <div class="ff">
+          <label class="flbl">Cliente</label>
+          <select class="fs" id="pe-client" size="10" style="min-height:200px">
+            <option value="">— Sem cliente —</option>
+            ${clientList.map(cl=>`<option value="${cl.id}" ${cell.client===cl.id?'selected':''}>${cl.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="brow">
+          <button class="btn btn-p btn-sm" onclick="savePautaCell('${monthKey}','${cellKey}')">Salvar</button>
+          <button class="btn btn-d btn-sm" onclick="clearPautaCell('${monthKey}','${cellKey}')">Limpar</button>
+          <button class="btn btn-s btn-sm" onclick="this.closest('.pauta-editor').remove()">Cancelar</button>
+        </div>
+      </div>
     </div>`;
 
   document.body.appendChild(ed);
+  const sel=ed.querySelector('#pe-client');
+  if(sel && cell.client){
+    const opt=sel.querySelector(`option[value="${cell.client}"]`);
+    opt?.scrollIntoView({block:'center'});
+  }
   document.addEventListener('click', function handler(e){
     if(!ed.contains(e.target)){ ed.remove(); document.removeEventListener('click',handler); }
   });
+}
+
+function startPautaDrag(event, monthKey, cellKey, dateStr, memberId){
+  event.stopPropagation();
+  const data = pautaData[monthKey] || {};
+  const cell = data[cellKey];
+  if(!cell) return;
+  _pautaDrag = {monthKey,cellKey,dateStr,memberId,cell:{...cell}};
+  if(event.dataTransfer) event.dataTransfer.effectAllowed='move';
+  event.currentTarget.style.opacity='.55';
+}
+
+function endPautaDrag(el){
+  if(el) el.style.opacity='1';
+  _pautaDrag = null;
+}
+
+async function dropPautaCard(event, monthKey, cellKey, dateStr, memberId, tdEl){
+  event.preventDefault();
+  if(tdEl) tdEl.style.boxShadow='';
+  if(!_pautaDrag) return;
+  if(_pautaDrag.monthKey!==monthKey){
+    showToast('Arraste apenas dentro do mesmo mês da pauta','err');
+    _pautaDrag=null;
+    return;
+  }
+  if(_pautaDrag.cellKey===cellKey){
+    _pautaDrag=null;
+    return;
+  }
+  const targetFixed = {kesia:'PLAN',cintia:'DES'}[memberId] || null;
+  const sourceType = _pautaDrag.cell?.type || '';
+  let nextType = targetFixed || sourceType;
+  if(memberId==='jackson' && !['PLAN','REV'].includes(nextType)){
+    showToast('Na linha do Jackson só entram PLAN ou REV','err');
+    _pautaDrag=null;
+    return;
+  }
+  if(!targetFixed && !nextType){
+    showToast('Não consegui identificar a etapa para mover','err');
+    _pautaDrag=null;
+    return;
+  }
+  if(!pautaData[monthKey]) pautaData[monthKey] = {};
+  pautaData[monthKey][cellKey] = {..._pautaDrag.cell, type:nextType};
+  delete pautaData[monthKey][_pautaDrag.cellKey];
+  await savePautaToFirestore(monthKey);
+  const [yr,mo] = monthKey.split('-').map(Number);
+  renderPautaGrid(yr, mo-1, monthKey);
+  showToast('Pauta movida para a nova data','ok');
+  _pautaDrag=null;
 }
 
 async function savePautaCell(monthKey, cellKey){
@@ -5017,8 +5500,18 @@ async function exportRelatorio(){
         <div class="ff"><label class="flbl">@ Instagram</label><input class="fi" id="cp-instagram" placeholder="@handle"></div>
       </div>
       <div class="fgrid" style="margin-bottom:10px">
+        <div class="ff">
+          <label class="flbl">WhatsApp</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="fi" id="cp-whatsapp" placeholder="5511999999999" oninput="updateProspectWhatsAppButton()">
+            <a id="cp-whatsapp-open" class="btn btn-s btn-sm" href="#" target="_blank" style="text-decoration:none;white-space:nowrap;pointer-events:none;opacity:.45">Abrir conversa</a>
+          </div>
+        </div>
         <div class="ff"><label class="flbl">Nicho</label><input class="fi" id="cp-niche" placeholder="Ex: Médico, Restaurante..."></div>
+      </div>
+      <div class="fgrid" style="margin-bottom:10px">
         <div class="ff"><label class="flbl">Valor proposto (R$/mês)</label><input type="number" class="fi" id="cp-valor" placeholder="0,00"></div>
+        <div class="ff"></div>
       </div>
       <div class="ff" style="margin-bottom:10px">
         <label class="flbl">Etapa do pipeline</label>
@@ -5027,6 +5520,7 @@ async function exportRelatorio(){
           <option value="contato">Contato</option>
           <option value="proposta">Proposta</option>
           <option value="negociacao">Negociação</option>
+          <option value="contrato">Contrato</option>
           <option value="fechado">✅ Fechado</option>
           <option value="perdido">❌ Perdido</option>
         </select>
@@ -5571,14 +6065,16 @@ const PIPELINE_COLS = [
   {id:'contato',    label:'Contato',     color:'#fb923c'},
   {id:'proposta',   label:'Proposta',    color:'#facc15'},
   {id:'negociacao', label:'Negociação',  color:'#c084fc'},
+  {id:'contrato',   label:'Contrato',    color:'#818cf8'},
   {id:'fechado',    label:'✅ Fechado',  color:'#4ade80'},
   {id:'perdido',    label:'❌ Perdido',  color:'#ff5252'}
 ];
 
 let comercialTab = 'dash';
+let financeiroTab = 'dash';
 let _comClientes = {};  // { id: {name,instagram,niche,valor,custo,inicio,fim,status,obs} }
 let _comProspects = {}; // { id: {name,instagram,niche,valorProposto,status,obs,createdAt} }
-let _comSettings = {meta:0, custoFixo:0, proLabore:0}; // meta mensal e custo fixo agência
+let _comSettings = {meta:0, custoFixo:0, proLabore:0, reminders:[]}; // meta mensal e custo fixo agência
 let _comCustos = {}; // { id: {categoria, descricao, valor, recorrente, data} }
 
 const CUSTO_CATEGORIAS = [
@@ -5591,10 +6087,9 @@ const CUSTO_CATEGORIAS = [
 ];
 
 async function renderComercial(){
-  // Proteção: só admin acessa
-  if(currentUserData?.role !== 'admin'){
+  if(!hasCommercialAccess()){
     const main = document.getElementById('main');
-    main.innerHTML=`<div class="ph"><div class="ptitle">🔒 Acesso restrito</div><div class="psub">Esta área é exclusiva para administradores.</div></div>`;
+    main.innerHTML=`<div class="ph"><div class="ptitle">🔒 Acesso restrito</div><div class="psub">Você não tem acesso ao comercial.</div></div>`;
     return;
   }
   const main = document.getElementById('main');
@@ -5602,16 +6097,15 @@ async function renderComercial(){
     <div class="ptitle">💼 Comercial</div>
     <div class="ptabs">
       <button class="ptab active" id="ctab-dash"    onclick="swCom('dash',this)">📊 Dashboard</button>
-      <button class="ptab"        id="ctab-clientes" onclick="swCom('clientes',this)">🤝 Clientes</button>
-      <button class="ptab"        id="ctab-custos" onclick="swCom('custos',this)">💸 Custos</button>
       <button class="ptab"        id="ctab-pipeline" onclick="swCom('pipeline',this)">📋 Pipeline</button>
+      <button class="ptab"        id="ctab-contracts" onclick="swCom('contracts',this)">🧾 Gerador de contratos</button>
     </div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:14px 20px" id="com-content">
     <div class="loading"><div class="spinner"></div></div>
   </div>`;
   await loadComercialData();
-  renderComTab('dash');
+  renderComTab(comercialTab);
 }
 
 function swCom(tab, btn){
@@ -5624,28 +6118,418 @@ function swCom(tab, btn){
 
 async function loadComercialData(){
   const {db, collection, getDocs, doc, getDoc} = window._fb;
-  const [cSnap, pSnap, sSnap, custosSnap] = await Promise.all([
+  const [cSnap, pSnap, sSnap, custosSnap] = await Promise.allSettled([
     getDocs(collection(db,'com_clientes')),
     getDocs(collection(db,'com_prospects')),
     getDoc(doc(db,'com_settings','main')),
     getDocs(collection(db,'com_custos'))
   ]);
   _comClientes = {};
-  cSnap.forEach(d => _comClientes[d.id] = {id:d.id,...d.data()});
+  if(cSnap.status==='fulfilled') cSnap.value.forEach(d => _comClientes[d.id] = {id:d.id,...d.data()});
   _comProspects = {};
-  pSnap.forEach(d => _comProspects[d.id] = {id:d.id,...d.data()});
+  if(pSnap.status==='fulfilled') pSnap.value.forEach(d => _comProspects[d.id] = {id:d.id,...d.data()});
   _comCustos = {};
-  custosSnap.forEach(d => _comCustos[d.id] = {id:d.id,...d.data()});
-  if(sSnap.exists()) _comSettings = {..._comSettings, ...sSnap.data()};
+  if(custosSnap.status==='fulfilled') custosSnap.value.forEach(d => _comCustos[d.id] = {id:d.id,...d.data()});
+  if(sSnap.status==='fulfilled' && sSnap.value.exists()) _comSettings = {..._comSettings, ...sSnap.value.data()};
 }
 
 function renderComTab(tab){
   const el = document.getElementById('com-content');
   if(!el) return;
-  if(tab==='dash')     renderComDash(el);
+  if(tab==='dash')     renderComMiniDash(el);
+  else if(tab==='pipeline') renderComPipeline(el);
+  else if(tab==='contracts') renderComContracts(el);
+}
+
+async function renderFinanceiro(){
+  if(currentUserData?.role !== 'admin'){
+    const main = document.getElementById('main');
+    main.innerHTML=`<div class="ph"><div class="ptitle">🔒 Acesso restrito</div><div class="psub">O financeiro fica disponível apenas para administradores.</div></div>`;
+    return;
+  }
+  const main = document.getElementById('main');
+  main.innerHTML = `<div class="ph">
+    <div class="ptitle">💸 Financeiro</div>
+    <div class="ptabs">
+      <button class="ptab active" id="ftab-dash" onclick="swFinanceiro('dash',this)">📊 Dashboard</button>
+      <button class="ptab" id="ftab-clientes" onclick="swFinanceiro('clientes',this)">🤝 Clientes</button>
+      <button class="ptab" id="ftab-custos" onclick="swFinanceiro('custos',this)">💸 Custos</button>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:14px 20px" id="finance-content">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>`;
+  await loadComercialData();
+  renderFinanceiroTab(financeiroTab);
+}
+function swFinanceiro(tab, btn){
+  financeiroTab=tab;
+  document.querySelectorAll('#finance-content').forEach(()=>{});
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderFinanceiroTab(tab);
+}
+function renderFinanceiroTab(tab){
+  const el = document.getElementById('finance-content');
+  if(!el) return;
+  if(tab==='dash') renderComDash(el);
   else if(tab==='clientes') renderComClientes(el);
   else if(tab==='custos') renderComCustos(el);
-  else if(tab==='pipeline') renderComPipeline(el);
+}
+function sanitizeWhatsApp(value){
+  return String(value||'').replace(/\D/g,'');
+}
+function buildWhatsAppLink(value){
+  const digits=sanitizeWhatsApp(value);
+  return digits?`https://wa.me/${digits}`:'';
+}
+function updateProspectWhatsAppButton(){
+  const input=document.getElementById('cp-whatsapp');
+  const btn=document.getElementById('cp-whatsapp-open');
+  if(!btn) return;
+  const link=buildWhatsAppLink(input?.value||'');
+  btn.href=link||'#';
+  btn.style.pointerEvents=link?'auto':'none';
+  btn.style.opacity=link?'1':'.45';
+}
+function getComReminders(){
+  return Array.isArray(_comSettings.reminders)?_comSettings.reminders:[];
+}
+async function saveCommercialReminders(reminders){
+  _comSettings.reminders=reminders;
+  const {db,doc,setDoc}=window._fb;
+  await setDoc(doc(db,'com_settings','main'),{reminders},{merge:true});
+}
+async function addCommercialReminder(){
+  const text=document.getElementById('com-reminder-input')?.value?.trim();
+  if(!text){ showToast('Digite um lembrete','err'); return; }
+  const reminders=[...getComReminders(),{id:'r_'+Date.now(),text,done:false,createdAt:Date.now()}];
+  await saveCommercialReminders(reminders);
+  renderComTab('dash');
+}
+async function toggleCommercialReminder(id){
+  const reminders=getComReminders().map(r=>r.id===id?{...r,done:!r.done}:r);
+  await saveCommercialReminders(reminders);
+  renderComTab('dash');
+}
+async function deleteCommercialReminder(id){
+  const reminders=getComReminders().filter(r=>r.id!==id);
+  await saveCommercialReminders(reminders);
+  renderComTab('dash');
+}
+function renderComMiniDash(el){
+  const prospects=Object.values(_comProspects);
+  const activeProspects=prospects.filter(p=>!['fechado','perdido'].includes(p.status));
+  const emNegociacao=prospects.filter(p=>['proposta','negociacao','contrato'].includes(p.status));
+  const totalNegociacao=emNegociacao.reduce((sum,p)=>sum+(parseFloat(p.valorProposto)||0),0);
+  const reminders=getComReminders().sort((a,b)=>(a.done===b.done)?((b.createdAt||0)-(a.createdAt||0)):(a.done?1:-1));
+  const nextActions=activeProspects
+    .sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))
+    .slice(0,6);
+  const fmt=v=>'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:minmax(320px,1.1fr) minmax(260px,.9fr);gap:14px;align-items:start">
+      <div class="dcard">
+        <div class="dcard-hdr">📌 Lembretes comerciais</div>
+        <div class="dcard-body">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input class="fi" id="com-reminder-input" placeholder="Ex: chamar fulano sobre proposta" onkeydown="if(event.key==='Enter') addCommercialReminder()">
+            <button class="btn btn-p btn-sm" onclick="addCommercialReminder()">Adicionar</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${reminders.length?reminders.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px">
+              <input type="checkbox" ${r.done?'checked':''} onchange="toggleCommercialReminder('${r.id}')" style="accent-color:var(--accent)">
+              <div style="flex:1;min-width:0;font-size:13px;color:${r.done?'var(--text3)':'var(--text)'};text-decoration:${r.done?'line-through':'none'}">${r.text}</div>
+              <button class="btn btn-s btn-sm" onclick="deleteCommercialReminder('${r.id}')">Remover</button>
+            </div>`).join(''):`<div style="padding:14px 0;color:var(--text3);font-size:13px">Sem lembretes no comercial.</div>`}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="comercial-stat">
+          <div class="comercial-stat-lbl">💬 Total em negociação</div>
+          <div class="comercial-stat-val" style="color:var(--accent)">${fmt(totalNegociacao)}</div>
+          <div class="comercial-stat-sub">${emNegociacao.length} oportunidade${emNegociacao.length!==1?'s':''} entre proposta, negociação e contrato</div>
+        </div>
+        <div class="dcard">
+          <div class="dcard-hdr">🗓 Próximos passos</div>
+          <div class="dcard-body" style="padding:0">
+            ${nextActions.length?nextActions.map(p=>{
+              const col=PIPELINE_COLS.find(x=>x.id===p.status)||PIPELINE_COLS[0];
+              const wa=buildWhatsAppLink(p.whatsapp);
+              return `<div class="alert-row">
+                <div style="width:8px;height:8px;border-radius:50%;background:${col.color};flex-shrink:0"></div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+                  <div style="font-size:11px;color:var(--text3)">${p.niche||'Sem nicho'} · ${col.label}</div>
+                </div>
+                ${wa?`<a href="${wa}" target="_blank" class="btn btn-s btn-sm" style="text-decoration:none">WhatsApp</a>`:''}
+              </div>`;
+            }).join(''):`<div style="padding:14px;color:var(--text3);font-size:13px;text-align:center">Nada em andamento no pipeline.</div>`}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+const CONTRACT_FIXED_PARTY={
+  company:'44.922.705 JACKSON FREIRES GOMES',
+  cnpj:'44.922.705/0001-31',
+  responsible:'Jackson Freires Gomes',
+  cpf:'450.870.078-05',
+  email:'alumastudio.sm@gmail.com',
+  phone:'+55 (19) 99785-0756',
+  address:'Rua Santina Martello Matarazzo, Bairro Mariluz 1, São Pedro/SP, CEP 13520-000'
+};
+const CONTRACT_LOGO='data:image/png;base64,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';
+const CONTRACT_DELIVERABLES=[
+  {id:'planejamento_macro',label:'Execução do Planejamento Macro',checked:true,desc:'Execução e desdobramento das diretrizes, ações e estratégias definidas no Planejamento Macro previamente aprovado.'},
+  {id:'planejamento_mensal',label:'Planejamento mensal de conteúdo',checked:true,desc:'Elaboração do planejamento mensal que define formatos, temas, objetivos e distribuição dos conteúdos a serem produzidos.'},
+  {id:'copy',label:'Elaboração dos textos dos conteúdos (copy)',checked:true,desc:'Criação dos textos de carrosseis, legendas e roteiros de reels, alinhados ao posicionamento e objetivos estratégicos.'},
+  {id:'design',label:'Design dos carrosseis',checked:true,desc:'Desenvolvimento do design dos conteúdos em formato de carrossel.'},
+  {id:'edicao',label:'Edição de vídeos',checked:true,desc:'Edição dos vídeos produzidos pelo CONTRATANTE ou em conjunto com a equipe da CONTRATADA.'},
+  {id:'gravacao',label:'Gravação de vídeos (conforme planejamento)',checked:false,desc:'Participação no processo de gravação de vídeos conforme planejamento acordado. Deslocamentos presenciais terão condições definidas em comum acordo.'},
+  {id:'direct',label:'Gerenciamento do Direct (mensagens diretas)',checked:false,desc:'Monitoramento e gestão das mensagens diretas do Instagram, zelando pela comunicação institucional.'},
+  {id:'site',label:'Gestão e produção de conteúdo para site',checked:false,desc:'Escrita e produção de materiais textuais destinados ao site do CONTRATANTE.'},
+  {id:'whatsapp',label:'Suporte e acompanhamento via WhatsApp',checked:true,desc:'Suporte e acompanhamento estratégico por meio de grupo exclusivo no WhatsApp.'},
+  {id:'metricas',label:'Monitoramento de métricas',checked:true,desc:'Monitoramento e análise periódica das métricas de desempenho, incluindo alcance, engajamento e insights.'},
+  {id:'agendamento',label:'Agendamento das publicações',checked:true,desc:'Agendamento dos conteúdos aprovados conforme planejamento definido para cada canal.'}
+];
+function fmtCurrencyBR(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function formatDateBR(iso){
+  if(!iso) return '___/___/_____';
+  const d=new Date(iso+'T00:00:00');
+  if(Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('pt-BR');
+}
+function formatLongDateBR(iso){
+  if(!iso) return 'data a definir';
+  const d=new Date(iso+'T00:00:00');
+  if(Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+}
+function calcContractEndDate(start, months){
+  if(!start||!months) return '';
+  const [yr,mo,day]=start.split('-').map(Number);
+  if(!yr||!mo||!day) return '';
+  const d=new Date(yr, mo-1, day);
+  d.setMonth(d.getMonth()+Number(months));
+  d.setDate(d.getDate()-1);
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+}
+function updateContractEndDate(){
+  const start=document.getElementById('contract-start')?.value||'';
+  const months=document.getElementById('contract-duration')?.value||'';
+  const end=calcContractEndDate(start,months);
+  const endEl=document.getElementById('contract-end');
+  if(endEl) endEl.value=end;
+  updateContractPreview();
+}
+function getSelectedContractDeliverables(){
+  return CONTRACT_DELIVERABLES.filter(item=>document.getElementById('ct-deliv-'+item.id)?.checked);
+}
+function getContractFormData(){
+  const data={
+    prospectId:document.getElementById('contract-prospect')?.value||'',
+    name:document.getElementById('contract-name')?.value.trim()||'',
+    cnpj:document.getElementById('contract-cnpj')?.value.trim()||'',
+    responsible:document.getElementById('contract-responsible')?.value.trim()||'',
+    cpf:document.getElementById('contract-responsible-cpf')?.value.trim()||'',
+    email:document.getElementById('contract-email')?.value.trim()||'',
+    phone:document.getElementById('contract-phone')?.value.trim()||'',
+    address:document.getElementById('contract-address')?.value.trim()||'',
+    start:document.getElementById('contract-start')?.value||'',
+    duration:document.getElementById('contract-duration')?.value||'3',
+    end:document.getElementById('contract-end')?.value||'',
+    monthlyValue:document.getElementById('contract-value')?.value||'',
+    dueDay:document.getElementById('contract-due-day')?.value||'5',
+    channels:document.getElementById('contract-channels')?.value.trim()||'',
+    additionalDeliverables:document.getElementById('contract-additional')?.value.trim()||'',
+    extraClauses:document.getElementById('contract-extra')?.value.trim()||'',
+    deliverables:getSelectedContractDeliverables()
+  };
+  return data;
+}
+function validateContractData(data){
+  if(!data.name||!data.cnpj||!data.responsible||!data.cpf||!data.start||!data.monthlyValue||!data.channels){
+    showToast('Preencha os campos obrigatórios do contrato','err');
+    return false;
+  }
+  if(!data.deliverables.length){
+    showToast('Selecione ao menos um entregável','err');
+    return false;
+  }
+  return true;
+}
+function buildContractText(data){
+  const deliverablesText=data.deliverables.map((item,idx)=>`${idx+1}. ${item.label}: ${item.desc}`).join('\n');
+  const extraBlock=data.additionalDeliverables?`\nEntregáveis adicionais: ${data.additionalDeliverables}`:'';
+  const clauseExtra=data.extraClauses?`\n\nCláusulas complementares acordadas entre as partes:\n${data.extraClauses}`:'';
+  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS PARA GERENCIAMENTO DE REDES SOCIAIS\n\nCONTRATANTE: ${data.name}\nCNPJ: ${data.cnpj}\nRESPONSÁVEL: ${data.responsible}\nCPF: ${data.cpf}\nEMAIL: ${data.email||'não informado'}\nTELEFONE: ${data.phone||'não informado'}\nENDEREÇO: ${data.address||'não informado'}\n\nCONTRATADA: ${CONTRACT_FIXED_PARTY.company}\nCNPJ: ${CONTRACT_FIXED_PARTY.cnpj}\nRESPONSÁVEL: ${CONTRACT_FIXED_PARTY.responsible}\nCPF: ${CONTRACT_FIXED_PARTY.cpf}\nEMAIL: ${CONTRACT_FIXED_PARTY.email}\nTELEFONE: ${CONTRACT_FIXED_PARTY.phone}\nENDEREÇO: ${CONTRACT_FIXED_PARTY.address}\n\n1. OBJETO\nPrestação de serviços continuados de gerenciamento de redes sociais e conteúdo para ${data.channels}.\n\n2. VIGÊNCIA\nO presente contrato terá início em ${formatLongDateBR(data.start)} e término em ${formatLongDateBR(data.end)}, totalizando ${data.duration} meses de vigência.\n\n3. ESCOPO DO TRABALHO\n${deliverablesText}${extraBlock}\n\n4. INVESTIMENTO\nO valor mensal ajustado entre as partes é de ${fmtCurrencyBR(data.monthlyValue)}, com vencimento todo dia ${data.dueDay} de cada mês.\n\n5. CONDIÇÕES GERAIS\nO planejamento será encaminhado para validação do CONTRATANTE antes da execução. Ajustes pontuais serão realizados dentro do fluxo acordado entre as partes. Demandas extraordinárias, fora do escopo previsto, serão tratadas em comum acordo.${clauseExtra}\n\n6. ASSINATURA\nAs partes reconhecem a validade jurídica da assinatura eletrônica, nos termos da Lei 14.063/2020.\n\nSão Pedro/SP, ${formatLongDateBR(new Date().toISOString().slice(0,10))}.\n\n____________________________________\n${CONTRACT_FIXED_PARTY.responsible}\n${CONTRACT_FIXED_PARTY.cpf}\n\n____________________________________\n${data.responsible}\n${data.cpf}`;
+}
+function updateContractPreview(){
+  const output=document.getElementById('contract-output');
+  if(!output) return;
+  const data=getContractFormData();
+  output.value=buildContractText(data);
+}
+function renderComContracts(el){
+  const prospectOptions=Object.values(_comProspects).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  el.innerHTML=`
+    <div class="dcard">
+        <div class="dcard-hdr">📝 Gerador de contratos</div>
+        <div class="dcard-body">
+          <div class="fgrid" style="margin-bottom:14px">
+            <div class="ff"><label class="flbl">Prospect base</label><select class="fs" id="contract-prospect" onchange="fillContractFromProspect()"><option value="">Selecionar</option>${prospectOptions}</select></div>
+            <div class="ff"><label class="flbl">Canais contemplados *</label><input class="fi" id="contract-channels" placeholder="Ex: Instagram e LinkedIn da Empresa X" oninput="updateContractPreview()"></div>
+          </div>
+
+          <div class="fsect">Dados do contratante</div>
+          <div class="fgrid">
+            <div class="ff"><label class="flbl">Nome / Razão Social *</label><input class="fi" id="contract-name" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">CNPJ *</label><input class="fi" id="contract-cnpj" placeholder="00.000.000/0000-00" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">Responsável *</label><input class="fi" id="contract-responsible" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">CPF do responsável *</label><input class="fi" id="contract-responsible-cpf" placeholder="000.000.000-00" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">Email</label><input class="fi" id="contract-email" type="email" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">Telefone</label><input class="fi" id="contract-phone" oninput="updateContractPreview()"></div>
+          </div>
+          <div class="ff" style="margin-top:12px"><label class="flbl">Endereço completo</label><textarea class="fta" id="contract-address" rows="2" oninput="updateContractPreview()"></textarea></div>
+
+          <div class="fsect">Vigência do contrato</div>
+          <div class="fgrid">
+            <div class="ff"><label class="flbl">Data de início *</label><input class="fi" id="contract-start" type="date" onchange="updateContractEndDate()"></div>
+            <div class="ff"><label class="flbl">Duração</label><select class="fs" id="contract-duration" onchange="updateContractEndDate()"><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option></select></div>
+            <div class="ff"><label class="flbl">Data de término</label><input class="fi" id="contract-end" type="date" disabled></div>
+          </div>
+
+          <div class="fsect">Investimento</div>
+          <div class="fgrid">
+            <div class="ff"><label class="flbl">Valor mensal em R$ *</label><input class="fi" id="contract-value" type="number" step="0.01" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">Dia de vencimento</label><select class="fs" id="contract-due-day" onchange="updateContractPreview()"><option value="1">Dia 1</option><option value="5" selected>Dia 5</option><option value="10">Dia 10</option><option value="15">Dia 15</option><option value="20">Dia 20</option><option value="25">Dia 25</option></select></div>
+          </div>
+
+          <div class="fsect">Escopo do trabalho</div>
+          <div class="ff" style="margin-bottom:10px"><label class="flbl">Entregáveis</label>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+              ${CONTRACT_DELIVERABLES.map(item=>`<label style="display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);font-size:12px;line-height:1.35;cursor:pointer"><input type="checkbox" id="ct-deliv-${item.id}" ${item.checked?'checked':''} onchange="updateContractPreview()" style="margin-top:2px"><span><b>${item.label}</b><br><span style="color:var(--text3)">${item.desc}</span></span></label>`).join('')}
+            </div>
+          </div>
+          <div class="ff" style="margin-bottom:10px"><label class="flbl">Entregáveis adicionais</label><textarea class="fta" id="contract-additional" rows="3" placeholder="Descreva serviços extras fora da lista padrão" oninput="updateContractPreview()"></textarea></div>
+          <div class="ff"><label class="flbl">Cláusulas / observações complementares</label><textarea class="fta" id="contract-extra" rows="4" placeholder="Ex: reajuste, horas presenciais, cláusula específica..." oninput="updateContractPreview()"></textarea></div>
+
+          <div class="brow" style="margin-top:16px">
+            <button class="btn btn-s" onclick="clearContractForm()">🗑 Limpar</button>
+            <button class="btn btn-p" onclick="generateContractPDF()">📄 Gerar PDF do Contrato</button>
+          </div>
+          <textarea class="fta" id="contract-output" rows="10" style="display:none" readonly></textarea>
+        </div>
+    </div>`;
+  const startEl=document.getElementById('contract-start');
+  if(startEl && !startEl.value) startEl.value=new Date().toISOString().slice(0,10);
+  updateContractEndDate();
+}
+function fillContractFromProspect(){
+  const id=document.getElementById('contract-prospect')?.value;
+  const p=id?_comProspects[id]:null;
+  if(!p) return;
+  if(document.getElementById('contract-name') && !document.getElementById('contract-name').value) document.getElementById('contract-name').value=p.name||'';
+  if(document.getElementById('contract-phone') && !document.getElementById('contract-phone').value) document.getElementById('contract-phone').value=p.whatsapp||'';
+  if(document.getElementById('contract-email') && !document.getElementById('contract-email').value) document.getElementById('contract-email').value=p.email||'';
+  if(document.getElementById('contract-value') && !document.getElementById('contract-value').value) document.getElementById('contract-value').value=p.valorProposto||'';
+  if(document.getElementById('contract-channels') && !document.getElementById('contract-channels').value) document.getElementById('contract-channels').value=`Instagram${p.instagram?' ('+p.instagram+')':''} de ${p.name}`;
+  if(document.getElementById('contract-additional') && p.obs && !document.getElementById('contract-additional').value) document.getElementById('contract-additional').value=p.obs;
+  updateContractPreview();
+}
+function clearContractForm(){
+  ['contract-prospect','contract-name','contract-cnpj','contract-responsible','contract-responsible-cpf','contract-email','contract-phone','contract-address','contract-start','contract-end','contract-value','contract-channels','contract-additional','contract-extra'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const duration=document.getElementById('contract-duration'); if(duration) duration.value='3';
+  const due=document.getElementById('contract-due-day'); if(due) due.value='5';
+  CONTRACT_DELIVERABLES.forEach(item=>{ const ck=document.getElementById('ct-deliv-'+item.id); if(ck) ck.checked=!!item.checked; });
+  const startEl=document.getElementById('contract-start');
+  if(startEl) startEl.value=new Date().toISOString().slice(0,10);
+  updateContractEndDate();
+}
+function generateContractText(){
+  const data=getContractFormData();
+  updateContractPreview();
+  return buildContractText(data);
+}
+function copyContractText(){
+  const out=document.getElementById('contract-output');
+  if(!out?.value.trim()){ showToast('Gere o contrato antes de copiar','err'); return; }
+  out.select();
+  document.execCommand('copy');
+  showToast('Texto do contrato copiado!','ok');
+}
+function generateContractPDF(){
+  const data=getContractFormData();
+  if(!validateContractData(data)) return;
+  updateContractPreview();
+  const todayLong=formatLongDateBR(new Date().toISOString().slice(0,10));
+  const esc=s=>String(s||'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const deliverablesHtml=data.deliverables.map(item=>`<li><b>${esc(item.label)}:</b> ${esc(item.desc)}</li>`).join('');
+  const extraDeliverables=data.additionalDeliverables?`<p><b>Entregáveis adicionais:</b> ${esc(data.additionalDeliverables)}</p>`:'';
+  const extraClauses=data.extraClauses?`<div class="note"><b>Cláusulas complementares:</b><br>${esc(data.extraClauses).replace(/\n/g,'<br>')}</div>`:'';
+  const html=`<!doctype html><html><head><meta charset="UTF-8"><title>Contrato - ${esc(data.name)}</title><style>
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:#f2f3fb;color:#1a1730;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .actions{position:fixed;right:24px;bottom:24px;z-index:30}.actions button{border:0;border-radius:999px;background:#6f73ff;color:#fff;padding:14px 22px;font-weight:800;cursor:pointer;box-shadow:0 16px 32px rgba(15,15,35,.2)}
+    .page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:18mm 18mm 16mm;page-break-after:always;position:relative}
+    .page:last-child{page-break-after:auto}.brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:14mm;padding-bottom:5mm;border-bottom:1px solid #ebeefe}.brand-mark{font-size:28px;font-weight:900;color:#6f73ff}.brand-sub{font-size:11px;color:#7d7a9a;text-transform:uppercase;letter-spacing:2.4px}
+    .brand-left{display:flex;align-items:center;gap:0}.brand-logo{height:34px;max-width:220px;object-fit:contain;display:block}
+    h1{font-size:24px;line-height:1.15;margin:0 0 12mm;color:#141230} h2{font-size:13px;text-transform:uppercase;letter-spacing:1.6px;color:#6f73ff;margin:0 0 4mm} h3{font-size:15px;margin:0 0 3mm;color:#141230}
+    p,li{font-size:12px;line-height:1.65;color:#2f2b4f} ul{margin:0;padding-left:18px} .two{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-bottom:9mm}
+    .box{border:1px solid #e2e5f2;border-radius:12px;padding:5mm 5.5mm;background:#fafbff}.muted{font-size:10.5px;color:#7d7a9a}
+    .clause{margin-bottom:7mm}.note{margin-top:6mm;padding:4.5mm 5mm;border-radius:12px;background:linear-gradient(135deg,#f6f4ff 0%,#eef2ff 100%);border:1px solid #d9dcfb}.note-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.1px;color:#5e60e8;margin-bottom:5px}.note-text{font-size:12px;line-height:1.6;color:#2f2b4f}
+    .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:16mm;margin-top:16mm}.sig{padding-top:14mm;border-top:1px solid #cfd3e6;font-size:12px;line-height:1.6}
+    .footer-note{margin-top:10mm;font-size:10px;color:#7d7a9a}.badge{display:inline-flex;padding:5px 10px;border-radius:999px;background:#eef0ff;color:#6f73ff;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+    @page{size:A4;margin:0} @media print {.actions{display:none} body{background:#fff}}
+  </style></head><body>
+    <div class="actions"><button onclick="window.print()">Salvar PDF / Imprimir</button></div>
+    <section class="page">
+      <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Contrato comercial</span></div>
+      <h1>Contrato de Prestação de Serviços para Gerenciamento de Redes Sociais</h1>
+      <div class="two">
+        <div class="box">
+          <h2>Contratada</h2>
+          <p><b>${esc(CONTRACT_FIXED_PARTY.company)}</b><br>CNPJ: ${esc(CONTRACT_FIXED_PARTY.cnpj)}<br>Responsável: ${esc(CONTRACT_FIXED_PARTY.responsible)}<br>CPF: ${esc(CONTRACT_FIXED_PARTY.cpf)}<br>Email: ${esc(CONTRACT_FIXED_PARTY.email)}<br>Telefone: ${esc(CONTRACT_FIXED_PARTY.phone)}<br>Endereço: ${esc(CONTRACT_FIXED_PARTY.address)}</p>
+        </div>
+        <div class="box">
+          <h2>Contratante</h2>
+          <p><b>${esc(data.name)}</b><br>CNPJ: ${esc(data.cnpj)}<br>Responsável: ${esc(data.responsible)}<br>CPF: ${esc(data.cpf)}<br>${data.email?`Email: ${esc(data.email)}<br>`:''}${data.phone?`Telefone: ${esc(data.phone)}<br>`:''}${data.address?`Endereço: ${esc(data.address)}`:''}</p>
+        </div>
+      </div>
+      <div class="note">
+        <div class="note-title">Validade jurídica e assinatura eletrônica</div>
+        <div class="note-text">As partes reconhecem a validade jurídica da assinatura eletrônica deste instrumento, nos termos da Lei nº 14.063/2020, produzindo os mesmos efeitos de uma assinatura física, desde que vinculada às partes signatárias e passível de verificação.</div>
+      </div>
+      <div class="clause"><h3>Cláusula 1 — Objeto do contrato</h3><p>A CONTRATADA prestará serviços de gerenciamento de redes sociais, conteúdo e apoio estratégico para ${esc(data.channels)} do CONTRATANTE, nos limites do escopo aprovado e das condições previstas neste instrumento.</p></div>
+      <div class="clause"><h3>Cláusula 2 — Vigência</h3><p>O presente contrato terá início em ${esc(formatLongDateBR(data.start))} e término em ${esc(formatLongDateBR(data.end))}, totalizando ${esc(data.duration)} meses de vigência.</p></div>
+      <div class="clause"><h3>Cláusula 3 — Escopo do trabalho</h3><ul>${deliverablesHtml}</ul>${extraDeliverables}</div>
+    </section>
+    <section class="page">
+      <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Condições</span></div>
+      <div class="clause"><h3>Cláusula 4 — Diretrizes do trabalho</h3><p>O planejamento mensal será apresentado ao CONTRATANTE para alinhamento e aprovação. Ajustes pontuais poderão ser realizados dentro do fluxo operacional acordado. Solicitações extraordinárias, não previstas no escopo acima, poderão ser orçadas à parte mediante aceite expresso das partes.</p></div>
+      <div class="clause"><h3>Cláusula 5 — Investimento</h3><p>Pelos serviços contratados, o CONTRATANTE pagará à CONTRATADA o valor mensal de <b>${esc(fmtCurrencyBR(data.monthlyValue))}</b>, com vencimento todo dia <b>${esc(data.dueDay)}</b> de cada mês, mediante a forma de cobrança definida entre as partes.</p></div>
+      <div class="clause"><h3>Cláusula 6 — Permanência e cancelamento</h3><p>Havendo rescisão antecipada sem justa causa durante a vigência mínima contratada, as partes poderão negociar aviso prévio e encerramento operacional compatível com o estágio das entregas em andamento. O encerramento deverá respeitar os compromissos já aprovados e os materiais já produzidos até a data da comunicação.</p></div>
+      <div class="clause"><h3>Cláusula 7 — Confidencialidade</h3><p>As partes comprometem-se a manter sigilo sobre informações estratégicas, operacionais, comerciais e financeiras a que tiverem acesso em razão deste contrato, não as divulgando a terceiros sem autorização.</p></div>
+      <div class="clause"><h3>Cláusula 8 — Proteção de dados</h3><p>As partes declaram ciência da Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018), comprometendo-se a tratar dados pessoais eventualmente compartilhados apenas para a execução deste contrato, com observância dos princípios de segurança e confidencialidade.</p>${extraClauses}</div>
+    </section>
+    <section class="page">
+      <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Fechamento</span></div>
+      <div class="clause"><h3>Cláusula 9 — Disposições gerais</h3><p>Este instrumento reflete o entendimento comercial entre as partes para a prestação dos serviços descritos. Ajustes posteriores poderão ser formalizados por aditivo, aceite eletrônico, mensagem registrada ou novo documento assinado pelas partes.</p></div>
+      <p>São Pedro/SP, ${esc(todayLong)}.</p>
+      <div class="sig-grid">
+        <div class="sig"><b>CONTRATADA</b><br>${esc(CONTRACT_FIXED_PARTY.responsible)}<br>CPF: ${esc(CONTRACT_FIXED_PARTY.cpf)}<br>${esc(CONTRACT_FIXED_PARTY.company)}</div>
+        <div class="sig"><b>CONTRATANTE</b><br>${esc(data.responsible)}<br>CPF: ${esc(data.cpf)}<br>${esc(data.name)}</div>
+      </div>
+      <div class="footer-note">Documento preparado para assinatura eletrônica. Antes do uso definitivo, recomenda-se validação jurídica da redação e das cláusulas comerciais aplicáveis ao caso concreto.</div>
+    </section>
+  </body></html>`;
+  const w=window.open('','_blank');
+  if(!w){ showToast('Permita pop-ups para gerar o contrato','err'); return; }
+  w.document.write(html);
+  w.document.close();
+  showToast('Contrato aberto em nova aba','ok');
 }
 
 // ── DASHBOARD ──
@@ -5822,7 +6706,7 @@ function renderComDash(el){
 
 function changeComMonth(delta){
   _comViewMonth.setMonth(_comViewMonth.getMonth()+delta);
-  renderComTab('dash');
+  renderFinanceiroTab('dash');
 }
 
 function buildComEvoData(){
@@ -5852,11 +6736,11 @@ async function saveComSettings(){
   const meta = parseFloat(document.getElementById('com-meta-inp')?.value)||0;
   const custoFixo = parseFloat(document.getElementById('com-custo-inp')?.value)||0;
   const proLabore = parseFloat(document.getElementById('com-prolabore-inp')?.value)||0;
-  _comSettings = {meta, custoFixo, proLabore};
+  _comSettings = {..._comSettings, meta, custoFixo, proLabore};
   const {db,doc,setDoc} = window._fb;
-  await setDoc(doc(db,'com_settings','main'),{meta,custoFixo,proLabore});
+  await setDoc(doc(db,'com_settings','main'),{meta,custoFixo,proLabore},{merge:true});
   showToast('Configurações salvas!','ok');
-  renderComTab('dash');
+  if(currentView==='financeiro') renderFinanceiroTab('dash');
 }
 
 // ── CLIENTES COMERCIAL ──
@@ -5936,7 +6820,7 @@ async function saveComCliente(){
     showToast('Cliente adicionado!','ok');
   }
   closeComClienteModal();
-  renderComTab('clientes');
+  if(currentView==='financeiro') renderFinanceiroTab('clientes');
 }
 
 async function deleteComCliente(){
@@ -5946,14 +6830,15 @@ async function deleteComCliente(){
   delete _comClientes[_editComClienteId];
   closeComClienteModal();
   showToast('Cliente removido','inf');
-  renderComTab('clientes');
+  if(currentView==='financeiro') renderFinanceiroTab('clientes');
 }
 
 // ── PIPELINE ──
 function renderComPipeline(el){
   const fmt = v => v?'R$ '+parseFloat(v).toLocaleString('pt-BR',{minimumFractionDigits:0}):'';
   el.innerHTML = `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="font-size:12px;color:var(--text3)">Arraste os cards para mover pelo pipeline.</div>
       <button class="btn btn-p btn-sm" onclick="openProspectModal()">+ Novo prospect</button>
     </div>
     <div class="pipeline-board">
@@ -5964,18 +6849,39 @@ function renderComPipeline(el){
             <span style="color:${col.color}">${col.label}</span>
             <span style="background:${col.color}22;color:${col.color};font-size:10px;padding:1px 6px;border-radius:10px">${cards.length}</span>
           </div>
-          <div class="pipeline-col-body">
-            ${cards.map(p=>`<div class="pipeline-card" onclick="openProspectModal('${p.id}')">
+          <div class="pipeline-col-body" ondragover="event.preventDefault();this.closest('.pipeline-col').classList.add('drag-over')" ondragleave="this.closest('.pipeline-col').classList.remove('drag-over')" ondrop="dropProspectCard(event,'${col.id}',this.closest('.pipeline-col'))">
+            ${cards.map(p=>`<div class="pipeline-card" draggable="true" ondragstart="dragProspectCard(event,'${p.id}')" onclick="openProspectModal('${p.id}')">
               <div class="pipeline-card-name">${p.name}</div>
               <div class="pipeline-card-meta">${p.niche||'—'}</div>
               ${p.valorProposto?`<div style="font-size:12px;font-weight:700;color:var(--green);margin-top:4px">${fmt(p.valorProposto)}/mês</div>`:''}
               ${p.instagram?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${p.instagram}</div>`:''}
+              ${p.whatsapp?`<div style="margin-top:8px"><a href="${buildWhatsAppLink(p.whatsapp)}" target="_blank" onclick="event.stopPropagation()" class="btn btn-s btn-sm" style="text-decoration:none">WhatsApp</a></div>`:''}
             </div>`).join('')||`<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">Vazio</div>`}
             <button style="background:none;border:1px dashed var(--border);border-radius:var(--rs);padding:6px;font-size:12px;color:var(--text3);cursor:pointer;width:100%;margin-top:4px" onclick="openProspectModal(null,'${col.id}')">+ Adicionar</button>
           </div>
         </div>`;
       }).join('')}
     </div>`;
+}
+let _dragProspectId = null;
+function dragProspectCard(event,id){
+  _dragProspectId=id;
+  if(event?.dataTransfer) event.dataTransfer.effectAllowed='move';
+}
+async function moveProspectStatus(id,status){
+  if(!_comProspects[id]) return;
+  const {db,doc,updateDoc}=window._fb;
+  _comProspects[id].status=status;
+  _comProspects[id].updatedAt=Date.now();
+  await updateDoc(doc(db,'com_prospects',id),{status,updatedAt:Date.now()});
+}
+async function dropProspectCard(event,status,colEl){
+  event.preventDefault();
+  if(colEl) colEl.classList.remove('drag-over');
+  if(!_dragProspectId) return;
+  await moveProspectStatus(_dragProspectId,status);
+  _dragProspectId=null;
+  renderComTab('pipeline');
 }
 
 // ── CUSTOS ──
@@ -6070,7 +6976,7 @@ async function saveCusto(){
     showToast('Custo cadastrado!','ok');
   }
   closeCustoModal();
-  renderComTab('custos');
+  if(currentView==='financeiro') renderFinanceiroTab('custos');
   // Also update settings with total
   updateCustoFixoFromCustos();
 }
@@ -6082,7 +6988,7 @@ async function deleteCusto(){
   delete _comCustos[_editCustoId];
   closeCustoModal();
   showToast('Custo removido','inf');
-  renderComTab('custos');
+  if(currentView==='financeiro') renderFinanceiroTab('custos');
   updateCustoFixoFromCustos();
 }
 
@@ -6102,12 +7008,14 @@ function openProspectModal(id, defaultStatus){
   if(!mo) return;
   document.getElementById('cp-name').value = p.name||'';
   document.getElementById('cp-instagram').value = p.instagram||'';
+  document.getElementById('cp-whatsapp').value = p.whatsapp||'';
   document.getElementById('cp-niche').value = p.niche||'';
   document.getElementById('cp-valor').value = p.valorProposto||'';
   document.getElementById('cp-status').value = p.status||(defaultStatus||'prospeccao');
   document.getElementById('cp-obs').value = p.obs||'';
   document.getElementById('cp-modal-title').textContent = id?'Editar prospect':'Novo prospect';
   document.getElementById('cp-delete-btn').style.display = id?'flex':'none';
+  updateProspectWhatsAppButton();
   mo.classList.add('open');
 }
 function closeProspectModal(){ document.getElementById('com-prospect-mo').classList.remove('open'); }
@@ -6117,6 +7025,7 @@ async function saveProspect(){
   const data = {
     name: document.getElementById('cp-name').value.trim(),
     instagram: document.getElementById('cp-instagram').value.trim(),
+    whatsapp: document.getElementById('cp-whatsapp').value.trim(),
     niche: document.getElementById('cp-niche').value.trim(),
     valorProposto: parseFloat(document.getElementById('cp-valor').value)||0,
     status: document.getElementById('cp-status').value,
@@ -6162,7 +7071,8 @@ async function deleteProspect(){
         <button class="btn btn-s btn-sm" onclick="copyApprovalLink(currentPackId)" title="Link público para aprovação do cliente">🔗 Aprovação</button>
         <button class="btn btn-s btn-sm" onclick="gerarRoteiros(currentPackId)">📝 Roteiros</button>
         <button class="btn btn-s btn-sm" onclick="duplicatePack(currentPackId)">⧉ Duplicar</button>
-        <button class="btn btn-d btn-sm" onclick="deletePack(currentPackId)">🗑 Remover</button>
+        <button class="btn btn-s btn-sm" onclick="openChangeHistory()">🕘 Histórico</button>
+        <button class="btn btn-d btn-sm" onclick="deletePack(currentPackId)">🗑 Excluir pack</button>
         <button class="mclose" onclick="closePackModal()">×</button>
       </div>
     </div>
@@ -6250,9 +7160,27 @@ async function deleteProspect(){
         <label class="flbl">📊 Instagram Business ID <span style="font-weight:400;color:var(--text3)">(para métricas)</span></label>
         <input class="fi" id="ec-instagram-id" placeholder="Ex: 17841445778218708">
       </div>
+      <div class="ff" style="margin-top:10px">
+        <label class="flbl">Situação do cliente</label>
+        <select class="fs" id="ec-activity">
+          <option value="active">Ativo</option>
+          <option value="inactive">Inativo</option>
+        </select>
+      </div>
+      <div style="margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg3)">
+        <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:10px">Checklist de desligamento</div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)"><input type="checkbox" id="ec-off-acessos" style="accent-color:var(--accent)">Acessos removidos</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)"><input type="checkbox" id="ec-off-entrega" style="accent-color:var(--accent)">Última entrega concluída</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)"><input type="checkbox" id="ec-off-arquivos" style="accent-color:var(--accent)">Arquivos organizados</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)"><input type="checkbox" id="ec-off-financeiro" style="accent-color:var(--accent)">Financeiro alinhado</label>
+        </div>
+        <div class="ff" style="margin-top:10px"><label class="flbl">Observação final</label><textarea class="fta" id="ec-off-obs" rows="2" placeholder="Resumo do desligamento..."></textarea></div>
+      </div>
       <div class="brow">
         <button class="btn btn-p" onclick="saveEditClient()">Salvar</button>
         <button class="btn btn-s" onclick="closeEditClient()">Cancelar</button>
+        <button class="btn btn-s btn-sm" id="ec-inactive-btn" onclick="toggleClientInactive()">Mover para inativo</button>
         <button class="btn btn-d btn-sm" style="margin-left:auto" onclick="deleteClient()">🗑 Excluir</button>
       </div>
     </div>
@@ -6528,6 +7456,7 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
 
 
 
