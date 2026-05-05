@@ -2165,6 +2165,7 @@ function openFinalImg(pid, idx){
 }
 
 let _pendingFinalUpload = null;
+let _pendingFinalUploadDragIdx = null;
 function normalizeFinalUploadItems(files){
   return [...(files||[])].map(file=>({
     file,
@@ -2190,9 +2191,16 @@ function renderFinalUploadReview(){
   if(title) title.textContent = `Conferir arquivos finais (${items.length})`;
   if(body){
     body.innerHTML = items.length ? `
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Clique e arraste para reordenar, se desejar.</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px">
         ${items.map((item,idx)=>`
-          <div style="border:1px solid var(--border);background:var(--bg3);border-radius:12px;padding:8px;position:relative">
+          <div
+            draggable="true"
+            ondragstart="startPendingFinalUploadDrag(${idx})"
+            ondragover="allowPendingFinalUploadDrop(event)"
+            ondrop="dropPendingFinalUpload(${idx})"
+            ondragend="endPendingFinalUploadDrag()"
+            style="border:1px solid var(--border);background:var(--bg3);border-radius:12px;padding:8px;position:relative;cursor:grab">
             <button class="btn btn-d btn-sm" style="position:absolute;top:6px;right:6px;padding:2px 7px;font-size:11px" onclick="removePendingFinalUpload(${idx})">×</button>
             <div style="height:128px;border-radius:10px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center;margin-bottom:8px">
               ${item.preview
@@ -2200,10 +2208,7 @@ function renderFinalUploadReview(){
                 : `<div style="padding:10px;text-align:center;font-size:13px;font-weight:700;color:var(--text3)">PDF<br><span style="font-size:11px;font-weight:500">${item.name.split('.').pop()?.toUpperCase()||'ARQ'}</span></div>`}
             </div>
             <div style="font-size:11px;font-weight:700;color:var(--text2);line-height:1.35;word-break:break-word">${item.name}</div>
-            <div style="display:flex;gap:6px;margin-top:8px">
-              <button class="btn btn-s btn-sm" style="flex:1;padding:5px 8px" onclick="movePendingFinalUpload(${idx},-1)" ${idx===0?'disabled':''}>↑ Antes</button>
-              <button class="btn btn-s btn-sm" style="flex:1;padding:5px 8px" onclick="movePendingFinalUpload(${idx},1)" ${idx===items.length-1?'disabled':''}>↓ Depois</button>
-            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:8px">Slide ${idx+1}</div>
           </div>`).join('')}
       </div>`
       : `<div style="font-size:13px;color:var(--text3);text-align:center;padding:22px 0">Nenhum arquivo selecionado.</div>`;
@@ -2260,13 +2265,24 @@ function removePendingFinalUpload(idx){
   if(removed?.preview) URL.revokeObjectURL(removed.preview);
   renderFinalUploadReview();
 }
-function movePendingFinalUpload(idx, dir){
+function startPendingFinalUploadDrag(idx){
+  _pendingFinalUploadDragIdx = idx;
+}
+function allowPendingFinalUploadDrop(ev){
+  ev.preventDefault();
+}
+function dropPendingFinalUpload(idx){
   if(!_pendingFinalUpload) return;
+  const from=_pendingFinalUploadDragIdx;
   const items=_pendingFinalUpload.items||[];
-  const target=idx+dir;
-  if(target<0 || target>=items.length) return;
-  [items[idx],items[target]]=[items[target],items[idx]];
+  if(from===null || from===undefined || from===idx || from<0 || from>=items.length || idx<0 || idx>=items.length) return;
+  const [moved]=items.splice(from,1);
+  items.splice(idx,0,moved);
+  _pendingFinalUploadDragIdx = null;
   renderFinalUploadReview();
+}
+function endPendingFinalUploadDrag(){
+  _pendingFinalUploadDragIdx = null;
 }
 function handleFinalFileUp(pid, files){
   openFinalUploadReview(pid, files, !!_pendingFinalUpload && _pendingFinalUpload.pid===pid);
