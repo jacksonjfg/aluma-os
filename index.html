@@ -2322,22 +2322,20 @@ async function restoreBriefVersion(historyIdx){
 }
 
 function postMediaItems(post){
-  const finals=(post.finalFiles||[]).map((f,i)=>({group:'final',idx:i,label:'Slide '+(i+1),name:f.name||'Slide '+(i+1),src:f.url||f.data||''}));
   const refs=(post.images||[]).map((src,i)=>({group:'refs',idx:i,label:'Ref '+(i+1),name:'Referência '+(i+1),src}));
-  return [...finals,...refs].filter(x=>x.src);
+  return refs.filter(x=>x.src);
 }
 function renderPostVisualGallery(post){
   const items=postMediaItems(post);
   const cards=items.map((it,i)=>`<div class="post-visual-card" onclick="openPostMedia('${post.id}',${i})" title="${it.name}"><img src="${it.src}"><span class="post-visual-badge">${it.label}</span></div>`).join('');
   return `<div class="post-visual-panel">
     <div class="post-visual-head">
-      <div class="post-visual-title">🖼 Imagens do conteúdo <span style="background:var(--ag);color:var(--accent);padding:1px 7px;border-radius:999px;font-size:10px">${items.length}</span></div>
+      <div class="post-visual-title">🖼 Referências visuais <span style="background:var(--ag);color:var(--accent);padding:1px 7px;border-radius:999px;font-size:10px">${items.length}</span></div>
       <div class="post-visual-actions">
         <label class="btn btn-s btn-sm" style="cursor:pointer">+ Referência<input type="file" accept="image/*" multiple style="display:none" onchange="handleImgUp('${post.id}',this.files)"></label>
-        <label class="btn btn-s btn-sm" style="cursor:pointer">+ Slide final<input type="file" accept="image/*,application/pdf" multiple style="display:none" onchange="handleFinalFileUp('${post.id}',this.files)"></label>
       </div>
     </div>
-    ${items.length?`<div class="post-visual-grid">${cards}</div>`:`<div class="post-visual-empty">Nenhuma imagem anexada ainda. Adicione os slides finais ou referências visuais aqui.</div>`}
+    ${items.length?`<div class="post-visual-grid">${cards}</div>`:`<div class="post-visual-empty">Nenhuma referência visual anexada ainda. Use este espaço para briefing, inspiração e apoio para a designer.</div>`}
   </div>`;
 }
 function openPostMedia(pid, startIdx=0){
@@ -2366,8 +2364,7 @@ function openPostMedia(pid, startIdx=0){
   render(); document.body.appendChild(ov);
 }
 function openImgFull(pid, idx){
-  const finalCount=(posts[pid]?.finalFiles||[]).length;
-  openPostMedia(pid, finalCount+idx);
+  openPostMedia(pid, idx);
 }
 function renderPF(post){
   const el=document.getElementById('pm-content');
@@ -3167,7 +3164,7 @@ async function genClientPDF(packId,clientName,modalEl){
   // Pre-load images as base64
   const postImgData={};
   for(const p of selPosts){
-    const allImgs=[...(p.finalFiles||[]).map(f=>f.url||f.data||''),...(p.images||[])].filter(Boolean);
+    const allImgs=[...(p.finalFiles||[]).map(f=>f.url||f.data||'')].filter(Boolean);
     const loaded=[];
     for(const url of allImgs.slice(0,12)){
       loaded.push(url.startsWith('data:')?url:await toDataURL(url));
@@ -4388,7 +4385,7 @@ async function renderApprovalPage(packId){
   const postsDiv=wrap.querySelector('#approval-posts');
   postList.forEach((p,i)=>{
     const finalFiles=p.finalFiles||[];
-    const imgs=[...finalFiles.map(f=>f.url||f.data||''),...(p.images||[])].filter(Boolean);
+    const imgs=[...finalFiles.map(f=>f.url||f.data||'')].filter(Boolean);
     const div=document.createElement('div');
     div.style.cssText='background:#fff;border-radius:12px;padding:20px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06)';
     div.innerHTML=`
@@ -6184,8 +6181,9 @@ function buildWhatsAppLink(value){
   return digits?`https://wa.me/${digits}`:'';
 }
 function updateProspectWhatsAppButton(){
-  const input=document.getElementById('cp-whatsapp');
-  const btn=document.getElementById('cp-whatsapp-open');
+  const scope=getProspectModalScope();
+  const input=scope.get('cp-whatsapp');
+  const btn=scope.get('cp-whatsapp-open');
   if(!btn) return;
   const link=buildWhatsAppLink(input?.value||'');
   btn.href=link||'#';
@@ -7001,35 +6999,47 @@ async function updateCustoFixoFromCustos(){
 }
 
 let _editProspectId = null;
+function getProspectModalScope(){
+  const modals=[...document.querySelectorAll('#com-prospect-mo')];
+  const modal=modals[modals.length-1]||null;
+  return {
+    modal,
+    get(id){
+      return modal?.querySelector('#'+id) || document.getElementById(id);
+    }
+  };
+}
 function openProspectModal(id, defaultStatus){
   _editProspectId = id||null;
   const p = id ? _comProspects[id] : {};
-  const mo = document.getElementById('com-prospect-mo');
+  const scope=getProspectModalScope();
+  const mo = scope.modal;
   if(!mo) return;
-  document.getElementById('cp-name').value = p.name||'';
-  document.getElementById('cp-instagram').value = p.instagram||'';
-  document.getElementById('cp-whatsapp').value = p.whatsapp||'';
-  document.getElementById('cp-niche').value = p.niche||'';
-  document.getElementById('cp-valor').value = p.valorProposto||'';
-  document.getElementById('cp-status').value = p.status||(defaultStatus||'prospeccao');
-  document.getElementById('cp-obs').value = p.obs||'';
-  document.getElementById('cp-modal-title').textContent = id?'Editar prospect':'Novo prospect';
-  document.getElementById('cp-delete-btn').style.display = id?'flex':'none';
+  scope.get('cp-name').value = p.name||'';
+  scope.get('cp-instagram').value = p.instagram||'';
+  scope.get('cp-whatsapp').value = p.whatsapp||'';
+  scope.get('cp-niche').value = p.niche||'';
+  scope.get('cp-valor').value = p.valorProposto||'';
+  scope.get('cp-status').value = p.status||(defaultStatus||'prospeccao');
+  scope.get('cp-obs').value = p.obs||'';
+  scope.get('cp-modal-title').textContent = id?'Editar prospect':'Novo prospect';
+  scope.get('cp-delete-btn').style.display = id?'flex':'none';
   updateProspectWhatsAppButton();
   mo.classList.add('open');
 }
-function closeProspectModal(){ document.getElementById('com-prospect-mo').classList.remove('open'); }
+function closeProspectModal(){ const scope=getProspectModalScope(); scope.modal?.classList.remove('open'); }
 
 async function saveProspect(){
   const {db,doc,setDoc,addDoc,collection} = window._fb;
+  const scope=getProspectModalScope();
   const data = {
-    name: document.getElementById('cp-name').value.trim(),
-    instagram: document.getElementById('cp-instagram').value.trim(),
-    whatsapp: document.getElementById('cp-whatsapp').value.trim(),
-    niche: document.getElementById('cp-niche').value.trim(),
-    valorProposto: parseFloat(document.getElementById('cp-valor').value)||0,
-    status: document.getElementById('cp-status').value,
-    obs: document.getElementById('cp-obs').value.trim(),
+    name: scope.get('cp-name').value.trim(),
+    instagram: scope.get('cp-instagram').value.trim(),
+    whatsapp: scope.get('cp-whatsapp').value.trim(),
+    niche: scope.get('cp-niche').value.trim(),
+    valorProposto: parseFloat(scope.get('cp-valor').value)||0,
+    status: scope.get('cp-status').value,
+    obs: scope.get('cp-obs').value.trim(),
     updatedAt: Date.now()
   };
   if(!data.name){ showToast('Nome obrigatório','err'); return; }
