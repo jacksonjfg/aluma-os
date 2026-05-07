@@ -1172,18 +1172,16 @@ function applyAccessControl(){
 }
 
 async function initApp(){ await loadTeam(); await loadClients(); setView('dashboard'); await openPostFromUrl(); initPresence(); }
+function getAppBasePath(){
+  let path=window.location.pathname||'/';
+  path=path.replace(/\/post\/[^/]+\/?$/,'/');
+  return path.endsWith('/')?path:(path+'/');
+}
 function getPostLink(pid=currentPostId){
   const post=posts[pid];
-  const url=new URL(window.location.href);
-  url.searchParams.delete('aprovacao');
-  if(post){
-    url.searchParams.set('pack', post.packId||currentPackId||'');
-    url.searchParams.set('post', pid);
-  }else{
-    url.searchParams.delete('pack');
-    url.searchParams.delete('post');
-  }
-  return url.toString();
+  const base=getAppBasePath();
+  if(!post) return window.location.origin+base;
+  return window.location.origin+base+'post/'+encodeURIComponent(pid);
 }
 function syncPostUrl(pid=currentPostId){
   try{
@@ -1214,6 +1212,19 @@ async function copyPostLink(pid=currentPostId){
   }
 }
 async function openPostFromUrl(){
+  const pathMatch=(window.location.pathname||'').match(/\/post\/([^/]+)\/?$/);
+  const shortPostId=pathMatch?decodeURIComponent(pathMatch[1]):'';
+  if(shortPostId){
+    const {db,doc,getDoc}=window._fb;
+    const snap=await getDoc(doc(db,'posts',shortPostId));
+    if(snap.exists()){
+      const post={id:shortPostId,...snap.data()};
+      if(post.packId){
+        await openPack(post.packId,shortPostId,true);
+        return true;
+      }
+    }
+  }
   const params=new URLSearchParams(window.location.search);
   const packId=params.get('pack');
   const postId=params.get('post');
