@@ -331,6 +331,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .rich-area a{color:var(--accent);text-decoration:underline;cursor:pointer;}
 .comment-composer{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;line-height:1.55;min-height:74px;word-break:break-word;white-space:pre-wrap}
 .comment-composer:focus{border-color:var(--accent)}
+.comment-composer:empty:before{content:attr(data-placeholder);color:var(--text3)}
 .comment-mention-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:rgba(132,131,255,.16);border:1px solid rgba(132,131,255,.24);color:var(--accent);font-weight:800;white-space:nowrap}
 .rich-meta{font-size:11px;color:var(--text3);font-weight:500;margin:-2px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .history-list{display:flex;flex-direction:column;gap:10px;max-height:56vh;overflow-y:auto;padding-right:4px}
@@ -1170,7 +1171,56 @@ function applyAccessControl(){
   if(inactiveBtn) inactiveBtn.style.display = isAdmin && hasInactiveClients() ? 'flex' : 'none';
 }
 
-async function initApp(){ await loadTeam(); await loadClients(); setView('dashboard'); initPresence(); }
+async function initApp(){ await loadTeam(); await loadClients(); setView('dashboard'); await openPostFromUrl(); initPresence(); }
+function getPostLink(pid=currentPostId){
+  const post=posts[pid];
+  const url=new URL(window.location.href);
+  url.searchParams.delete('aprovacao');
+  if(post){
+    url.searchParams.set('pack', post.packId||currentPackId||'');
+    url.searchParams.set('post', pid);
+  }else{
+    url.searchParams.delete('pack');
+    url.searchParams.delete('post');
+  }
+  return url.toString();
+}
+function syncPostUrl(pid=currentPostId){
+  try{
+    const link=getPostLink(pid);
+    window.history.replaceState({},'',link);
+  }catch(err){
+    console.warn('syncPostUrl:', err);
+  }
+}
+async function copyPostLink(pid=currentPostId){
+  const post=posts[pid];
+  if(!post){ showToast('Abra um post para copiar o link','err'); return; }
+  const link=getPostLink(pid);
+  try{
+    if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(link);
+    else{
+      const ta=document.createElement('textarea');
+      ta.value=link;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    showToast('Link do post copiado!','ok');
+  }catch(err){
+    console.error('copyPostLink:', err);
+    showToast('Não consegui copiar o link','err');
+  }
+}
+async function openPostFromUrl(){
+  const params=new URLSearchParams(window.location.search);
+  const packId=params.get('pack');
+  const postId=params.get('post');
+  if(!packId || !postId) return false;
+  await openPack(packId,postId,true);
+  return true;
+}
 
 async function loadClients(){
   const {db,collection,getDocs,doc,getDoc}=window._fb;
@@ -2046,11 +2096,11 @@ function persistCurrentPackState(){
     perPost:JSON.parse(JSON.stringify(_packViewState.perPost||{}))
   };
 }
-async function openPack(packId){
+async function openPack(packId,targetPostId=null,skipUrlSync=false){
   if(currentPackId && currentPackId!==packId) persistCurrentPackState();
   currentPackId=packId;
   const savedState=_packSessionState[packId];
-  currentPostId=savedState?.activePost||null;
+  currentPostId=targetPostId||savedState?.activePost||null;
   _packViewState=savedState?{postListScroll:savedState.postListScroll||0,perPost:savedState.perPost||{}}:{postListScroll:0,perPost:{}};
   // If packs not loaded for this client yet
   if(!packs[packId]){
@@ -2059,9 +2109,13 @@ async function openPack(packId){
     if(snap.exists()) packs[packId]={id:packId,...snap.data()};
   }
   const pack=packs[packId]; const client=clients[pack.clientId]||clients[currentClientId]||{name:''};
+  currentClientId=pack.clientId||currentClientId;
   document.getElementById('pm-title').textContent=`${pack.type||'Feed'} — ${client.name}`;
   document.getElementById('pm-meta').innerHTML=buildPM(packId);
   await loadPosts(packId);
+  if(targetPostId && posts[targetPostId]){
+    openPost(targetPostId,skipUrlSync);
+  }
   document.getElementById('pack-mo').classList.add('open');
 }
 async function loadPosts(packId){
@@ -2112,13 +2166,14 @@ function renderPostsList(){
   updPCnt(Object.keys(posts).length);
 }
 async function updPCnt(n){ if(!currentPackId) return; const {db,doc,updateDoc}=window._fb; await updateDoc(doc(db,'packs',currentPackId),{postCount:n}); }
-function openPost(pid){
+function openPost(pid,skipUrlSync=false){
   if(!posts[pid]) return;
   capturePackViewState();
   currentPostId=pid;
   renderPostsList();
   renderPF(posts[pid]);
   persistCurrentPackState();
+  if(!skipUrlSync) syncPostUrl(pid);
 }
 
 
@@ -2681,6 +2736,7 @@ function renderPF(post){
       ${post.postDate?`<span style="font-size:12px;color:var(--text3)">📅 ${new Date(post.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
       ${post.format?`<span class="ktag tag-${post.format.toLowerCase()}" style="font-size:11px">${post.format}</span>`:''}
       <span style="margin-left:auto"></span>
+      <button class="btn btn-s btn-sm" onclick="copyPostLink('${post.id}')">🔗 Copiar link</button>
       <button class="btn btn-d btn-sm" onclick="deletePost('${post.id}')">🗑 Excluir post</button>
     </div>
 
@@ -3113,7 +3169,7 @@ async function deletePost(pid){
   renderPostsList();
   clearPackEditorPanel('Post excluído');
 }
-function closePackModal(){ persistCurrentPackState(); document.getElementById('pack-mo').classList.remove('open'); if(currentView==='client'&&clientTab==='packs') loadKanban(); }
+function closePackModal(){ persistCurrentPackState(); document.getElementById('pack-mo').classList.remove('open'); syncPostUrl(null); if(currentView==='client'&&clientTab==='packs') loadKanban(); }
 
 // ===== CLIENT CALENDAR =====
 async function renderClientCalInto(container){ container.setAttribute('style','flex:1;overflow:hidden;display:flex;flex-direction:column');
