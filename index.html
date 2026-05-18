@@ -171,6 +171,12 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .mmeta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
 .mclose{width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:all .15s;}
 .mclose:hover{background:var(--bg4);color:var(--text);}
+.mhead{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:14px;background:linear-gradient(180deg,var(--bg2),rgba(132,131,255,.03));}
+.mtit{font-size:18px;font-weight:800;letter-spacing:-.3px;color:var(--text);margin-bottom:4px}
+.msub{font-size:12.5px;line-height:1.45;color:var(--text3)}
+.mfoot{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:linear-gradient(0deg,var(--bg2),rgba(132,131,255,.03));}
+.iconbtn{width:34px;height:34px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:all .15s}
+.iconbtn:hover{background:var(--bg4);color:var(--text)}
 .mbody{display:flex;flex:1;overflow:hidden;}
 .msidebar{width:200px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;}
 .mpost-item{padding:8px 13px;display:flex;align-items:center;gap:7px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;font-weight:500;transition:background .12s;}
@@ -218,6 +224,8 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .post-visual-card{position:relative;aspect-ratio:4/5;border-radius:9px;overflow:hidden;background:var(--bg3);border:1px solid var(--border);cursor:pointer}
 .post-visual-card img{width:100%;height:100%;object-fit:cover;display:block}
 .post-visual-badge{position:absolute;left:7px;top:7px;background:rgba(10,10,20,.78);color:#fff;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:850}
+.post-visual-remove{position:absolute;right:7px;top:7px;width:22px;height:22px;border:0;border-radius:999px;background:rgba(16,16,28,.82);color:#fff;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.22)}
+.post-visual-remove:hover{background:#ff5d72}
 .post-visual-empty{font-size:12px;color:var(--text3);padding:12px;border:1px dashed var(--border);border-radius:9px;background:var(--bg3);text-align:center}
 .media-viewer-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:800;cursor:pointer}
 /* COMMENTS */
@@ -268,7 +276,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .pvrow{display:flex;gap:5px;margin-bottom:9px;flex-wrap:wrap;}
 .pvs{margin-top:12px;}
 .pvlbl{font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;}
-.pvtxt{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;}
+.pvtxt{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;word-break:break-word;}
 /* DASHBOARD */
 .dashwrap{flex:1;overflow-y:auto;padding:13px 20px;}
 .dash-greet{margin-bottom:14px;}
@@ -341,7 +349,8 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .history-card-title{font-size:12px;font-weight:700;color:var(--text2)}
 .history-card-meta{font-size:11px;color:var(--text3)}
 .history-card-body{font-size:12px;line-height:1.55;color:var(--text2);white-space:pre-wrap;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;max-height:160px;overflow:auto}
-.rich-tools{display:flex;align-items:center;gap:6px;margin-bottom:6px;position:relative;}
+.rich-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;position:relative;flex-wrap:wrap;}
+.rich-tools-left,.rich-tools-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;position:relative;}
 .rich-tool-btn{height:26px;padding:0 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;}
 .rich-tool-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--ag);}
 .emoji-picker{display:none;position:absolute;top:30px;left:0;z-index:40;width:218px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px;box-shadow:var(--shad);grid-template-columns:repeat(8,1fr);gap:4px;}
@@ -915,22 +924,54 @@ const CLIENT_INSTAGRAM_MAP = {
 };
 
 // ===== CONSTANTS =====
-const STATUSES=[
+const PACK_STATUSES=[
   {id:'planejamento',label:'Planejamento',cls:'p'},
   {id:'copy',label:'Copy',cls:'c'},
   {id:'design',label:'Design',cls:'d'},
   {id:'revisao',label:'Revisão',cls:'r'},
-  {id:'pdf',label:'PDF',cls:'pdf'},
-  {id:'para_entregar',label:'Para Entregar',cls:'e'},
+  {id:'para_entregar',label:'Pra Entregar',cls:'pdf'},
   {id:'entregue',label:'Entregue',cls:'ent'},
   {id:'em_alteracoes',label:'Em Alterações',cls:'alt'},
   {id:'agendamento',label:'Agendamento',cls:'ag'},
   {id:'concluido',label:'Concluído',cls:'con'}
 ];
+const POST_BASE_STATUSES=[
+  {id:'planejamento',label:'Planejamento',cls:'p'},
+  {id:'copy',label:'Copy',cls:'c'},
+  {id:'design',label:'Design',cls:'d'},
+  {id:'revisao',label:'Revisão',cls:'r'},
+  {id:'para_entregar',label:'Pra Entregar',cls:'pdf'},
+  {id:'entregue',label:'Entregue',cls:'ent'},
+  {id:'em_alteracoes',label:'Em Alterações',cls:'alt'},
+  {id:'agendamento',label:'Agendamento',cls:'ag'},
+  {id:'concluido',label:'Concluído',cls:'con'}
+];
+const POST_REELS_EXTRA_STATUSES=[
+  {id:'cliente_gravando',label:'Cliente gravando',cls:'c'},
+  {id:'video_em_edicao',label:'Vídeo em edição',cls:'ag'}
+];
+const STATUSES=PACK_STATUSES;
 const FORMATS=['Carrossel','Reels','Estático','Stories','TikTok','Foto','LinkedIn'];
 const FUNNEL=['Topo','Meio','Fundo','Autoridade','Conexão','Venda'];
 const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const PRESET_TIMES=['09:00','11:00','12:00','18:00','19:00'];
+function normalizePackStatusId(status){
+  return status==='pdf'?'para_entregar':(status||'planejamento');
+}
+function getPackStatusDef(status){
+  return PACK_STATUSES.find(s=>s.id===normalizePackStatusId(status))||PACK_STATUSES[0];
+}
+function getPostStatuses(post){
+  const fmt=(post?.format||'').toLowerCase();
+  if(!['reels','tiktok'].includes(fmt)) return POST_BASE_STATUSES;
+  const beforeReview=POST_BASE_STATUSES.filter(s=>!['revisao','para_entregar','entregue','em_alteracoes','agendamento','concluido'].includes(s.id));
+  const afterReview=POST_BASE_STATUSES.filter(s=>['revisao','para_entregar','entregue','em_alteracoes','agendamento','concluido'].includes(s.id));
+  return [...beforeReview,...POST_REELS_EXTRA_STATUSES,...afterReview];
+}
+function getPostStatusDef(status,post){
+  const normalized=status==='pdf'?'para_entregar':status;
+  return getPostStatuses(post).find(s=>s.id===normalized)||POST_BASE_STATUSES.find(s=>s.id===normalized)||POST_BASE_STATUSES[0];
+}
 function previousMonthName(monthName){
   const idx=MONTHS.indexOf(monthName);
   if(idx<0) return '';
@@ -1329,7 +1370,7 @@ async function renderDashData(){
   const monthPackIds=new Set(mP.map(p=>p.id));
   const mPs=APs.filter(p=>monthPackIds.has(p.packId));
   const dp=mP.filter(p=>p.status==='concluido').length;
-  const sc={}; STATUSES.forEach(s=>sc[s.id]=0); mP.forEach(p=>{if(sc[p.status]!==undefined)sc[p.status]++;});
+  const sc={}; STATUSES.forEach(s=>sc[s.id]=0); mP.forEach(p=>{const sid=normalizePackStatusId(p.status);if(sc[sid]!==undefined)sc[sid]++;});
   const cp={}; Object.values(clients).filter(c=>!c.inactive).forEach(c=>{cp[c.id]={total:0,done:0,name:c.name,color:c.color||'#8483ff'};});
   mP.forEach(p=>{if(cp[p.clientId]){cp[p.clientId].total++;if(p.status==='concluido')cp[p.clientId].done++;}});
   const inner=document.getElementById('dash-inner'); if(!inner) return;
@@ -1401,7 +1442,7 @@ async function renderDashData(){
     .map(p=>({pack:p,due:parseDueDate(p.dueDate)}))
     .filter(x=>x.due)
     .sort((a,b)=>a.due-b.due);
-  const statusLabel=(id)=>(STATUSES.find(s=>s.id===id)||{}).label||id||'';
+  const statusLabel=(id)=>(getPackStatusDef(id)||{}).label||id||'';
   const commentDemandItems=APs
     .filter(post=>!clients[post.clientId]?.inactive)
     .flatMap(post=>(post.comments||[]).map(normalizeComment).filter(cm=>!cm.resolved && commentMentionsCurrent(cm)).map(cm=>({type:'comment',post,comment:cm,due:todayBase})))
@@ -1609,7 +1650,7 @@ async function renderGlobalKanban(container){
   allP=allP.filter(p=>!clients[p.clientId]?.inactive);
   const board=document.getElementById('global-kb'); if(!board) return;
   board.innerHTML=STATUSES.map(s=>{
-    const col=allP.filter(p=>p.status===s.id);
+    const col=allP.filter(p=>normalizePackStatusId(p.status)===s.id);
     return `<div class="kcol gkcol" id="gkcol-${s.id}"
       ondragover="event.preventDefault();this.classList.add('drag-over')"
       ondragleave="this.classList.remove('drag-over')"
@@ -1628,10 +1669,11 @@ async function renderGlobalKanban(container){
 function renderGlobalCard(pack, statusObj){
   const client = clients[pack.clientId];
   const type = pack.type || 'Feed';
-  const s = statusObj || STATUSES.find(x=>x.id===pack.status) || STATUSES[0];
-  const statusColors = {planejamento:'251,146,60',copy:'96,165,250',design:'250,204,21',revisao:'244,114,182',pdf:'192,132,252',para_entregar:'249,115,22',entregue:'45,212,191',em_alteracoes:'255,82,82',agendamento:'129,140,248',concluido:'74,222,128'};
-  const rgb = statusColors[pack.status] || '132,131,255';
-  const solidBg = STATUS_SOLID[pack.status] || '#8483ff';
+  const statusId = normalizePackStatusId(pack.status);
+  const s = statusObj || getPackStatusDef(pack.status);
+  const statusColors = {planejamento:'251,146,60',copy:'96,165,250',design:'250,204,21',revisao:'244,114,182',para_entregar:'192,132,252',entregue:'45,212,191',em_alteracoes:'255,82,82',agendamento:'129,140,248',concluido:'74,222,128'};
+  const rgb = statusColors[statusId] || '132,131,255';
+  const solidBg = STATUS_SOLID[statusId] || '#8483ff';
   
   // Assignee row — same as individual
   const assigneeRow = (pack.assignees||[]).map(aid=>{
@@ -1666,7 +1708,7 @@ function renderGlobalCard(pack, statusObj){
     ${dueLine}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid rgba(${rgb},0.2)">
       <span class="kcard-posts" style="font-size:10.5px">📝 ${pack.postCount||0} posts</span>
-      <span class="ktag" style="font-size:10px;background:${solidBg};color:${STATUS_TEXT[pack.status]||'#fff'};padding:2px 7px">${s.label}</span>
+      <span class="ktag" style="font-size:10px;background:${solidBg};color:${STATUS_TEXT[statusId]||'#fff'};padding:2px 7px">${s.label}</span>
     </div>
   </div>`;
 }
@@ -1866,7 +1908,7 @@ async function loadKanban(){
   const board=document.getElementById('kb'); if(!board) return;
   const list=Object.values(packs);
   board.innerHTML=STATUSES.map(s=>{
-    const col=list.filter(p=>p.status===s.id);
+    const col=list.filter(p=>normalizePackStatusId(p.status)===s.id);
     return `<div class="kcol" id="kcol-${s.id}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropPack(event,'${s.id}')">
       <div class="kcol-hdr" style="background:transparent;padding:8px 10px">
         <span style="display:inline-flex;align-items:center;gap:6px;background:${STATUS_SOLID[s.id]||'#8483ff'};color:${STATUS_TEXT[s.id]||'#fff'};font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;text-transform:uppercase;letter-spacing:.5px">${s.label}</span>
@@ -1881,10 +1923,11 @@ async function loadKanban(){
 }
 function renderCard(pack){
   const type=pack.type||'Feed';
-  const s=STATUSES.find(x=>x.id===pack.status)||STATUSES[0];
-  const statusColors={planejamento:'251,146,60',copy:'96,165,250',design:'250,204,21',revisao:'244,114,182',pdf:'192,132,252',para_entregar:'249,115,22',entregue:'45,212,191',em_alteracoes:'255,82,82',agendamento:'129,140,248',concluido:'74,222,128'};
-  const rgb=statusColors[pack.status]||'132,131,255';
-  const solidBg=STATUS_SOLID[pack.status]||'#8483ff';
+  const statusId=normalizePackStatusId(pack.status);
+  const s=getPackStatusDef(pack.status);
+  const statusColors={planejamento:'251,146,60',copy:'96,165,250',design:'250,204,21',revisao:'244,114,182',para_entregar:'192,132,252',entregue:'45,212,191',em_alteracoes:'255,82,82',agendamento:'129,140,248',concluido:'74,222,128'};
+  const rgb=statusColors[statusId]||'132,131,255';
+  const solidBg=STATUS_SOLID[statusId]||'#8483ff';
   
   // Assignee row — read from window._teamPhotos at render time
   const assigneeRow=(pack.assignees||[]).map(aid=>{
@@ -1899,14 +1942,18 @@ function renderCard(pack){
       ?`<img src="${photo}" style="width:20px;height:20px;object-fit:cover;border-radius:50%;border:2px solid ${borderColor}" title="${tooltip}">`
       :`<div style="width:20px;height:20px;border-radius:50%;background:${m.color};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;border:2px solid ${borderColor}" title="${tooltip}">${m.name[0]}</div>`;
     const dot=isOnline?`<span style="width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0"></span>`:'';
-    return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--text2)">${av}${m.name}${dot}</span>`;
+    return `<span onclick="event.stopPropagation();showAssignPackDD('${pack.id}')" title="Clique para alterar responsável" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer">${av}${m.name}${dot}</span>`;
   }).join('');
+  const noAssignee=!(pack.assignees&&pack.assignees.length);
+  const assigneeQuick=noAssignee
+    ?`<button class="mpill" style="margin-top:4px" onclick="event.stopPropagation();showAssignPackDD('${pack.id}')">+ Responsável</button>`
+    :(assigneeRow?`<div style="margin-bottom:4px">${assigneeRow}</div>`:'');
 
   const dueLine=pack.dueDate?(()=>{
     const dl=smartDate(pack.dueDate);
     const dc=dl==='hoje'?'var(--red)':dl==='amanhã'?'var(--orange)':'var(--text3)';
-    return `<div style="display:flex;align-items:center;gap:5px;margin-top:5px;font-size:11px;font-weight:600;color:${dc}">📅 ${dl}</div>`;
-  })():'';
+    return `<div onclick="event.stopPropagation()" style="margin-top:5px"><button class="mpill" type="button" style="color:${dc}" onclick="event.stopPropagation();showPackDueQuickEditor('${pack.id}')">📅 ${dl}</button></div>`;
+  })():`<div onclick="event.stopPropagation()" style="margin-top:5px"><button class="mpill" type="button" onclick="event.stopPropagation();showPackDueQuickEditor('${pack.id}')">📅 + Data</button></div>`;
 
   return `<div class="kcard" id="kc-${pack.id}" draggable="true"
     ondragstart="dragStart(event,'${pack.id}')" ondragend="dragEnd(event)"
@@ -1914,11 +1961,11 @@ function renderCard(pack){
     style="background:rgba(${rgb},0.07);border:1.5px solid rgba(${rgb},0.5)">
     <div class="kcard-title" style="margin-bottom:8px">${type} — ${clients[currentClientId]?.name||''}</div>
     ${pack.month?`<div onclick="event.stopPropagation()" style="margin-bottom:4px"><div class="month-pill-wrap"><button class="mpill" onclick="toggleMDD('${pack.id}')">${pack.month} ▾</button><div class="mdd hidden" id="mdd-${pack.id}">${MONTHS.map(m=>`<div class="mdd-item ${pack.month===m?'active':''}" onclick="setPackMonth('${pack.id}','${m}')">${m}</div>`).join('')}</div></div></div>`:''}
-    ${assigneeRow?`<div style="margin-bottom:4px">${assigneeRow}</div>`:''}
+    ${assigneeQuick}
     ${dueLine}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid rgba(${rgb},0.2)">
       <span class="kcard-posts" style="font-size:10.5px">📝 ${pack.postCount||0} posts</span>
-      <span class="ktag" style="font-size:10px;background:${solidBg};color:${STATUS_TEXT[pack.status]||'#fff'};padding:2px 7px">${s.label}</span>
+      <span class="ktag" style="font-size:10px;background:${solidBg};color:${STATUS_TEXT[statusId]||'#fff'};padding:2px 7px">${s.label}</span>
     </div>
   </div>`;
 }
@@ -1930,7 +1977,7 @@ async function dropPack(e,to){
   if(!dragPackId) return;
   const {db,doc,updateDoc}=window._fb;
   const pack=packs[dragPackId]; const client=clients[pack?.clientId]||{name:''};
-  const oldStatus=pack?.status;
+  const oldStatus=normalizePackStatusId(pack?.status);
   packs[dragPackId].status=to; await updateDoc(doc(db,'packs',dragPackId),{status:to});
   addStatusNotif(pack?.type||'Pack', client.name, oldStatus, to, currentUserData?.name);
   loadKanban(); showToast('Status atualizado!','ok');
@@ -1945,15 +1992,15 @@ async function setPackMonth(id,m){
 }
 
 // STATUS DD
-const STATUS_SOLID={planejamento:'#fb923c',copy:'#60a5fa',design:'#facc15',revisao:'#f472b6',pdf:'#c084fc',para_entregar:'#f97316',entregue:'#2dd4bf',em_alteracoes:'#ff5252',agendamento:'#818cf8',concluido:'#4ade80'};
-const STATUS_TEXT={design:'#111',concluido:'#111',pdf:'#111'};
+const STATUS_SOLID={planejamento:'#fb923c',copy:'#60a5fa',design:'#facc15',revisao:'#f472b6',pdf:'#c084fc',para_entregar:'#c084fc',entregue:'#2dd4bf',em_alteracoes:'#ff5252',agendamento:'#818cf8',concluido:'#4ade80',cliente_gravando:'#60a5fa',video_em_edicao:'#818cf8'};
+const STATUS_TEXT={design:'#111',concluido:'#111',pdf:'#111',para_entregar:'#111'};
 function buildSDD(packId,status){
-  const s=STATUSES.find(x=>x.id===status)||STATUSES[0];
+  const s=getPackStatusDef(status);
   const bg=STATUS_SOLID[s.id]||'#8483ff';
   const fg=STATUS_TEXT[s.id]||'#fff';
   return `<div class="status-wrap" onclick="event.stopPropagation()">
     <span style="display:inline-flex;align-items:center;gap:5px;background:${bg};color:${fg};font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer" onclick="toggleSDD('${packId}')">${s.label} ▾</span>
-    <div class="sdd hidden" id="sdd-${packId}">${STATUSES.map(st=>{const stbg=STATUS_SOLID[st.id]||'#8483ff';const stfg=STATUS_TEXT[st.id]||'#fff';return `<div class="sdd-item" onclick="setPS('${packId}','${st.id}')"><div style="width:10px;height:10px;border-radius:3px;background:${stbg};flex-shrink:0"></div>${st.label}</div>`;}).join('')}</div>
+    <div class="sdd hidden" id="sdd-${packId}">${PACK_STATUSES.map(st=>{const stbg=STATUS_SOLID[st.id]||'#8483ff';const stfg=STATUS_TEXT[st.id]||'#fff';return `<div class="sdd-item" onclick="setPS('${packId}','${st.id}')"><div style="width:10px;height:10px;border-radius:3px;background:${stbg};flex-shrink:0"></div>${st.label}</div>`;}).join('')}</div>
   </div>`;
 }
 
@@ -1967,12 +2014,13 @@ function togglePostSDD(pid){
 function toggleSDD(id){ const dd=document.getElementById('sdd-'+id); const h=dd.classList.contains('hidden'); document.querySelectorAll('.sdd').forEach(d=>d.classList.add('hidden')); if(h) dd.classList.remove('hidden'); }
 async function setPS(packId,status){
   const {db,doc,updateDoc}=window._fb;
-  const oldStatus=packs[packId].status;
+  const oldStatus=normalizePackStatusId(packs[packId].status);
   const pack=packs[packId];
   const client=clients[pack.clientId]||clients[currentClientId]||{name:''};
   packs[packId].status=status; await updateDoc(doc(db,'packs',packId),{status});
   document.querySelectorAll('.sdd').forEach(d=>d.classList.add('hidden'));
-  document.getElementById('pm-meta').innerHTML=buildPM(packId);
+  const meta=document.getElementById('pm-meta');
+  if(meta) meta.innerHTML=buildPM(packId);
   loadKanban();
   addStatusNotif(pack.type||'Pack', client.name, oldStatus, status, currentUserData?.name);
   showToast('Status atualizado!','ok');
@@ -2014,12 +2062,52 @@ function toggleDuePicker(pid){
   const inp=document.getElementById('due-picker-'+pid);
   if(inp) inp.showPicker?.()??inp.click();
 }
+let _packDueQuickCloser=null;
+function closePackDueQuickEditor(){
+  document.querySelectorAll('.pack-due-quick').forEach(el=>el.remove());
+  if(_packDueQuickCloser){
+    document.removeEventListener('click',_packDueQuickCloser);
+    _packDueQuickCloser=null;
+  }
+}
+function showPackDueQuickEditor(pid){
+  closePackDueQuickEditor();
+  const p=packs[pid]; if(!p) return;
+  const dd=document.createElement('div');
+  dd.className='pack-due-quick';
+  dd.style.cssText='position:fixed;background:var(--bg2);border:1px solid var(--border2);border-radius:14px;box-shadow:var(--shad);z-index:420;padding:14px;min-width:248px;display:flex;flex-direction:column;gap:10px;animation:ddin .12s ease';
+  dd.innerHTML=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+    <div>
+      <div style="font-size:13px;font-weight:800;color:var(--text)">Data de entrega</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:2px">Ajuste rapidinho sem abrir o pack.</div>
+    </div>
+    <button class="mclose" type="button" onclick="closePackDueQuickEditor()" style="width:24px;height:24px;font-size:14px">×</button>
+  </div>
+  <input type="date" id="due-quick-input-${pid}" class="inp" value="${p.dueDate||''}" style="margin:0;height:40px;padding:8px 12px">
+  <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+    <button class="btn btn-s btn-sm" type="button" onclick="savePackDue('${pid}','')">Limpar</button>
+    <button class="btn btn-p btn-sm" type="button" onclick="savePackDue('${pid}',document.getElementById('due-quick-input-${pid}').value)">Salvar</button>
+  </div>`;
+  document.body.appendChild(dd);
+  const btn=event.currentTarget||event.target;
+  const r=btn.getBoundingClientRect();
+  const top=Math.min(window.innerHeight-dd.offsetHeight-14, Math.max(14,r.bottom+8));
+  const left=Math.min(window.innerWidth-dd.offsetWidth-14, Math.max(14,r.left));
+  dd.style.top=top+'px';
+  dd.style.left=left+'px';
+  _packDueQuickCloser=function(ev){
+    if(!dd.contains(ev.target)) closePackDueQuickEditor();
+  };
+  setTimeout(()=>document.addEventListener('click',_packDueQuickCloser),10);
+}
 async function savePackDue(pid,val){
   const {db,doc,updateDoc}=window._fb;
   if(!packs[pid]) return;
   packs[pid].dueDate=val;
   await updateDoc(doc(db,'packs',pid),{dueDate:val});
-  document.getElementById('pm-meta').innerHTML=buildPM(pid);
+  const meta=document.getElementById('pm-meta');
+  if(meta) meta.innerHTML=buildPM(pid);
+  closePackDueQuickEditor();
   loadKanban();
   showToast('Data salva!','ok');
 }
@@ -2029,7 +2117,9 @@ async function cycleAssignee(pid,uid){
   if(i>-1) cur.splice(i,1);
   const {db,doc,updateDoc}=window._fb;
   p.assignees=cur; await updateDoc(doc(db,'packs',pid),{assignees:cur});
-  document.getElementById('pm-meta').innerHTML=buildPM(pid); loadKanban();
+  const meta=document.getElementById('pm-meta');
+  if(meta) meta.innerHTML=buildPM(pid);
+  loadKanban();
 }
 function showAssignPackDD(pid){
   // Remove existing
@@ -2050,7 +2140,9 @@ async function togglePackAssignee(pid,uid,container){
   if(i>-1) cur.splice(i,1); else cur.push(uid);
   const {db,doc,updateDoc}=window._fb;
   p.assignees=cur; await updateDoc(doc(db,'packs',pid),{assignees:cur});
-  document.getElementById('pm-meta').innerHTML=buildPM(pid); loadKanban();
+  const meta=document.getElementById('pm-meta');
+  if(meta) meta.innerHTML=buildPM(pid);
+  loadKanban();
   // refresh dropdown
   container.querySelectorAll('div').forEach(el=>{
     const mid=el.getAttribute('onclick')?.match(/'([^']+)','([^']+)'/)?.[2];
@@ -2063,7 +2155,9 @@ async function editPackDue(pid){
   if(val===null) return;
   const {db,doc,updateDoc}=window._fb;
   p.dueDate=val; await updateDoc(doc(db,'packs',pid),{dueDate:val});
-  document.getElementById('pm-meta').innerHTML=buildPM(pid); loadKanban();
+  const meta=document.getElementById('pm-meta');
+  if(meta) meta.innerHTML=buildPM(pid);
+  loadKanban();
 }
 
 // ===== PACK MODAL =====
@@ -2111,7 +2205,7 @@ async function openPack(packId,targetPostId=null,skipUrlSync=false){
   if(currentPackId && currentPackId!==packId) persistCurrentPackState();
   currentPackId=packId;
   const savedState=_packSessionState[packId];
-  currentPostId=targetPostId||savedState?.activePost||null;
+  currentPostId=targetPostId||null;
   _packViewState=savedState?{postListScroll:savedState.postListScroll||0,perPost:savedState.perPost||{}}:{postListScroll:0,perPost:{}};
   // If packs not loaded for this client yet
   if(!packs[packId]){
@@ -2136,16 +2230,16 @@ async function loadPosts(packId){
   renderPostsList();
   const list=Object.values(posts);
   if(!list.length){
-    currentPostId=null;
-    clearPackEditorPanel('Nenhum post neste pack ainda','Crie um novo post para começar.');
+    currentPostId='__orientacoes__';
+    openOrientacoes();
     return;
   }
   if(currentPostId && posts[currentPostId]){
     renderPF(posts[currentPostId]);
     return;
   }
-  currentPostId=null;
-  clearPackEditorPanel('Selecione um post','Escolha um post na lista para editar.');
+  currentPostId='__orientacoes__';
+  openOrientacoes();
 }
 function renderPostsList(){
   const el=document.getElementById('pm-posts');
@@ -2159,8 +2253,8 @@ function renderPostsList(){
       <div class="mpost-name" style="color:var(--accent);font-weight:700">Orientações do Mês</div>
     </div>
   </div>${list.map(p=>{
-    const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
-    const sColors={p:'#fb923c',c:'#60a5fa',d:'#facc15',r:'#f472b6',pdf:'#c084fc',e:'#f97316',ent:'#2dd4bf',alt:'#ff5252',ag:'#818cf8',con:'#4ade80'};
+    const s=getPostStatusDef(p.status,p);
+    const sColors={p:'#fb923c',c:'#60a5fa',d:'#facc15',r:'#f472b6',pdf:'#c084fc',ent:'#2dd4bf',alt:'#ff5252',ag:'#818cf8',con:'#4ade80'};
     const sc=sColors[s.cls]||'#8483ff';
     const idxLabel=`Post ${String((p.order||0)+1).padStart(2,'0')} - `;
     const formatTag=p.format?`<span class="ktag tag-${(p.format||'feed').toLowerCase().replace(/\s/g,'')}" style="font-size:9.5px;margin-top:4px;display:inline-flex">${p.format}</span>`:'';
@@ -2590,18 +2684,28 @@ async function saveCurrentRichDraft(){
 }
 async function spfAndRender(field,value){
   await saveCurrentRichDraft();
+  if(field==='format' && currentPostId && posts[currentPostId]){
+    const currentStatus=posts[currentPostId].status;
+    const nextIsShortVideo=['reels','tiktok'].includes(String(value||'').toLowerCase());
+    if(!nextIsShortVideo && ['cliente_gravando','video_em_edicao','pdf'].includes(currentStatus)){
+      await spf('status','design');
+    }
+  }
   await spf(field,value);
   renderPF(posts[currentPostId]);
   renderPostsList();
 }
 const EMOJI_SET=['😀','😁','😊','😍','😉','😎','🤩','👏','🙌','💜','✨','🔥','✅','📌','📍','🎯','🚀','💡','📝','📅','⏰','📣','💬','❤️'];
-function richToolbar(targetId,withCopy=false,withHistory=false){
+function richToolbar(targetId,withCopy=false,withHistory=false,rightHtml=''){
   const pickerId='emoji-'+targetId;
   return `<div class="rich-tools">
-    <button class="rich-tool-btn" type="button" onmousedown="event.preventDefault()" onclick="toggleEmojiPicker('${pickerId}')">Emoji</button>
-    ${withHistory?`<button class="rich-tool-btn" type="button" onclick="openBriefHistory()">Histórico</button>`:''}
-    ${withCopy?`<button class="rich-tool-btn" type="button" onclick="copyRichText('${targetId}')">Copiar</button>`:''}
-    <div class="emoji-picker" id="${pickerId}">${EMOJI_SET.map(e=>`<button class="emoji-btn" type="button" onmousedown="event.preventDefault()" onclick="insertEmoji('${targetId}','${e}');closeEmojiPickers()">${e}</button>`).join('')}</div>
+    <div class="rich-tools-left">
+      <button class="rich-tool-btn" type="button" onmousedown="event.preventDefault()" onclick="toggleEmojiPicker('${pickerId}')">Emoji</button>
+      ${withHistory?`<button class="rich-tool-btn" type="button" onclick="openBriefHistory()">Histórico</button>`:''}
+      ${withCopy?`<button class="rich-tool-btn" type="button" onclick="copyRichText('${targetId}')">Copiar</button>`:''}
+      <div class="emoji-picker" id="${pickerId}">${EMOJI_SET.map(e=>`<button class="emoji-btn" type="button" onmousedown="event.preventDefault()" onclick="insertEmoji('${targetId}','${e}');closeEmojiPickers()">${e}</button>`).join('')}</div>
+    </div>
+    <div class="rich-tools-right">${rightHtml||''}</div>
   </div>`;
 }
 function closeEmojiPickers(){ document.querySelectorAll('.emoji-picker.open').forEach(p=>p.classList.remove('open')); }
@@ -2632,6 +2736,167 @@ function fallbackCopy(text,done){
   const ta=document.createElement('textarea');
   ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px';
   document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done();
+}
+function clientCaptionTemplates(clientId=currentClientId){
+  return Array.isArray(clients[clientId]?.captionTemplates) ? clients[clientId].captionTemplates : [];
+}
+function captionTemplateEsc(value){
+  return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function getCaptionEditor(pid=currentPostId){
+  return document.getElementById('rt-caption-'+pid);
+}
+let _captionTemplateEditingId=null;
+function currentCaptionTemplateDraft(){
+  return {
+    name:(document.getElementById('caption-template-name')?.value||'').trim(),
+    text:(document.getElementById('caption-template-text')?.value||'').trim()
+  };
+}
+function setCaptionEditorValue(pid,text){
+  const el=getCaptionEditor(pid);
+  if(!el) return;
+  el.innerHTML=renderRichText(text||'');
+  placeCaretAtEnd(el);
+  el.focus();
+}
+async function persistClientCaptionTemplates(clientId, templates){
+  const {db,doc,updateDoc}=window._fb;
+  await updateDoc(doc(db,'clients',clientId),{captionTemplates:templates});
+  clients[clientId]={...clients[clientId],captionTemplates:templates};
+}
+function closeCaptionTemplatesModal(){ document.getElementById('caption-templates-mo')?.remove(); }
+function fillCaptionTemplateEditor(clientId,templateId=''){
+  const templates=clientCaptionTemplates(clientId);
+  const tpl=templates.find(t=>t.id===templateId);
+  _captionTemplateEditingId=tpl?.id||null;
+  const nameEl=document.getElementById('caption-template-name');
+  const textEl=document.getElementById('caption-template-text');
+  const tagEl=document.getElementById('caption-template-editing');
+  if(nameEl) nameEl.value=tpl?.name||'';
+  if(textEl) textEl.value=tpl?.text||'';
+  if(tagEl) tagEl.textContent=tpl?'Editando texto salvo':'Novo texto salvo';
+}
+function captionTemplatesListHtml(clientId,pid){
+  const templates=clientCaptionTemplates(clientId);
+  return templates.length?templates.map(t=>`
+    <button type="button" onclick="selectCaptionTemplate('${clientId}','${pid}','${t.id}')" style="width:100%;text-align:left;border:1px solid var(--border);background:var(--bg3);border-radius:12px;padding:11px 12px;cursor:pointer">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:800;color:var(--text);margin-bottom:5px">${captionTemplateEsc(t.name||'Texto salvo')}</div>
+          <div style="font-size:12px;color:var(--text3);line-height:1.5;white-space:pre-wrap">${captionTemplateEsc(getPreviewExcerpt(t.text||'',190,3)||'Sem conteúdo')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          <span class="btn btn-p btn-sm" style="pointer-events:none">Editar</span>
+          <span class="btn btn-d btn-sm" onclick="event.stopPropagation();deleteCaptionTemplate('${clientId}','${t.id}','${pid}')">Excluir</span>
+        </div>
+      </div>
+    </button>`).join(''):`<div class="empty" style="padding:22px"><div class="empty-title">Nenhum texto salvo ainda</div><div style="color:var(--text3);font-size:12.5px;margin-top:6px;text-align:center">Escreva um texto aqui ao lado, salve e depois insira na legenda quando quiser.</div></div>`;
+}
+function openCaptionTemplatesModal(pid=currentPostId){
+  if(!pid || !posts[pid]){ showToast('Abra um post primeiro','err'); return; }
+  const clientId=posts[pid].clientId||currentClientId;
+  const client=clients[clientId]||{name:'Cliente'};
+  closeCaptionTemplatesModal();
+  _captionTemplateEditingId=null;
+  const ov=document.createElement('div');
+  ov.id='caption-templates-mo';
+  ov.className='mo open';
+  ov.style.zIndex='320';
+  ov.innerHTML=`<div class="modal" style="max-width:860px;min-height:auto;border-radius:18px">
+    <div class="mhead">
+      <div><div class="mtit">Textos salvos</div><div class="msub">${captionTemplateEsc(client.name)} · edite, salve e insira na legenda daqui mesmo</div></div>
+      <button class="iconbtn" onclick="closeCaptionTemplatesModal()">✕</button>
+    </div>
+    <div class="mbody" style="padding:16px;display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.15fr);gap:14px;max-height:min(76vh,820px);overflow:auto">
+      <div style="display:flex;flex-direction:column;gap:10px;border:1px solid var(--border);border-radius:14px;background:var(--bg2);padding:14px">
+        <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.7px">Textos existentes</div>
+        <div id="caption-templates-list" style="display:flex;flex-direction:column;gap:9px">${captionTemplatesListHtml(clientId,pid)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;border:1px solid var(--border);border-radius:14px;background:var(--bg2);padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.7px">Editor</div>
+          <span id="caption-template-editing" style="font-size:11px;font-weight:700;color:var(--accent);background:var(--ag);border:1px solid rgba(132,131,255,.25);padding:4px 8px;border-radius:999px">Novo texto salvo</span>
+        </div>
+        <input class="fi" id="caption-template-name" placeholder="Nome do texto salvo">
+        <textarea class="fta" id="caption-template-text" rows="12" placeholder="Cole ou escreva o texto que deseja salvar..." style="min-height:260px"></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn btn-s" onclick="newCaptionTemplateDraft('${clientId}')">Limpar</button>
+          <button class="btn btn-s" onclick="saveCaptionTemplateFromModal('${clientId}','${pid}')">Salvar texto</button>
+          <button class="btn btn-p" onclick="insertCaptionTemplateFromDraft('${pid}','append')">Inserir na legenda</button>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <span style="font-size:12px;color:var(--text3)">Você pode salvar um texto novo ou editar um já existente e inserir na legenda quando quiser.</span>
+      <button class="btn btn-p" onclick="closeCaptionTemplatesModal()">Fechar</button>
+    </div>
+  </div>`;
+  ov.onclick=e=>{ if(e.target===ov) closeCaptionTemplatesModal(); };
+  document.body.appendChild(ov);
+  fillCaptionTemplateEditor(clientId,'');
+}
+function selectCaptionTemplate(clientId,pid,templateId){
+  fillCaptionTemplateEditor(clientId,templateId);
+}
+function newCaptionTemplateDraft(clientId){
+  fillCaptionTemplateEditor(clientId,'');
+}
+async function saveCaptionTemplateFromModal(clientId,pid=currentPostId){
+  const draft=currentCaptionTemplateDraft();
+  if(!draft.text){ showToast('Digite o texto antes de salvar','err'); return; }
+  if(!draft.name){ showToast('Dê um nome para o texto salvo','err'); return; }
+  const templates=[...clientCaptionTemplates(clientId)];
+  if(_captionTemplateEditingId){
+    const idx=templates.findIndex(t=>t.id===_captionTemplateEditingId);
+    if(idx>-1) templates[idx]={...templates[idx],name:draft.name,text:draft.text,updatedAt:Date.now()};
+  }else{
+    templates.unshift({id:'tpl_'+Date.now(),name:draft.name,text:draft.text,createdAt:Date.now(),updatedAt:Date.now()});
+  }
+  await persistClientCaptionTemplates(clientId,templates);
+  document.getElementById('caption-templates-list').innerHTML=captionTemplatesListHtml(clientId,pid);
+  fillCaptionTemplateEditor(clientId,_captionTemplateEditingId||templates[0]?.id||'');
+  showToast('Texto salvo!','ok');
+}
+async function deleteCaptionTemplate(clientId, templateId, pid=currentPostId){
+  const templates=clientCaptionTemplates(clientId).filter(t=>t.id!==templateId);
+  await persistClientCaptionTemplates(clientId,templates);
+  if(_captionTemplateEditingId===templateId) fillCaptionTemplateEditor(clientId,'');
+  const list=document.getElementById('caption-templates-list');
+  if(list) list.innerHTML=captionTemplatesListHtml(clientId,pid);
+  showToast('Texto salvo removido','inf');
+}
+async function applyCaptionTemplate(pid, templateId, mode='append'){
+  if(!pid || !posts[pid]) return;
+  const clientId=posts[pid].clientId||currentClientId;
+  const tpl=clientCaptionTemplates(clientId).find(t=>t.id===templateId);
+  if(!tpl){ showToast('Não encontrei esse texto salvo','err'); return; }
+  const current=getRichText(getCaptionEditor(pid)).trim();
+  const incoming=String(tpl.text||'').trim();
+  let next='';
+  if(mode==='replace') next=incoming;
+  else if(mode==='prepend') next=current?[incoming,current].filter(Boolean).join('\n\n'):incoming;
+  else next=current?[current,incoming].filter(Boolean).join('\n\n'):incoming;
+  setCaptionEditorValue(pid,next);
+  await spfDirect(pid,'caption',next);
+  renderPostsList();
+  closeCaptionTemplatesModal();
+  showToast('Texto inserido na legenda!','ok');
+}
+async function insertCaptionTemplateFromDraft(pid=currentPostId,mode='append'){
+  const draft=currentCaptionTemplateDraft();
+  if(!draft.text){ showToast('Digite o texto que deseja inserir','err'); return; }
+  const current=getRichText(getCaptionEditor(pid)).trim();
+  const incoming=String(draft.text||'').trim();
+  let next='';
+  if(mode==='replace') next=incoming;
+  else if(mode==='prepend') next=current?[incoming,current].filter(Boolean).join('\n\n'):incoming;
+  else next=current?[current,incoming].filter(Boolean).join('\n\n'):incoming;
+  setCaptionEditorValue(pid,next);
+  await spfDirect(pid,'caption',next);
+  renderPostsList();
+  closeCaptionTemplatesModal();
+  showToast('Texto inserido na legenda!','ok');
 }
 function openBriefHistory(){
   if(!currentPostId||!posts[currentPostId]) return;
@@ -2677,9 +2942,91 @@ function postMediaItems(post){
   const refs=(post.images||[]).map((src,i)=>({group:'refs',idx:i,label:'Ref '+(i+1),name:'Referência '+(i+1),src}));
   return refs.filter(x=>x.src);
 }
+function getPreviewExcerpt(text,maxChars=430,maxParagraphs=5){
+  const clean=String(text||'')
+    .replace(/\r/g,'')
+    .replace(/[ \t]+\n/g,'\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
+  if(!clean) return '';
+  let clipped=clean.split(/\n{2,}/).slice(0,maxParagraphs).join('\n\n').trim();
+  const cutByParagraph=clean.length>clipped.length;
+  if(clipped.length>maxChars){
+    clipped=clipped.slice(0,maxChars).replace(/\s+\S*$/,'').trim();
+    return clipped+'...';
+  }
+  return cutByParagraph ? clipped+'...' : clipped;
+}
+let _refLinksDraft={};
+function getPostRefLinks(post){
+  const fromArray=Array.isArray(post?.refLinks)?post.refLinks:[];
+  const fromLegacy=String(post?.refLink||'').trim();
+  const merged=[...fromArray.map(v=>String(v||'').trim()).filter(Boolean)];
+  if(fromLegacy && !merged.includes(fromLegacy)) merged.push(fromLegacy);
+  return merged;
+}
+function getRefLinksDraft(pid,post=posts[pid]){
+  if(!_refLinksDraft[pid]){
+    const base=getPostRefLinks(post);
+    _refLinksDraft[pid]=base.length?[...base]:[''];
+  }
+  return _refLinksDraft[pid];
+}
+function syncRefLinksDraftFromInputs(pid){
+  _refLinksDraft[pid]=[...document.querySelectorAll(`[data-ref-link-pid="${pid}"]`)].map(el=>el.value||'');
+}
+function renderReferenceLinksEditor(post){
+  const links=getRefLinksDraft(post.id,post);
+  return `<div class="ff" style="margin-bottom:11px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+      <label class="flbl" style="margin:0">Links de referência</label>
+      <button class="btn btn-s btn-sm" type="button" onclick="addRefLinkField('${post.id}')">+ Adicionar ref</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      ${links.map((link,idx)=>{
+        const clean=String(link||'').trim();
+        const href=clean?(clean.startsWith('http')?clean:'https://'+clean):'';
+        return `<div style="border:1px solid var(--border);background:var(--bg3);border-radius:10px;padding:10px 11px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
+            <span style="font-size:11px;font-weight:800;color:var(--text3)">Ref ${idx+1}</span>
+            <button class="btn btn-s btn-sm" type="button" onclick="removeRefLinkField('${post.id}',${idx})">−</button>
+          </div>
+          <input class="fi" data-ref-link-pid="${post.id}" type="url" value="${captionTemplateEsc(link)}" placeholder="https://..." oninput="syncRefLinksDraftFromInputs('${post.id}')" onblur="saveRefLinksFromInputs('${post.id}')">
+          ${clean?`<div style="margin-top:7px"><a href="${captionTemplateEsc(href)}" target="_blank" style="font-size:12px;color:var(--accent);font-weight:700;text-decoration:none;word-break:break-all">${captionTemplateEsc(clean)} ↗</a></div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+function addRefLinkField(pid){
+  syncRefLinksDraftFromInputs(pid);
+  const draft=getRefLinksDraft(pid);
+  draft.push('');
+  renderPF(posts[pid]);
+}
+async function removeRefLinkField(pid,idx){
+  syncRefLinksDraftFromInputs(pid);
+  const draft=getRefLinksDraft(pid);
+  draft.splice(idx,1);
+  if(!draft.length) draft.push('');
+  renderPF(posts[pid]);
+  await saveRefLinksFromInputs(pid);
+}
+async function saveRefLinksFromInputs(pid){
+  if(!pid || !posts[pid]) return;
+  syncRefLinksDraftFromInputs(pid);
+  const links=getRefLinksDraft(pid).map(v=>String(v||'').trim()).filter(Boolean);
+  const {db,doc,updateDoc}=window._fb;
+  const updatedAt=Date.now();
+  posts[pid].refLinks=links;
+  posts[pid].refLink=links[0]||'';
+  posts[pid].updatedAt=updatedAt;
+  _refLinksDraft[pid]=links.length?[...links]:[''];
+  await updateDoc(doc(db,'posts',pid),{refLinks:links,refLink:links[0]||'',updatedAt});
+}
 function renderPostVisualGallery(post){
   const items=postMediaItems(post);
-  const cards=items.map((it,i)=>`<div class="post-visual-card" onclick="openPostMedia('${post.id}',${i})" title="${it.name}"><img src="${it.src}"><span class="post-visual-badge">${it.label}</span></div>`).join('');
+  const cards=items.map((it,i)=>`<div class="post-visual-card" onclick="openPostMedia('${post.id}',${i})" title="${it.name}"><img src="${it.src}"><span class="post-visual-badge">${it.label}</span><button class="post-visual-remove" title="Excluir referência" onclick="event.stopPropagation();delImg('${post.id}',${it.idx})">×</button></div>`).join('');
   return `<div class="post-visual-panel">
     <div class="post-visual-head">
       <div class="post-visual-title">🖼 Referências visuais <span style="background:var(--ag);color:var(--accent);padding:1px 7px;border-radius:999px;font-size:10px">${items.length}</span></div>
@@ -2721,6 +3068,8 @@ function openImgFull(pid, idx){
 function renderPF(post){
   const el=document.getElementById('pm-content');
   const idx=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0)).findIndex(p=>p.id===post.id)+1;
+  const postStatusDef=getPostStatusDef(post.status,post);
+  const postStatusOptions=getPostStatuses(post);
   const imgs=(post.images||[]).map((src,i)=>`<div class="img-thumb"><img src="${src}" style="cursor:pointer" onclick="openImgFull('${post.id}',${i})"><button class="img-thumb-del" onclick="delImg('${post.id}',${i})">×</button></div>`).join('');
   const postAssignees=post.assignees||[];
   const assigneeChips=TEAM.map(m=>`<div class="assignee-chip ${postAssignees.includes(m.id)?'selected':''}" onclick="togglePostAssignee('${post.id}','${m.id}',this)"><div class="assignee-avatar" style="background:${m.color}">${m.name[0]}</div>${m.name}</div>`).join('');
@@ -2737,11 +3086,11 @@ function renderPF(post){
     <!-- STATUS INLINE -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <div class="status-wrap" style="display:inline-block">
-        <span class="ktag s${STATUSES.find(s=>s.id===post.status)?.cls||'p'}" style="font-size:13px;font-weight:700;padding:5px 12px;cursor:pointer;border-radius:6px" onclick="togglePostSDD('${post.id}')">
-          ${STATUSES.find(s=>s.id===post.status)?.label||'Planejamento'} ▾
+        <span class="ktag s${postStatusDef?.cls||'p'}" style="font-size:13px;font-weight:700;padding:5px 12px;cursor:pointer;border-radius:6px" onclick="togglePostSDD('${post.id}')">
+          ${postStatusDef?.label||'Planejamento'} ▾
         </span>
         <div class="sdd hidden" id="psdd-${post.id}">
-          ${STATUSES.map(s=>`<div class="sdd-item" onclick="spf('status','${s.id}');renderPostsList();document.getElementById('psdd-${post.id}').classList.add('hidden');renderPF(posts[currentPostId])"><div class="sdd-dot d${s.cls}"></div>${s.label}</div>`).join('')}
+          ${postStatusOptions.map(s=>`<div class="sdd-item" onclick="spf('status','${s.id}');renderPostsList();document.getElementById('psdd-${post.id}').classList.add('hidden');renderPF(posts[currentPostId])"><div class="sdd-dot d${s.cls}"></div>${s.label}</div>`).join('')}
         </div>
       </div>
       ${post.postDate?`<span style="font-size:12px;color:var(--text3)">📅 ${new Date(post.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>`:''}
@@ -2786,11 +3135,7 @@ function renderPF(post){
     <div class="ff" style="margin-bottom:9px"><label class="flbl">Informações importantes</label>
       <div class="rich-area" contenteditable="true" id="rt-ref-${post.id}" onpaste="handleRichPaste(event,'rt-ref-${post.id}')" onblur="spf('references',getRichText(this))" oninput="autoLinkify(this)" style="min-height:72px">${renderRichText(post.references||'')}</div>
     </div>
-    <div class="ff" style="margin-bottom:11px"><label class="flbl">Link de referência</label>
-      <div class="lwrap"><input class="fi" type="url" value="${post.refLink||''}" placeholder="https://..." onchange="spfR('refLink',this.value)">
-        ${post.refLink?`<a href="${post.refLink}" target="_blank" class="lbtn">Abrir ↗</a>`:`<span class="lbtn" style="opacity:.4;cursor:default">Abrir ↗</span>`}
-      </div>
-    </div>
+    ${renderReferenceLinksEditor(post)}
 
     <div class="fsect">✏️ Texto do Conteúdo</div>
     <div id="brief-meta-${post.id}" class="rich-meta" style="${briefMeta?'':'display:none'}">${briefMeta||''}</div>
@@ -2801,7 +3146,7 @@ function renderPF(post){
 
     <div class="fsect">💬 Legenda</div>
     <div class="ff" style="margin-bottom:14px">
-      ${richToolbar('rt-caption-'+post.id,true)}
+      ${richToolbar('rt-caption-'+post.id,true,false,`<button class="rich-tool-btn" type="button" onclick="openCaptionTemplatesModal('${post.id}')">Textos salvos</button>`)}
       <div class="rich-area" contenteditable="true" id="rt-caption-${post.id}" onpaste="handleRichPaste(event,'rt-caption-${post.id}')" onblur="spf('caption',getRichText(this))" oninput="autoLinkify(this)" style="min-height:110px">${renderRichText(post.caption||'')}</div>
     </div>
 
@@ -3034,8 +3379,8 @@ async function addPost(){
   const {db,addDoc,collection}=window._fb;
   const order=Object.keys(posts).length;
   const num=String(order+1).padStart(2,'0');
-  const ref=await addDoc(collection(db,'posts'),{packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()});
-  posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()};
+  const ref=await addDoc(collection(db,'posts'),{packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()});
+  posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()};
   await updPCnt(Object.keys(posts).length);
   renderPostsList(); openPost(ref.id); showToast('Post adicionado','ok');
 }
@@ -3307,7 +3652,7 @@ async function dropCalPost(e,dateStr,yr,mo){
 function showPV(pid){
   const p=window._calP[pid]||Object.values(posts).find(x=>x.id===pid);
   if(!p) return;
-  const cl=clients[p.clientId]; const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
+  const cl=clients[p.clientId]; const s=getPostStatusDef(p.status,p);
   const time=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
   const allPostsSorted=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0));
   const idx=allPostsSorted.findIndex(x=>x.id===pid);
@@ -3323,7 +3668,7 @@ function showPV(pid){
       ${p.format?`<span class="ktag tag-${p.format.toLowerCase()}" style="font-size:11px">${p.format}</span>`:''}
       ${time?`<span style="font-size:12px;color:var(--text3)">📅 ${time}</span>`:''}
     </div>
-    ${p.caption?`<div class="pvs"><div class="pvlbl">Legenda</div><div class="pvtxt">${renderRichText(p.caption)}</div></div>`:''}
+    ${p.caption?`<div class="pvs"><div class="pvlbl">Legenda</div><div class="pvtxt">${renderRichText(getPreviewExcerpt(p.caption))}</div></div>`:''}
     ${p.postLink?`<div class="pvs"><a href="${p.postLink}" target="_blank" style="color:var(--accent);font-size:13px">📱 Ver post publicado ↗</a></div>`:''}
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn btn-p btn-sm" onclick="closePV();openClientAndPost('${p.clientId}','${p.packId||''}','${pid}')">📂 Abrir post</button>
@@ -3732,7 +4077,7 @@ async function duplicatePack(packId){
       packId:newPackRef.id, clientId:pack.clientId, title:p.title||'Post',
       status:'planejamento', format:p.format||'Carrossel', order:p.order||0,
       references:p.references||'', designBriefing:p.designBriefing||'',
-      caption:p.caption||'', refLink:p.refLink||'', postLink:'', driveLink:'',
+      caption:p.caption||'', refLinks:Array.isArray(p.refLinks)?p.refLinks:getPostRefLinks(p), refLink:p.refLink||'', postLink:'', driveLink:'',
       images:[], comments:[], assignees:[], finalFiles:[], createdAt:Date.now()
     });
   });
@@ -5211,12 +5556,12 @@ async function exportRoteiros(packId,clientName,modalEl){
     const title = p.title || 'Roteiro ' + videoNum;
     const content = (p.designBriefing || p.caption || '').trim() || '(sem conteúdo)';
     const info = (p.references || '').trim();
-    const link = (p.refLink || '').trim();
-    const linkHref = asHref(link);
-    const meta = info || link ? `
+    const links = getPostRefLinks(p);
+    const linksHtml = links.length ? `<div class="meta-item"><span class="meta-label">Links de referência</span><div class="meta-text">${links.map((link,idx)=>{ const clean=String(link||'').trim(); const href=asHref(clean); return `<div style="margin-top:${idx?8:0}px"><a href="${esc(href)}" target="_blank">Ref ${idx+1}: ${esc(clean)}</a></div>`; }).join('')}</div></div>` : '';
+    const meta = info || links.length ? `
     <div class="meta-box">
       ${info ? `<div class="meta-item"><span class="meta-label">Informações importantes</span><div class="meta-text">${withBreaks(info)}</div></div>` : ''}
-      ${link ? `<div class="meta-item"><span class="meta-label">Link de referência</span><div class="meta-text"><a href="${esc(linkHref)}" target="_blank">${esc(link)}</a></div></div>` : ''}
+      ${linksHtml}
     </div>` : '';
 
     html += `
@@ -5986,7 +6331,7 @@ async function buildRelatorio(container){
     if(monthPacks.length){
       h += '<div class="dcard" style="margin-bottom:12px"><div class="dcard-hdr">Packs do mês</div><div class="dcard-body" style="padding:0">';
       monthPacks.forEach(pk=>{
-        const s = STATUSES.find(x=>x.id===pk.status)||STATUSES[0];
+        const s = getPackStatusDef(pk.status);
         const postCount = allPosts.filter(p=>p.packId===pk.id).length;
         h += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)">
           <div style="flex:1">
@@ -6003,7 +6348,7 @@ async function buildRelatorio(container){
     h += '<div class="dcard"><div class="dcard-hdr">Posts do mês</div><div class="dcard-body" style="padding:0">';
     if(monthPosts.length){
       monthPosts.forEach((p,i)=>{
-        const s = STATUSES.find(x=>x.id===p.status)||STATUSES[0];
+        const s = getPostStatusDef(p.status,p);
         const dt = p.postDate ? new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
         h += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)">
           <span style="font-size:11px;font-weight:700;color:var(--text3);min-width:24px">${String(i+1).padStart(2,'0')}</span>
@@ -6083,7 +6428,7 @@ async function exportRelatorio(){
   <table>
     <tr><th>#</th><th>Post</th><th>Data</th><th>Formato</th><th>Status</th></tr>
     ${monthPosts.map((p,i)=>{
-      const s=STATUSES.find(x=>x.id===p.status)||STATUSES[0];
+      const s=getPostStatusDef(p.status,p);
       const dt=p.postDate?new Date(p.postDate).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
       return '<tr><td style="color:#aaa;font-weight:600">'+String(i+1).padStart(2,'0')+'</td><td>'+(p.title||'Post '+(i+1))+'</td><td>'+dt+'</td><td><span class="tag">'+(p.format||'—')+'</span></td><td><span class="tag">'+s.label+'</span></td></tr>';
     }).join('')}
