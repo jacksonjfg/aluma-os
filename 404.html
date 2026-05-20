@@ -1100,6 +1100,16 @@ document.getElementById('login-password').addEventListener('keydown',e=>{ if(e.k
 async function doLogout(){ const {auth,signOut}=window._fb; await signOut(auth); }
 
 function waitFB(){ return new Promise(r=>{ const iv=setInterval(()=>{ if(window._fb){clearInterval(iv);r();} },50); }); }
+window.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden' && currentPackId && currentPostId && currentPostId!=='__orientacoes__'){
+    saveCurrentRichDraft().catch(err=>console.warn('visibilitychange/saveCurrentRichDraft',err));
+  }
+});
+window.addEventListener('pagehide',()=>{
+  if(currentPostId && currentPostId!=='__orientacoes__'){
+    try{ syncCurrentRichDraft(); }catch(err){}
+  }
+});
 // Check if this is an approval page load
 waitFB().then(async()=>{
   const isApproval=await checkApprovalMode();
@@ -1323,7 +1333,10 @@ async function loadCnt(cid){
 }
 
 // ===== VIEWS =====
-function setView(view,cid){
+async function setView(view,cid){
+  if(currentPackId && currentPostId && currentPostId!=='__orientacoes__'){
+    try{ await saveCurrentRichDraft(); }catch(err){ console.warn('setView/saveCurrentRichDraft',err); }
+  }
   document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('active'));
   const map={dashboard:0,todos:1,calendario:2,equipe:3,tarefas:4,pauta:5,comercial:6,financeiro:7,perfilAluma:8};
   const tabs=document.querySelectorAll('.ttab');
@@ -1341,11 +1354,11 @@ function setView(view,cid){
   else if(view==='perfilAluma') renderPerfilAluma();
 }
 
-function openClient(cid){
+async function openClient(cid){
   currentClientId=cid;
   document.querySelectorAll('#sb-clients .sb-item').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('#sb-clients .sb-item').forEach(el=>{ if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(cid)) el.classList.add('active'); });
-  setView('client',cid);
+  await setView('client',cid);
 }
 
 // ===== DASHBOARD =====
@@ -1788,10 +1801,13 @@ async function renderClientDetail(){
   <div id="ct" style="flex:1;display:flex;flex-direction:column"></div>`;
   renderCT();
 }
-function swCT(t){
+async function swCT(t){
+  if(currentPackId && currentPostId && currentPostId!=='__orientacoes__'){
+    try{ await saveCurrentRichDraft(); }catch(err){ console.warn('swCT/saveCurrentRichDraft',err); }
+  }
   clientTab=t;
   document.querySelectorAll('.ptab').forEach(el=>{ const m={packs:'Publicações',cal:'Calendário',docs:'Documentos',reunioes:'Reuniões',relatorio:'Relatório',metricas:'Métricas'}; el.classList.toggle('active',el.textContent.trim().includes(m[t]||'__')); });
-  renderCT();
+  await renderCT();
 }
 async function renderCT(){
   const el=document.getElementById('ct'); if(!el) return;
@@ -2710,7 +2726,8 @@ function queueRichAutosave(field,targetId){
   posts[pid][field]=getRichText(el);
   const key=richAutosaveKey(pid,field);
   clearTimeout(_richAutosaveTimers[key]);
-  _richAutosaveTimers[key]=setTimeout(()=>{ flushRichAutosave(pid,field,targetId); },650);
+  try{ localStorage.setItem('draft:'+key, posts[pid][field]||''); }catch(err){}
+  _richAutosaveTimers[key]=setTimeout(()=>{ flushRichAutosave(pid,field,targetId); },300);
 }
 async function flushRichAutosave(pid,field,targetId){
   const key=richAutosaveKey(pid,field);
@@ -2724,6 +2741,7 @@ async function flushRichAutosave(pid,field,targetId){
     if(String(value||'')!==before){
       await spfDirect(pid,'designBriefing',value);
     }
+    try{ localStorage.removeItem('draft:'+key); }catch(err){}
     const metaEl=document.getElementById('brief-meta-'+pid);
     if(metaEl){
       const html=buildEditMeta(posts[pid].designBriefingMeta);
@@ -2734,6 +2752,7 @@ async function flushRichAutosave(pid,field,targetId){
   }
   if(String(posts[pid][field]||'')!==String(value||'')) posts[pid][field]=value;
   await spfDirect(pid,field,value);
+  try{ localStorage.removeItem('draft:'+key); }catch(err){}
 }
 async function flushPendingRichAutosaves(pid=currentPostId){
   if(!pid) return;
@@ -3601,7 +3620,10 @@ async function deletePost(pid){
   renderPostsList();
   clearPackEditorPanel('Post excluído');
 }
-function closePackModal(){
+async function closePackModal(){
+  if(currentPackId && currentPostId && currentPostId!=='__orientacoes__'){
+    try{ await saveCurrentRichDraft(); }catch(err){ console.warn('closePackModal/saveCurrentRichDraft',err); }
+  }
   persistCurrentPackState();
   document.getElementById('pack-mo').classList.remove('open');
   syncPostUrl(null);
