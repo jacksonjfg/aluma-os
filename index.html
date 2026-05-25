@@ -334,9 +334,14 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .empty-title{font-size:14.5px;color:var(--text2);font-weight:700;letter-spacing:-.2px;}
 
 /* RICH TEXT AREA */
-.rich-area{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;line-height:1.55;min-height:60px;word-break:break-word;white-space:pre-wrap;}
-.rich-area:focus{border-color:var(--accent);}
+.rich-area{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s,background .15s;line-height:1.65;min-height:60px;word-break:break-word;white-space:pre-wrap;}
+.rich-area:focus{border-color:var(--accent);background:var(--bg2);box-shadow:0 0 0 3px rgba(132,131,255,.12);}
 .rich-area a{color:var(--accent);text-decoration:underline;cursor:pointer;}
+.rich-area[data-saving="1"]{border-color:rgba(132,131,255,.55)}
+.rich-area[data-save-state="saved"]{border-color:rgba(74,222,128,.55)}
+.rich-sync-note{display:none;margin:-2px 0 8px;padding:8px 10px;border-radius:8px;background:rgba(251,191,36,.13);border:1px solid rgba(251,191,36,.32);color:var(--text2);font-size:11.5px;line-height:1.45}
+.rich-sync-note.show{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rich-sync-note button{height:24px;padding:0 8px;border-radius:6px;border:1px solid rgba(251,191,36,.45);background:var(--bg2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}
 .comment-composer{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;line-height:1.55;min-height:74px;word-break:break-word;white-space:pre-wrap}
 .comment-composer:focus{border-color:var(--accent)}
 .comment-composer:empty:before{content:attr(data-placeholder);color:var(--text3)}
@@ -2263,8 +2268,15 @@ async function loadPosts(packId){
     let first=true;
     _packPostsLiveId=packId;
     _packPostsUnsub=onSnapshot(query(collection(db,'posts'),where('packId','==',packId)),(snap)=>{
+      const busy=isPackEditorBusy();
+      const activePid=currentPostId;
+      const activeDrafts=busy?currentRichEditorDrafts(activePid):{};
       const next={};
       snap.forEach(d=>{ next[d.id]={id:d.id,...d.data()}; });
+      if(busy && activePid && next[activePid] && Object.keys(activeDrafts).length){
+        Object.assign(next[activePid],activeDrafts);
+        showRichRemoteUpdateNotice(activePid);
+      }
       posts=next;
       renderPostsList();
       const list=Object.values(posts);
@@ -2275,7 +2287,7 @@ async function loadPosts(packId){
         return;
       }
       if(currentPostId && posts[currentPostId]){
-        if(!isPackEditorBusy()) renderPF(posts[currentPostId]);
+        if(!busy) renderPF(posts[currentPostId]);
       } else {
         currentPostId='__orientacoes__';
         openOrientacoes();
@@ -2314,6 +2326,28 @@ function renderPostsList(){
   updPCnt(Object.keys(posts).length);
 }
 async function updPCnt(n){ if(!currentPackId) return; const {db,doc,updateDoc}=window._fb; await updateDoc(doc(db,'packs',currentPackId),{postCount:n}); }
+function currentRichEditorDrafts(pid=currentPostId){
+  if(!pid) return {};
+  const fields=[['references','rt-ref-'+pid],['designBriefing','rt-brief-'+pid],['caption','rt-caption-'+pid]];
+  const drafts={};
+  fields.forEach(([field,id])=>{
+    const el=document.getElementById(id);
+    if(el && (el.dataset.dirty==='1' || el.matches(':focus'))){
+      drafts[field]=getRichText(el);
+    }
+  });
+  return drafts;
+}
+function showRichRemoteUpdateNotice(pid){
+  const note=document.getElementById('rich-sync-'+pid);
+  if(note) note.classList.add('show');
+}
+async function acceptRemotePostUpdate(pid=currentPostId){
+  if(!pid || !posts[pid]) return;
+  try{ await flushPendingRichAutosaves(pid); }catch(err){}
+  renderPF(posts[pid]);
+  showToast('Texto atualizado com a versão mais recente','ok');
+}
 function openPost(pid,skipUrlSync=false){
   if(!posts[pid]) return;
   capturePackViewState();
@@ -2633,10 +2667,23 @@ function renderRichText(text){
     return '<a href="'+href+'" target="_blank" style="color:var(--accent);text-decoration:underline" contenteditable="false" onclick="event.stopPropagation()">'+url+'</a>';
   });
 }
+function richTextFromNode(node, out=[]){
+  if(!node) return out;
+  if(node.nodeType===Node.TEXT_NODE){ out.push(node.nodeValue||''); return out; }
+  if(node.nodeType!==Node.ELEMENT_NODE) return out;
+  const tag=(node.tagName||'').toLowerCase();
+  if(tag==='br'){ out.push('\n'); return out; }
+  const blockTags=new Set(['div','p','section','article','li','ul','ol','blockquote','h1','h2','h3','h4','h5','h6']);
+  const before=out.join('');
+  Array.from(node.childNodes||[]).forEach(child=>richTextFromNode(child,out));
+  const after=out.join('');
+  if(blockTags.has(tag) && after!==before && !after.endsWith('\n')) out.push('\n');
+  return out;
+}
 function getRichText(el){
   if(!el) return '';
-  const text=('innerText' in el ? el.innerText : (el.textContent||''));
-  return text.replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+  const text=richTextFromNode(el,[]).join('');
+  return text.replace(/\u00a0/g,' ').replace(/[ \t]+\n/g,'\n').replace(/\n[ \t]+/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
 }
 function placeCaretAtEnd(el){
   if(!el) return;
@@ -2648,20 +2695,54 @@ function placeCaretAtEnd(el){
   sel.addRange(range);
 }
 function normalizePastedText(text){
-  return String(text||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n');
+  return String(text||'')
+    .replace(/\r\n/g,'\n')
+    .replace(/\r/g,'\n')
+    .replace(/\u00a0/g,' ')
+    .replace(/[ \t]+\n/g,'\n')
+    .replace(/\n[ \t]+/g,'\n')
+    .replace(/([^\n])(\[Card\s*\d+\])/gi,'$1\n\n$2')
+    .replace(/(\[Card\s*\d+\])(?=\S)/gi,'$1\n')
+    .replace(/\n{3,}/g,'\n\n');
+}
+function insertPlainTextAtCaret(text){
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount) return false;
+  const range=sel.getRangeAt(0);
+  range.deleteContents();
+  const frag=document.createDocumentFragment();
+  String(text||'').split('\n').forEach((line,idx)=>{
+    if(idx) frag.appendChild(document.createElement('br'));
+    frag.appendChild(document.createTextNode(line));
+  });
+  range.insertNode(frag);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  return true;
 }
 function handleRichPaste(event, targetId){
   event.preventDefault();
-  const text=normalizePastedText(event.clipboardData?.getData('text/plain')||'');
+  let text=event.clipboardData?.getData('text/plain')||'';
+  if(!text){
+    const html=event.clipboardData?.getData('text/html')||'';
+    if(html){
+      const tmp=document.createElement('div');
+      tmp.innerHTML=html;
+      text=richTextFromNode(tmp,[]).join('');
+    }
+  }
+  text=normalizePastedText(text);
   const el=document.getElementById(targetId);
   if(!el) return;
   el.focus();
-  if(document.queryCommandSupported&&document.queryCommandSupported('insertText')) document.execCommand('insertText',false,text);
-  else {
+  if(!insertPlainTextAtCaret(text)){
     el.textContent=(getRichText(el)+(getRichText(el)?'\n':'')+text).trim();
     placeCaretAtEnd(el);
   }
   autoLinkify(el);
+  const field=fieldFromRichTarget(targetId);
+  if(field) queueRichAutosave(field,targetId);
 }
 function autoLinkify(el){
   if(!el) return;
@@ -2712,6 +2793,22 @@ function syncCurrentRichDraft(){
 }
 let _richAutosaveTimers={};
 function richAutosaveKey(pid,field){ return `${pid}:${field}`; }
+function fieldFromRichTarget(targetId){
+  if(!targetId) return '';
+  if(targetId.includes('rt-ref-')) return 'references';
+  if(targetId.includes('rt-brief-')) return 'designBriefing';
+  if(targetId.includes('rt-caption-')) return 'caption';
+  return '';
+}
+function markRichSaveState(el,state='saving'){
+  if(!el) return;
+  el.dataset.saving=state==='saving'?'1':'0';
+  el.dataset.saveState=state;
+  if(state==='saved'){
+    clearTimeout(el._saveStateTimer);
+    el._saveStateTimer=setTimeout(()=>{ if(el.dataset.saveState==='saved') delete el.dataset.saveState; },1200);
+  }
+}
 function isPackEditorBusy(){
   const ae=document.activeElement;
   if(!ae) return false;
@@ -2723,10 +2820,15 @@ function queueRichAutosave(field,targetId){
   const el=document.getElementById(targetId);
   if(!el || !currentPostId || !posts[currentPostId]) return;
   const pid=currentPostId;
-  posts[pid][field]=getRichText(el);
+  const value=getRichText(el);
+  posts[pid][field]=value;
+  el.dataset.localDraft=value;
+  el.dataset.dirty='1';
+  el.dataset.lastLocalEdit=String(Date.now());
+  markRichSaveState(el,'saving');
   const key=richAutosaveKey(pid,field);
   clearTimeout(_richAutosaveTimers[key]);
-  try{ localStorage.setItem('draft:'+key, posts[pid][field]||''); }catch(err){}
+  try{ localStorage.setItem('draft:'+key, value||''); }catch(err){}
   _richAutosaveTimers[key]=setTimeout(()=>{ flushRichAutosave(pid,field,targetId); },300);
 }
 async function flushRichAutosave(pid,field,targetId){
@@ -2736,12 +2838,13 @@ async function flushRichAutosave(pid,field,targetId){
   const el=document.getElementById(targetId);
   if(!el || !posts[pid]) return;
   const value=getRichText(el);
+  markRichSaveState(el,'saving');
   if(field==='designBriefing'){
-    const before=String(posts[pid].designBriefing||'');
-    if(String(value||'')!==before){
-      await spfDirect(pid,'designBriefing',value);
-    }
+    await spfDirect(pid,'designBriefing',value);
     try{ localStorage.removeItem('draft:'+key); }catch(err){}
+    el.dataset.dirty='0';
+    el.dataset.localDraft=value;
+    markRichSaveState(el,'saved');
     const metaEl=document.getElementById('brief-meta-'+pid);
     if(metaEl){
       const html=buildEditMeta(posts[pid].designBriefingMeta);
@@ -2750,8 +2853,10 @@ async function flushRichAutosave(pid,field,targetId){
     }
     return;
   }
-  if(String(posts[pid][field]||'')!==String(value||'')) posts[pid][field]=value;
   await spfDirect(pid,field,value);
+  el.dataset.dirty='0';
+  el.dataset.localDraft=value;
+  markRichSaveState(el,'saved');
   try{ localStorage.removeItem('draft:'+key); }catch(err){}
 }
 async function flushPendingRichAutosaves(pid=currentPostId){
@@ -3234,6 +3339,7 @@ function renderPF(post){
 
     <div class="fsect">✏️ Texto do Conteúdo</div>
     <div id="brief-meta-${post.id}" class="rich-meta" style="${briefMeta?'':'display:none'}">${briefMeta||''}</div>
+    <div id="rich-sync-${post.id}" class="rich-sync-note"><span>Chegou uma atualização deste post enquanto você estava escrevendo. Seu texto foi mantido para não sobrescrever sem querer.</span><button type="button" onclick="acceptRemotePostUpdate('${post.id}')">Ver versão atual</button></div>
     <div class="ff" style="margin-bottom:11px">
       ${richToolbar('rt-brief-'+post.id,false,true)}
       <div class="rich-area" contenteditable="true" id="rt-brief-${post.id}" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="saveBriefingField('rt-brief-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('designBriefing','rt-brief-${post.id}')" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
