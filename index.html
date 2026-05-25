@@ -7388,7 +7388,8 @@ const CONTRACT_DELIVERABLES=[
   {id:'site',label:'Gestão e produção de conteúdo para site',checked:false,desc:'Escrita e produção de materiais textuais destinados ao site do CONTRATANTE.'},
   {id:'whatsapp',label:'Suporte e acompanhamento via WhatsApp',checked:true,desc:'Suporte e acompanhamento estratégico por meio de grupo exclusivo no WhatsApp.'},
   {id:'metricas',label:'Monitoramento de métricas',checked:true,desc:'Monitoramento e análise periódica das métricas de desempenho, incluindo alcance, engajamento e insights.'},
-  {id:'agendamento',label:'Agendamento das publicações',checked:true,desc:'Agendamento dos conteúdos aprovados conforme planejamento definido para cada canal.'}
+  {id:'agendamento',label:'Agendamento das publicações',checked:true,desc:'Agendamento dos conteúdos aprovados conforme planejamento definido para cada canal.'},
+  {id:'trafego_pago',label:'Gestão de Tráfego Pago',checked:false,desc:'Planejamento, configuração e acompanhamento de campanhas pagas em plataformas digitais, com análise de desempenho e ajustes de otimização. A verba de mídia é paga separadamente pelo CONTRATANTE.'}
 ];
 function fmtCurrencyBR(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function pad2(n){ return String(n).padStart(2,'0'); }
@@ -7461,7 +7462,69 @@ function buildContractText(data){
   const deliverablesText=data.deliverables.map((item,idx)=>`${idx+1}. ${item.label}: ${item.desc}`).join('\n');
   const extraBlock=data.additionalDeliverables?`\nEntregáveis adicionais: ${data.additionalDeliverables}`:'';
   const clauseExtra=data.extraClauses?`\n\nCláusulas complementares acordadas entre as partes:\n${data.extraClauses}`:'';
-  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS PARA GERENCIAMENTO DE REDES SOCIAIS\n\nCONTRATANTE: ${data.name}\nCNPJ: ${data.cnpj}\nRESPONSÁVEL: ${data.responsible}\nCPF: ${data.cpf}\nEMAIL: ${data.email||'não informado'}\nTELEFONE: ${data.phone||'não informado'}\nENDEREÇO: ${data.address||'não informado'}\n\nCONTRATADA: ${CONTRACT_FIXED_PARTY.company}\nCNPJ: ${CONTRACT_FIXED_PARTY.cnpj}\nRESPONSÁVEL: ${CONTRACT_FIXED_PARTY.responsible}\nCPF: ${CONTRACT_FIXED_PARTY.cpf}\nEMAIL: ${CONTRACT_FIXED_PARTY.email}\nTELEFONE: ${CONTRACT_FIXED_PARTY.phone}\nENDEREÇO: ${CONTRACT_FIXED_PARTY.address}\n\n1. OBJETO\nPrestação de serviços continuados de gerenciamento de redes sociais e conteúdo para ${data.channels}.\n\n2. VIGÊNCIA\nO presente contrato terá início em ${formatLongDateBR(data.start)} e término em ${formatLongDateBR(data.end)}, totalizando ${data.duration} meses de vigência.\n\n3. ESCOPO DO TRABALHO\n${deliverablesText}${extraBlock}\n\n4. INVESTIMENTO\nO valor mensal ajustado entre as partes é de ${fmtCurrencyBR(data.monthlyValue)}, com vencimento todo dia ${data.dueDay} de cada mês.\n\n5. CONDIÇÕES GERAIS\nO planejamento será encaminhado para validação do CONTRATANTE antes da execução. Ajustes pontuais serão realizados dentro do fluxo acordado entre as partes. Demandas extraordinárias, fora do escopo previsto, serão tratadas em comum acordo.${clauseExtra}\n\n6. ASSINATURA\nAs partes reconhecem a validade jurídica da assinatura eletrônica, nos termos da Lei 14.063/2020.\n\nSão Pedro/SP, ${formatLongDateBR(new Date().toISOString().slice(0,10))}.\n\n____________________________________\n${CONTRACT_FIXED_PARTY.responsible}\n${CONTRACT_FIXED_PARTY.cpf}\n\n____________________________________\n${data.responsible}\n${data.cpf}`;
+  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS PARA GERENCIAMENTO DE REDES SOCIAIS
+
+CONTRATANTE: ${data.name}
+CNPJ: ${data.cnpj}
+RESPONSÁVEL: ${data.responsible}
+CPF: ${data.cpf}
+EMAIL: ${data.email||'não informado'}
+TELEFONE: ${data.phone||'não informado'}
+ENDEREÇO: ${data.address||'não informado'}
+
+CONTRATADA: ${CONTRACT_FIXED_PARTY.company}
+CNPJ: ${CONTRACT_FIXED_PARTY.cnpj}
+RESPONSÁVEL: ${CONTRACT_FIXED_PARTY.responsible}
+CPF: ${CONTRACT_FIXED_PARTY.cpf}
+EMAIL: ${CONTRACT_FIXED_PARTY.email}
+TELEFONE: ${CONTRACT_FIXED_PARTY.phone}
+ENDEREÇO: ${CONTRACT_FIXED_PARTY.address}
+
+1. OBJETO
+Prestação de serviços continuados de gerenciamento de redes sociais, conteúdo e apoio estratégico para ${data.channels}.
+
+2. VIGÊNCIA
+O presente contrato terá início em ${formatLongDateBR(data.start)} e término em ${formatLongDateBR(data.end)}, totalizando ${data.duration} meses de vigência.
+
+3. ESCOPO DO TRABALHO
+${deliverablesText}${extraBlock}
+
+4. DIRETRIZES DO TRABALHO
+O planejamento mensal será apresentado ao CONTRATANTE para alinhamento e aprovação. Ajustes pontuais poderão ser realizados dentro do fluxo acordado. Demandas fora do escopo poderão ser orçadas à parte mediante aceite expresso.
+
+5. INVESTIMENTO, COBRANÇA E ATRASO
+O valor mensal ajustado entre as partes é de ${fmtCurrencyBR(data.monthlyValue)}, com vencimento todo dia ${data.dueDay} de cada mês. A cobrança poderá ser enviada por boleto, PIX, cartão, link de pagamento ou plataforma de cobrança, inclusive Asaas. Em caso de atraso, poderão incidir multa de 2% sobre o valor vencido, juros de 1% ao mês, correção monetária quando aplicável e suspensão das entregas após 7 dias de inadimplência, sem prejuízo da cobrança dos valores em aberto.
+
+6. GESTÃO DE TRÁFEGO PAGO E VERBA DE MÍDIA
+Quando contratada, a gestão de tráfego pago compreende planejamento, configuração, acompanhamento e otimização das campanhas. A verba de mídia, impulsionamentos, taxas das plataformas e eventuais custos de terceiros não estão incluídos no valor mensal, salvo se houver previsão expressa em proposta, aditivo ou aceite escrito.
+
+7. PERMANÊNCIA, CANCELAMENTO E MULTA
+O contrato possui a vigência indicada na Cláusula 2. A rescisão antecipada sem justa causa exige aviso prévio mínimo de 30 dias e quitação dos valores vencidos, dos serviços já executados e dos materiais aprovados ou em produção. Se a rescisão ocorrer antes do fim da vigência mínima por iniciativa do CONTRATANTE, poderá ser cobrada multa compensatória de 20% sobre as mensalidades vincendas, limitada ao equilíbrio do contrato e ao trabalho já reservado pela CONTRATADA.
+
+8. RESPONSABILIDADES DO CONTRATANTE
+O CONTRATANTE deverá fornecer acessos, informações, materiais, aprovações e retornos necessários à execução dos serviços. Atrasos nesses retornos poderão impactar prazos de entrega e publicação, sem caracterizar descumprimento da CONTRATADA.
+
+9. CONFIDENCIALIDADE E PROTEÇÃO DE DADOS
+As partes manterão sigilo sobre informações estratégicas, comerciais, financeiras e operacionais a que tiverem acesso. Dados pessoais eventualmente compartilhados serão tratados apenas para execução deste contrato, conforme a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018).
+
+10. DIREITOS AUTORAIS E USO DE MATERIAIS
+Após a quitação dos valores correspondentes, o CONTRATANTE poderá usar os materiais aprovados dentro das finalidades contratadas. Arquivos editáveis, projetos abertos, bancos de imagem, fontes, plugins, contas de anúncios e ferramentas de terceiros só serão transferidos quando isso estiver previsto expressamente. A CONTRATADA poderá mencionar o trabalho em portfólio, salvo pedido escrito de confidencialidade.
+
+11. DISPOSIÇÕES GERAIS
+Este instrumento reflete o entendimento comercial entre as partes. Ajustes posteriores poderão ser formalizados por aditivo, aceite eletrônico, mensagem registrada ou novo documento assinado pelas partes.${clauseExtra}
+
+12. ASSINATURA
+As partes reconhecem a validade jurídica da assinatura eletrônica, nos termos da Lei 14.063/2020, desde que vinculada às partes signatárias e passível de verificação.
+
+São Pedro/SP, ${formatLongDateBR(new Date().toISOString().slice(0,10))}.
+
+____________________________________
+${CONTRACT_FIXED_PARTY.responsible}
+${CONTRACT_FIXED_PARTY.cpf}
+
+____________________________________
+${data.responsible}
+${data.cpf}`;
 }
 function updateContractPreview(){
   const output=document.getElementById('contract-output');
@@ -7575,7 +7638,7 @@ function generateContractPDF(){
     h1{font-size:24px;line-height:1.15;margin:0 0 12mm;color:#141230} h2{font-size:13px;text-transform:uppercase;letter-spacing:1.6px;color:#6f73ff;margin:0 0 4mm} h3{font-size:15px;margin:0 0 3mm;color:#141230}
     p,li{font-size:12px;line-height:1.65;color:#2f2b4f} ul{margin:0;padding-left:18px} .two{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-bottom:9mm}
     .box{border:1px solid #e2e5f2;border-radius:12px;padding:5mm 5.5mm;background:#fafbff}.muted{font-size:10.5px;color:#7d7a9a}
-    .clause{margin-bottom:7mm}.note{margin-top:6mm;padding:4.5mm 5mm;border-radius:12px;background:linear-gradient(135deg,#f6f4ff 0%,#eef2ff 100%);border:1px solid #d9dcfb}.note-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.1px;color:#5e60e8;margin-bottom:5px}.note-text{font-size:12px;line-height:1.6;color:#2f2b4f}
+    .clause{margin-bottom:7mm}.note{margin:7mm 0 8mm;padding:5.5mm 6mm;border-radius:12px;background:linear-gradient(135deg,#f6f4ff 0%,#eef2ff 100%);border:1px solid #d9dcfb}.note-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.1px;color:#5e60e8;margin-bottom:6px}.note-text{font-size:12px;line-height:1.65;color:#2f2b4f}
     .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:16mm;margin-top:16mm}.sig{padding-top:14mm;border-top:1px solid #cfd3e6;font-size:12px;line-height:1.6}
     .footer-note{margin-top:10mm;font-size:10px;color:#7d7a9a}.badge{display:inline-flex;padding:5px 10px;border-radius:999px;background:#eef0ff;color:#6f73ff;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px}
     @page{size:A4;margin:0} @media print {.actions{display:none} body{background:#fff}}
@@ -7605,14 +7668,16 @@ function generateContractPDF(){
     <section class="page">
       <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Condições</span></div>
       <div class="clause"><h3>Cláusula 4 — Diretrizes do trabalho</h3><p>O planejamento mensal será apresentado ao CONTRATANTE para alinhamento e aprovação. Ajustes pontuais poderão ser realizados dentro do fluxo operacional acordado. Solicitações extraordinárias, não previstas no escopo acima, poderão ser orçadas à parte mediante aceite expresso das partes.</p></div>
-      <div class="clause"><h3>Cláusula 5 — Investimento</h3><p>Pelos serviços contratados, o CONTRATANTE pagará à CONTRATADA o valor mensal de <b>${esc(fmtCurrencyBR(data.monthlyValue))}</b>, com vencimento todo dia <b>${esc(data.dueDay)}</b> de cada mês, mediante a forma de cobrança definida entre as partes.</p></div>
-      <div class="clause"><h3>Cláusula 6 — Permanência e cancelamento</h3><p>Havendo rescisão antecipada sem justa causa durante a vigência mínima contratada, as partes poderão negociar aviso prévio e encerramento operacional compatível com o estágio das entregas em andamento. O encerramento deverá respeitar os compromissos já aprovados e os materiais já produzidos até a data da comunicação.</p></div>
-      <div class="clause"><h3>Cláusula 7 — Confidencialidade</h3><p>As partes comprometem-se a manter sigilo sobre informações estratégicas, operacionais, comerciais e financeiras a que tiverem acesso em razão deste contrato, não as divulgando a terceiros sem autorização.</p></div>
-      <div class="clause"><h3>Cláusula 8 — Proteção de dados</h3><p>As partes declaram ciência da Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018), comprometendo-se a tratar dados pessoais eventualmente compartilhados apenas para a execução deste contrato, com observância dos princípios de segurança e confidencialidade.</p>${extraClauses}</div>
+      <div class="clause"><h3>Cláusula 5 — Investimento, cobrança e atraso</h3><p>Pelos serviços contratados, o CONTRATANTE pagará à CONTRATADA o valor mensal de <b>${esc(fmtCurrencyBR(data.monthlyValue))}</b>, com vencimento todo dia <b>${esc(data.dueDay)}</b> de cada mês. A cobrança poderá ser enviada por boleto, PIX, cartão, link de pagamento ou plataforma de cobrança, inclusive Asaas.</p><p>Em caso de atraso, poderão incidir multa de 2% sobre o valor vencido, juros de 1% ao mês, correção monetária quando aplicável e suspensão das entregas após 7 dias de inadimplência, sem prejuízo da cobrança dos valores em aberto.</p></div>
+      <div class="clause"><h3>Cláusula 6 — Gestão de tráfego pago e verba de mídia</h3><p>Quando contratada, a gestão de tráfego pago compreende planejamento, configuração, acompanhamento e otimização das campanhas. A verba de mídia, impulsionamentos, taxas das plataformas e eventuais custos de terceiros não estão incluídos no valor mensal, salvo se houver previsão expressa em proposta, aditivo ou aceite escrito.</p></div>
+      <div class="clause"><h3>Cláusula 7 — Permanência, cancelamento e multa</h3><p>O contrato possui a vigência indicada na Cláusula 2. A rescisão antecipada sem justa causa exige aviso prévio mínimo de 30 dias e quitação dos valores vencidos, dos serviços já executados e dos materiais aprovados ou em produção.</p><p>Se a rescisão ocorrer antes do fim da vigência mínima por iniciativa do CONTRATANTE, poderá ser cobrada multa compensatória de 20% sobre as mensalidades vincendas, limitada ao equilíbrio do contrato e ao trabalho já reservado pela CONTRATADA.</p></div>
+      <div class="clause"><h3>Cláusula 8 — Responsabilidades do contratante</h3><p>O CONTRATANTE deverá fornecer acessos, informações, materiais, aprovações e retornos necessários à execução dos serviços. Atrasos nesses retornos poderão impactar prazos de entrega e publicação, sem caracterizar descumprimento da CONTRATADA.</p></div>
     </section>
     <section class="page">
       <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Fechamento</span></div>
-      <div class="clause"><h3>Cláusula 9 — Disposições gerais</h3><p>Este instrumento reflete o entendimento comercial entre as partes para a prestação dos serviços descritos. Ajustes posteriores poderão ser formalizados por aditivo, aceite eletrônico, mensagem registrada ou novo documento assinado pelas partes.</p></div>
+      <div class="clause"><h3>Cláusula 9 — Confidencialidade e proteção de dados</h3><p>As partes manterão sigilo sobre informações estratégicas, comerciais, financeiras e operacionais a que tiverem acesso. Dados pessoais eventualmente compartilhados serão tratados apenas para execução deste contrato, conforme a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018).</p></div>
+      <div class="clause"><h3>Cláusula 10 — Direitos autorais e uso de materiais</h3><p>Após a quitação dos valores correspondentes, o CONTRATANTE poderá usar os materiais aprovados dentro das finalidades contratadas. Arquivos editáveis, projetos abertos, bancos de imagem, fontes, plugins, contas de anúncios e ferramentas de terceiros só serão transferidos quando isso estiver previsto expressamente.</p><p>A CONTRATADA poderá mencionar o trabalho em portfólio, salvo pedido escrito de confidencialidade do CONTRATANTE.</p></div>
+      <div class="clause"><h3>Cláusula 11 — Disposições gerais</h3><p>Este instrumento reflete o entendimento comercial entre as partes para a prestação dos serviços descritos. Ajustes posteriores poderão ser formalizados por aditivo, aceite eletrônico, mensagem registrada ou novo documento assinado pelas partes.</p>${extraClauses}</div>
       <p>São Pedro/SP, ${esc(todayLong)}.</p>
       <div class="sig-grid">
         <div class="sig"><b>CONTRATADA</b><br>${esc(CONTRACT_FIXED_PARTY.responsible)}<br>CPF: ${esc(CONTRACT_FIXED_PARTY.cpf)}<br>${esc(CONTRACT_FIXED_PARTY.company)}</div>
