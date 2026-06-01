@@ -16,11 +16,11 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, getBlob, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
   const firebaseConfig = { apiKey:"AIzaSyDGzrCPsrV7b2JkX73wxBZpFKtNmDsnJHc", authDomain:"aluma-os.firebaseapp.com", projectId:"aluma-os", storageBucket:"aluma-os.firebasestorage.app", messagingSenderId:"912583832715", appId:"1:912583832715:web:b6a34c7efc4bbaec37908e" };
   const app = initializeApp(firebaseConfig);
   const storage = getStorage(app);
-  window._fb = { auth:getAuth(app), db:getFirestore(app), storage, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, ref, uploadBytes, getDownloadURL, deleteObject };
+  window._fb = { auth:getAuth(app), db:getFirestore(app), storage, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, ref, uploadBytes, getDownloadURL, getBlob, deleteObject };
 </script>
 <style>
 :root{
@@ -2363,12 +2363,34 @@ function openPost(pid,skipUrlSync=false){
 function safeDownloadName(name, fallback='imagem.jpg'){
   return String(name||fallback).replace(/[\\/:*?"<>|]+/g,'-').trim()||fallback;
 }
+function storagePathFromDownloadUrl(url){
+  const raw=String(url||'');
+  if(!raw) return '';
+  if(raw.startsWith('gs://')) return raw;
+  const match=raw.match(/\/o\/([^?]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
 async function finalFileBlob(file){
   const src=file?.url||file?.data||'';
   if(!src) throw new Error('Arquivo sem URL.');
-  const res=await fetch(src);
+  if(src.startsWith('data:')) return await (await fetch(src)).blob();
+  const {storage, ref, getBlob}=window._fb||{};
+  const storagePath=file?.path||storagePathFromDownloadUrl(src);
+  if(storage&&ref&&getBlob&&storagePath){
+    return await getBlob(ref(storage,storagePath));
+  }
+  const res=await fetch(src,{mode:'cors'});
   if(!res.ok) throw new Error('Não foi possível baixar o arquivo.');
   return await res.blob();
+}
+function triggerUrlDownload(url, filename){
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=safeDownloadName(filename);
+  a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 function triggerBlobDownload(blob, filename){
   const url=URL.createObjectURL(blob);
@@ -2389,7 +2411,13 @@ async function downloadFinalFile(pid, idx){
     showToast('Download iniciado','ok');
   }catch(err){
     console.error('downloadFinalFile:',err);
-    showToast('Não consegui baixar este arquivo','err');
+    const src=file.url||file.data||'';
+    if(src){
+      triggerUrlDownload(src,file.name||`slide-${idx+1}.jpg`);
+      showToast('Download iniciado','ok');
+    }else{
+      showToast('Não consegui baixar este arquivo','err');
+    }
   }
 }
 function renderFinalFiles(post){
@@ -2639,7 +2667,7 @@ async function confirmFinalUpload(){
     for(const item of uploadItems){
       const f=item.file;
       const url = await uploadPostImage(pid, f, 'final');
-      const payload={name: f.name, url, type: f.type};
+      const payload={name: f.name, url, path:storagePathFromDownloadUrl(url), type: f.type};
       const existingIdx=arr.findIndex(existing=>String(existing.name||'').trim().toLowerCase()===String(f.name||'').trim().toLowerCase());
       if(replaceMode && existingIdx>=0) arr.splice(existingIdx,1,payload);
       else arr.push(payload);
@@ -2670,15 +2698,26 @@ async function downloadAllFinal(pid){
     showToast('Preparando download...', 'inf');
     if(typeof JSZip !== 'undefined'){
       const zip = new JSZip();
+      let failed=0;
       for(let i=0;i<files.length;i++){
-        const f=files[i];
-        const ext=(f.name?.split('.').pop() || 'jpg').toLowerCase();
-        const blob=await finalFileBlob(f);
-        zip.file(safeDownloadName(f.name || `${String(i+1).padStart(2,'0')}_slide.${ext}`), blob);
+        try{
+          const f=files[i];
+          const ext=(f.name?.split('.').pop() || 'jpg').toLowerCase();
+          const blob=await finalFileBlob(f);
+          zip.file(safeDownloadName(f.name || `${String(i+1).padStart(2,'0')}_slide.${ext}`), blob);
+        }catch(err){
+          failed++;
+          console.warn('downloadAllFinal item:',err,files[i]);
+        }
+      }
+      if(failed===files.length){
+        files.forEach((f,i)=>setTimeout(()=>triggerUrlDownload(f.url||f.data||'',f.name||`slide-${i+1}.jpg`),i*250));
+        showToast('Baixando arquivos individualmente...', 'inf');
+        return;
       }
       const blob = await zip.generateAsync({type:'blob'});
       triggerBlobDownload(blob,(posts[pid]?.title || 'post') + '_slides.zip');
-      showToast('ZIP baixado!', 'ok');
+      showToast(failed?`ZIP baixado com ${files.length-failed} arquivo(s)`:'ZIP baixado!', 'ok');
     } else {
       for(let i=0;i<files.length;i++){
         await new Promise(r=>setTimeout(r,i?250:0));
