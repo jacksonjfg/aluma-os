@@ -2665,25 +2665,16 @@ async function createAndUploadFinalZip(pid, files){
   const zipFile=new File([blob],zipName,{type:'application/zip'});
   return await uploadPostFileWithPath(pid,zipFile,'final-zips');
 }
+function openFinalFileInNewTab(file){
+  const src=file?.url||file?.data||'';
+  if(!src) return false;
+  const w=window.open(src,'_blank','noopener');
+  return !!w;
+}
 async function downloadFinalFile(pid, idx){
   const file=posts[pid]?.finalFiles?.[idx];
   if(!file) return;
-  const filename=file.name||`slide-${idx+1}.jpg`;
-  try{
-    if((file.url||file.data||'').startsWith('data:')){
-      const blob=await finalFileBlob(file);
-      triggerBlobDownload(blob,filename);
-    }else{
-      triggerFrameDownload(directDownloadUrl(file,filename)) || triggerUrlDownload(file.url||file.data||'',filename);
-    }
-    return;
-  }catch(err){
-    console.warn('downloadFinalFile fallback:',err);
-    const src=file.url||file.data||'';
-    if(!(triggerUrlDownload(directDownloadUrl(file,filename),filename) || triggerUrlDownload(src,filename))){
-      showToast('Não consegui baixar este arquivo','err');
-    }
-  }
+  if(!openFinalFileInNewTab(file)) showToast('Não consegui abrir este arquivo','err');
 }
 function renderFinalFiles(post){
   const files = post.finalFiles || [];
@@ -2694,7 +2685,7 @@ function renderFinalFiles(post){
     '<img src="' + (f.url||f.data||'') + '" alt="' + (f.name||'Slide '+(i+1)) + '" ' +
     'style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" ' +
     'onclick="openFinalImg(\'' + pid + '\',' + i + ')" title="' + (f.name||'Slide '+(i+1)) + '">' +
-    '<button onclick="event.stopPropagation();downloadFinalFile(\'' + pid + '\',' + i + ')" title="Baixar imagem" style="position:absolute;top:-4px;left:-4px;width:20px;height:20px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">↓</button>' +
+    '<button onclick="event.stopPropagation();downloadFinalFile(\'' + pid + '\',' + i + ')" title="Abrir imagem" style="position:absolute;top:-4px;left:-4px;width:20px;height:20px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">↗</button>' +
     '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:8px;padding:2px 4px;border-radius:0 0 5px 5px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' + (f.name||'Slide '+(i+1)) + '</div>' +
     '<button onclick="delFinalFile(\'' + pid + '\',' + i + ')" style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:9px;cursor:pointer;line-height:1">x</button>' +
     '</div>'
@@ -2741,7 +2732,7 @@ function openFinalImg(pid, idx){
     }
     const dl = document.createElement('button');
     dl.style.cssText = 'background:var(--accent);color:#fff;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;border:0;cursor:pointer';
-    dl.textContent = '⬇ Baixar imagem';
+    dl.textContent = '↗ Abrir imagem';
     dl.onclick = e => { e.stopPropagation(); downloadFinalFile(pid, cur); };
     const cls = document.createElement('button');
     cls.textContent = '✕'; cls.style.cssText = 'background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 12px;border-radius:6px;cursor:pointer';
@@ -2989,7 +2980,7 @@ async function downloadAllFinal(pid){
     if(typeof JSZip !== 'undefined'){
       const canZipNow=files.every(f=>String(f.url||f.data||'').startsWith('data:'));
       if(!canZipNow){
-        files.forEach((f,i)=>triggerUrlDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`),f.name||`slide-${i+1}.jpg`));
+        showToast('ZIP ainda não foi gerado para este carrossel. Reenvie todos os slides de uma vez para gerar o ZIP.','err');
         return;
       }
       const zip = new JSZip();
@@ -3006,19 +2997,17 @@ async function downloadAllFinal(pid){
         }
       }
       if(failed===files.length){
-        files.forEach((f,i)=>triggerUrlDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`),f.name||`slide-${i+1}.jpg`));
+        showToast('Não consegui montar o ZIP deste carrossel.','err');
         return;
       }
       const blob = await zip.generateAsync({type:'blob'});
       triggerBlobDownload(blob,(posts[pid]?.title || 'post') + '_slides.zip');
     } else {
-      for(let i=0;i<files.length;i++){
-        await downloadFinalFile(pid,i);
-      }
+      showToast('Não consegui montar o ZIP neste navegador.','err');
     }
   }catch(err){
     console.warn('downloadAllFinal fallback:',err);
-    files.forEach((f,i)=>triggerUrlDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`),f.name||`slide-${i+1}.jpg`));
+    showToast('Não consegui montar o ZIP deste carrossel.','err');
   }
 }
 
