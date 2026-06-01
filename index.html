@@ -157,7 +157,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .tag-linkedin{color:#818cf8;background:rgba(129,140,248,.12);}
 /* MODAL */
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:18px;overflow-y:auto;}
-.mo.open{display:flex;}
+.mo.open{display:flex;overflow:hidden;}
 .modal{background:var(--bg2);border:1px solid var(--border);border-radius:15px;width:100%;max-width:920px;min-height:540px;display:flex;flex-direction:column;overflow:hidden;animation:min .18s ease;box-shadow:0 24px 64px rgba(0,0,0,.55);}
 .modal-pack{max-width:94vw;min-height:calc(100vh - 42px);height:calc(100vh - 42px);}
 .modal-pack .mbody{min-height:0;}
@@ -172,7 +172,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .mclose{width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:all .15s;}
 .mclose:hover{background:var(--bg4);color:var(--text);}
 .flow-modal{max-width:720px;min-height:auto;border-radius:16px;background:var(--bg2);}
-.flow-modal .flow-body{padding:18px 20px 20px;display:grid;gap:12px;overflow:auto;}
+.flow-modal .flow-body{padding:18px 20px 20px;display:grid;gap:12px;overflow:auto;max-height:calc(100vh - 150px);}
 .flow-card{border:1px solid var(--border2);background:linear-gradient(180deg,var(--bg3),var(--bg2));border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:9px;}
 .flow-card-title{font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .flow-card-meta{font-size:12px;color:var(--text3);margin-top:4px;}
@@ -1920,7 +1920,7 @@ function openMacroItemModal(id=null,month=null){
   ov.className='mo open';
   ov.id='macro-item-mo';
   ov.innerHTML=`<div class="modal flow-modal">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">${id?'Editar ação macro':'Nova ação macro'}</div><div class="mmeta">Guarde a ideia, os links e o direcionamento do mês.</div></div><button class="mclose" onclick="closeMacroItemModal()">×</button></div>
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">${id?'Editar ação macro':'Nova ação macro'}</div><div class="mmeta">Guarde a ideia, os links e o direcionamento do mês.</div></div><button type="button" class="mclose" onclick="closeMacroItemModal();return false">×</button></div>
     <div class="flow-body">
       <div class="ff"><label class="flbl">Título da ação</label><input class="fi" id="macro-title" value="${escHtml(item?.title||'')}" placeholder="Ex: Campanha de inverno"></div>
       <div class="fgrid" style="grid-template-columns:1fr 1fr 1fr">
@@ -1941,7 +1941,7 @@ function openMacroItemModal(id=null,month=null){
   ov.addEventListener('click',e=>{ if(e.target===ov) closeMacroItemModal(); });
   document.body.appendChild(ov);
 }
-function closeMacroItemModal(){ document.getElementById('macro-item-mo')?.remove(); _editMacroId=null; }
+function closeMacroItemModal(){ document.querySelectorAll('#macro-item-mo').forEach(el=>el.remove()); _editMacroId=null; }
 async function saveMacroItem(){
   const title=document.getElementById('macro-title')?.value.trim();
   if(!title){ showToast('Dê um título para a ação','err'); return; }
@@ -2001,7 +2001,7 @@ async function openUseMacroModal(id){
   ov.className='mo open';
   ov.id='macro-use-mo';
   ov.innerHTML=`<div class="modal flow-modal" style="max-width:540px">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Criar no pack</div><div class="mmeta">Transforme a ação macro em um post de produção.</div></div><button class="mclose" onclick="closeUseMacroModal()">×</button></div>
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Criar no pack</div><div class="mmeta">Transforme a ação macro em um post de produção.</div></div><button type="button" class="mclose" onclick="closeUseMacroModal();return false">×</button></div>
     <div class="flow-body">
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Escolha onde criar o post: <b>${escHtml(item.title||'Ação macro')}</b></div>
       <div style="max-height:360px;overflow:auto">${html}</div>
@@ -2010,7 +2010,7 @@ async function openUseMacroModal(id){
   ov.addEventListener('click',e=>{ if(e.target===ov) closeUseMacroModal(); });
   document.body.appendChild(ov);
 }
-function closeUseMacroModal(){ document.getElementById('macro-use-mo')?.remove(); _useMacroId=null; }
+function closeUseMacroModal(){ document.querySelectorAll('#macro-use-mo').forEach(el=>el.remove()); _useMacroId=null; }
 async function createPostFromMacro(id,targetPackId){
   const item=macroItemById(id);
   if(!item){ showToast('Ação não encontrada','err'); return; }
@@ -2608,6 +2608,7 @@ function firebaseAttachmentUrl(url, filename){
   try{
     const u=new URL(raw);
     u.searchParams.set('response-content-disposition',`attachment; filename="${safeDownloadName(filename)}"`);
+    u.searchParams.set('response-content-type','application/octet-stream');
     return u.toString();
   }catch(e){
     return raw;
@@ -2633,20 +2634,14 @@ function triggerUrlDownload(url, filename){
   a.href=firebaseAttachmentUrl(url,filename);
   a.download=safeDownloadName(filename);
   a.rel='noopener';
-  a.target='_self';
+  a.style.display='none';
   document.body.appendChild(a);
   a.click();
   a.remove();
   return true;
 }
 function triggerFrameDownload(url){
-  if(!url) return false;
-  const iframe=document.createElement('iframe');
-  iframe.style.display='none';
-  iframe.src=url;
-  document.body.appendChild(iframe);
-  setTimeout(()=>iframe.remove(),45000);
-  return true;
+  return triggerUrlDownload(url,'download');
 }
 function triggerBlobDownload(blob, filename){
   const url=URL.createObjectURL(blob);
@@ -2681,13 +2676,11 @@ async function downloadFinalFile(pid, idx){
     }else{
       triggerFrameDownload(directDownloadUrl(file,filename)) || triggerUrlDownload(file.url||file.data||'',filename);
     }
-    showToast('Baixando imagem...','ok');
+    return;
   }catch(err){
     console.warn('downloadFinalFile fallback:',err);
     const src=file.url||file.data||'';
-    if(triggerFrameDownload(directDownloadUrl(file,filename)) || triggerUrlDownload(src,filename)){
-      showToast('Baixando imagem...','ok');
-    }else{
+    if(!(triggerUrlDownload(directDownloadUrl(file,filename),filename) || triggerUrlDownload(src,filename))){
       showToast('Não consegui baixar este arquivo','err');
     }
   }
@@ -2990,16 +2983,13 @@ async function downloadAllFinal(pid){
   const readyZip=posts[pid]?.finalZip;
   try{
     if(readyZip?.url && Number(readyZip.count||0)===files.length){
-      triggerFrameDownload(directDownloadUrl(readyZip,readyZip.name||`${posts[pid]?.title||'carrossel'}_slides.zip`));
-      showToast('Baixando ZIP...','ok');
+      triggerUrlDownload(directDownloadUrl(readyZip,readyZip.name||`${posts[pid]?.title||'carrossel'}_slides.zip`),readyZip.name||`${posts[pid]?.title||'carrossel'}_slides.zip`);
       return;
     }
-    showToast('Preparando download...', 'inf');
     if(typeof JSZip !== 'undefined'){
       const canZipNow=files.every(f=>String(f.url||f.data||'').startsWith('data:'));
       if(!canZipNow){
-        files.forEach((f,i)=>setTimeout(()=>triggerFrameDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`)),i*450));
-        showToast('Baixando imagens uma a uma. Para ZIP, salve o carrossel novamente.', 'inf');
+        files.forEach((f,i)=>triggerUrlDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`),f.name||`slide-${i+1}.jpg`));
         return;
       }
       const zip = new JSZip();
@@ -3016,24 +3006,19 @@ async function downloadAllFinal(pid){
         }
       }
       if(failed===files.length){
-        files.forEach((f,i)=>setTimeout(()=>triggerFrameDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`)),i*450));
-        showToast('Baixando imagens uma a uma. Para ZIP, salve o carrossel novamente.', 'inf');
+        files.forEach((f,i)=>triggerUrlDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`),f.name||`slide-${i+1}.jpg`));
         return;
       }
       const blob = await zip.generateAsync({type:'blob'});
       triggerBlobDownload(blob,(posts[pid]?.title || 'post') + '_slides.zip');
-      showToast(failed?`ZIP baixado com ${files.length-failed} arquivo(s)`:'ZIP baixado!', 'ok');
     } else {
       for(let i=0;i<files.length;i++){
-        await new Promise(r=>setTimeout(r,i?250:0));
         await downloadFinalFile(pid,i);
       }
-      showToast('Baixando ' + files.length + ' arquivos...', 'inf');
     }
   }catch(err){
     console.warn('downloadAllFinal fallback:',err);
-    files.forEach((f,i)=>setTimeout(()=>triggerFrameDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`)),i*450));
-    showToast('Baixando imagens uma a uma. Para ZIP, salve o carrossel novamente.','inf');
+    files.forEach((f,i)=>triggerUrlDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`),f.name||`slide-${i+1}.jpg`));
   }
 }
 
@@ -4032,7 +4017,7 @@ async function openMovePostModal(pid){
   ov.className='mo open';
   ov.id='move-post-mo';
   ov.innerHTML=`<div class="modal flow-modal" style="max-width:640px">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Usar em outro mês</div><div class="mmeta">Mover ou duplicar esta ideia sem trocar o pack aberto.</div></div><button class="mclose" onclick="closeMovePostModal()">×</button></div>
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Usar em outro mês</div><div class="mmeta">Mover ou duplicar esta ideia sem trocar o pack aberto.</div></div><button type="button" class="mclose" onclick="closeMovePostModal();return false">×</button></div>
     <div class="flow-body">
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Escolha o pack de destino para <b>${escHtml(post.title||'Post sem título')}</b>. Ao mover para outro mês, a data de agendamento é limpa para evitar aparecer no calendário antigo.</div>
       <div style="max-height:420px;overflow:auto">${html}</div>
@@ -4041,7 +4026,7 @@ async function openMovePostModal(pid){
   ov.addEventListener('click',e=>{ if(e.target===ov) closeMovePostModal(); });
   document.body.appendChild(ov);
 }
-function closeMovePostModal(){ document.getElementById('move-post-mo')?.remove(); }
+function closeMovePostModal(){ document.querySelectorAll('#move-post-mo').forEach(el=>el.remove()); }
 async function transferPostToPack(pid,targetPackId,mode='move'){
   const post=posts[pid];
   if(!post){ showToast('Post não encontrado','err'); return; }
