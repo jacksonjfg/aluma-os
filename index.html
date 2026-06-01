@@ -2626,7 +2626,9 @@ async function finalFileBlob(file){
   if(storage&&ref&&getBlob&&storagePath){
     return await getBlob(ref(storage,storagePath));
   }
-  throw new Error('Arquivo sem caminho interno para gerar ZIP.');
+  const res=await fetch(src,{mode:'cors'});
+  if(!res.ok) throw new Error('Não foi possível baixar o arquivo.');
+  return await res.blob();
 }
 function triggerUrlDownload(url, filename){
   if(!url) return false;
@@ -2978,11 +2980,6 @@ async function downloadAllFinal(pid){
       return;
     }
     if(typeof JSZip !== 'undefined'){
-      const canZipNow=files.every(f=>String(f.url||f.data||'').startsWith('data:'));
-      if(!canZipNow){
-        showToast('ZIP ainda não foi gerado para este carrossel. Reenvie todos os slides de uma vez para gerar o ZIP.','err');
-        return;
-      }
       const zip = new JSZip();
       let failed=0;
       for(let i=0;i<files.length;i++){
@@ -2997,11 +2994,20 @@ async function downloadAllFinal(pid){
         }
       }
       if(failed===files.length){
-        showToast('Não consegui montar o ZIP deste carrossel.','err');
+        showToast('Não consegui ler as imagens para montar o ZIP. Se o erro continuar, precisa liberar CORS no Firebase Storage uma única vez.','err');
         return;
       }
       const blob = await zip.generateAsync({type:'blob'});
-      triggerBlobDownload(blob,(posts[pid]?.title || 'post') + '_slides.zip');
+      const zipName=(posts[pid]?.title || 'post') + '_slides.zip';
+      triggerBlobDownload(blob,zipName);
+      try{
+        const zipFile=new File([blob],safeDownloadName(zipName,'carrossel_slides.zip'),{type:'application/zip'});
+        const uploaded=await uploadPostFileWithPath(pid,zipFile,'final-zips');
+        const finalZip={name:safeDownloadName(zipName,'carrossel_slides.zip'),url:uploaded.url,path:uploaded.path,type:'application/zip',count:files.length,updatedAt:Date.now()};
+        const {db,doc,updateDoc}=window._fb;
+        posts[pid].finalZip=finalZip;
+        await updateDoc(doc(db,'posts',pid),{finalZip,updatedAt:Date.now()});
+      }catch(cacheErr){ console.warn('cache finalZip:',cacheErr); }
     } else {
       showToast('Não consegui montar o ZIP neste navegador.','err');
     }
