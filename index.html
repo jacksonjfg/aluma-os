@@ -363,7 +363,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .emoji-btn{width:22px;height:22px;border:0;background:transparent;border-radius:5px;font-size:16px;cursor:pointer;line-height:1;}
 .emoji-btn:hover{background:var(--bg4);}
 /* CALENDAR FIXED SIZE */
-.cal-d{height:110px !important;min-height:110px !important;max-height:110px !important;overflow:hidden;}
+.cal-d{min-height:110px !important;height:auto !important;overflow:visible;}
 .cal-post{flex-shrink:0;}
 /* GLOBAL KANBAN drag */
 .gkcol{transition:border-color .15s,background .15s;}
@@ -2360,6 +2360,38 @@ function openPost(pid,skipUrlSync=false){
 
 
 // ===== FINAL FILES HELPERS =====
+function safeDownloadName(name, fallback='imagem.jpg'){
+  return String(name||fallback).replace(/[\\/:*?"<>|]+/g,'-').trim()||fallback;
+}
+async function finalFileBlob(file){
+  const src=file?.url||file?.data||'';
+  if(!src) throw new Error('Arquivo sem URL.');
+  const res=await fetch(src);
+  if(!res.ok) throw new Error('Não foi possível baixar o arquivo.');
+  return await res.blob();
+}
+function triggerBlobDownload(blob, filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=safeDownloadName(filename);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1200);
+}
+async function downloadFinalFile(pid, idx){
+  const file=posts[pid]?.finalFiles?.[idx];
+  if(!file) return;
+  try{
+    const blob=await finalFileBlob(file);
+    triggerBlobDownload(blob,file.name||`slide-${idx+1}.jpg`);
+    showToast('Download iniciado','ok');
+  }catch(err){
+    console.error('downloadFinalFile:',err);
+    showToast('Não consegui baixar este arquivo','err');
+  }
+}
 function renderFinalFiles(post){
   const files = post.finalFiles || [];
   if(!files.length) return '<div style="font-size:12px;color:var(--text3);padding:4px 0">Nenhum arquivo ainda</div>';
@@ -2368,6 +2400,7 @@ function renderFinalFiles(post){
     '<img src="' + (f.url||f.data||'') + '" alt="' + (f.name||'Slide '+(i+1)) + '" ' +
     'style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" ' +
     'onclick="openFinalImg(currentPostId,' + i + ')" title="' + (f.name||'Slide '+(i+1)) + '">' +
+    '<button onclick="event.stopPropagation();downloadFinalFile(currentPostId,' + i + ')" title="Baixar imagem" style="position:absolute;top:-4px;left:-4px;width:20px;height:20px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">↓</button>' +
     '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:8px;padding:2px 4px;border-radius:0 0 5px 5px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' + (f.name||'Slide '+(i+1)) + '</div>' +
     '<button onclick="delFinalFile(currentPostId,' + i + ')" style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:9px;cursor:pointer;line-height:1">x</button>' +
     '</div>'
@@ -2412,10 +2445,10 @@ function openFinalImg(pid, idx){
       next.onclick = e => { e.stopPropagation(); cur = (cur + 1) % files.length; render(); };
       nav.appendChild(next);
     }
-    const dl = document.createElement('a');
-    dl.href = files[cur].data; dl.download = files[cur].name || 'slide.jpg';
-    dl.style.cssText = 'background:var(--accent);color:#fff;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none';
-    dl.textContent = '⬇ Baixar'; dl.onclick = e => e.stopPropagation();
+    const dl = document.createElement('button');
+    dl.style.cssText = 'background:var(--accent);color:#fff;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;border:0;cursor:pointer';
+    dl.textContent = '⬇ Baixar imagem';
+    dl.onclick = e => { e.stopPropagation(); downloadFinalFile(pid, cur); };
     const cls = document.createElement('button');
     cls.textContent = '✕'; cls.style.cssText = 'background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 12px;border-radius:6px;cursor:pointer';
     cls.onclick = () => ov.remove();
@@ -2633,26 +2666,29 @@ async function delFinalFile(pid, idx){
 async function downloadAllFinal(pid){
   const files = posts[pid]?.finalFiles || [];
   if(!files.length) return;
-  if(typeof JSZip !== 'undefined'){
-    const zip = new JSZip();
-    files.forEach((f,i) => {
-      const ext = f.name?.split('.').pop() || 'jpg';
-      const base64 = f.data.split(',')[1];
-      zip.file(f.name || (i+1 + '_slide.' + ext), base64, {base64: true});
-    });
-    const blob = await zip.generateAsync({type:'blob'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = (posts[pid]?.title || 'post') + '_slides.zip';
-    a.click(); URL.revokeObjectURL(url);
-  } else {
-    files.forEach((f,i) => {
-      setTimeout(() => {
-        const a = document.createElement('a'); a.href = f.data;
-        a.download = f.name || (i+1 + '_slide.jpg'); a.click();
-      }, i * 400);
-    });
-    showToast('Baixando ' + files.length + ' arquivos...', 'inf');
+  try{
+    showToast('Preparando download...', 'inf');
+    if(typeof JSZip !== 'undefined'){
+      const zip = new JSZip();
+      for(let i=0;i<files.length;i++){
+        const f=files[i];
+        const ext=(f.name?.split('.').pop() || 'jpg').toLowerCase();
+        const blob=await finalFileBlob(f);
+        zip.file(safeDownloadName(f.name || `${String(i+1).padStart(2,'0')}_slide.${ext}`), blob);
+      }
+      const blob = await zip.generateAsync({type:'blob'});
+      triggerBlobDownload(blob,(posts[pid]?.title || 'post') + '_slides.zip');
+      showToast('ZIP baixado!', 'ok');
+    } else {
+      for(let i=0;i<files.length;i++){
+        await new Promise(r=>setTimeout(r,i?250:0));
+        await downloadFinalFile(pid,i);
+      }
+      showToast('Baixando ' + files.length + ' arquivos...', 'inf');
+    }
+  }catch(err){
+    console.error('downloadAllFinal:',err);
+    showToast('Não consegui baixar todos os arquivos','err');
   }
 }
 
@@ -3818,7 +3854,7 @@ function buildCalGrid(cid,yr,mo,postsArr,showClient){
       ondragleave="this.style.background=''"
       ondrop="dropCalPost(event,'${dateStr}',${yr},${mo})">
       <div class="cal-dn">${dayNum}</div>
-      ${dp.slice(0,3).map(p=>{
+      ${dp.map(p=>{
         const cl=clients[p.clientId]; const color=statusColorById(p.status);
         const cn=showClient?(cl?.name||'?').split(' ')[0]+': ':'';
         const time=p.postDate?new Date(p.postDate).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' ':'';
@@ -3831,7 +3867,6 @@ function buildCalGrid(cid,yr,mo,postsArr,showClient){
           onclick="showPV('${p.id}')"
           title="${cl?.name||''}: ${p.title||''}">${label}</div>`;
       }).join('')}
-      ${dp.length>3?`<div style="font-size:9.5px;color:var(--text3)">+${dp.length-3}</div>`:''}
     </div>`;
   };
   for(let i=0;i<fd;i++) cells+=makeCell(new Date(yr,mo,-(fd-i-1)).getDate(),true,false,[]);
