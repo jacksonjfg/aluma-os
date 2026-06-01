@@ -171,6 +171,12 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .mmeta{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
 .mclose{width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;transition:all .15s;}
 .mclose:hover{background:var(--bg4);color:var(--text);}
+.flow-modal{max-width:720px;min-height:auto;border-radius:16px;background:var(--bg2);}
+.flow-modal .flow-body{padding:18px 20px 20px;display:grid;gap:12px;overflow:auto;}
+.flow-card{border:1px solid var(--border2);background:linear-gradient(180deg,var(--bg3),var(--bg2));border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:9px;}
+.flow-card-title{font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.flow-card-meta{font-size:12px;color:var(--text3);margin-top:4px;}
+.flow-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;}
 .mhead{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:14px;background:linear-gradient(180deg,var(--bg2),rgba(132,131,255,.03));}
 .mtit{font-size:18px;font-weight:800;letter-spacing:-.3px;color:var(--text);margin-bottom:4px}
 .msub{font-size:12.5px;line-height:1.45;color:var(--text3)}
@@ -1877,6 +1883,7 @@ function renderMacroCard(item){
   const status=item.status||'ideia';
   const statusBg=status==='usado'?'#dcfce7':status==='planejado'?'#dbeafe':'#f3e8ff';
   const statusColor=status==='usado'?'#166534':status==='planejado'?'#1d4ed8':'#7e22ce';
+  const links=parseMacroLinks(macroLinksText(item));
   return `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px">
     <div style="display:flex;gap:8px;align-items:flex-start">
       <div style="font-weight:800;color:var(--text);line-height:1.25;flex:1">${escHtml(item.title||'Ação sem título')}</div>
@@ -1885,6 +1892,7 @@ function renderMacroCard(item){
     ${item.objective?`<div style="font-size:12px;color:var(--text2);line-height:1.35;white-space:pre-wrap">${escHtml(item.objective)}</div>`:''}
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       ${item.format?`<span class="ktag tag-${String(item.format).toLowerCase()}" style="font-size:10px">${escHtml(item.format)}</span>`:''}
+      ${links.length?`<span style="font-size:11px;color:var(--accent);font-weight:800">${links.length} ref.</span>`:''}
       ${item.usedPostId?`<span style="font-size:11px;color:var(--text3)">Criado em pack</span>`:''}
     </div>
     <div style="display:flex;gap:6px;justify-content:flex-end">
@@ -1898,6 +1906,12 @@ async function changeMacroYear(delta){
   await renderMacroPlanning(document.getElementById('ct'));
 }
 function macroItemById(id){ return _macroPlans.find(i=>i.id===id); }
+function macroLinksText(item){
+  return Array.isArray(item?.refLinks) ? item.refLinks.join('\n') : String(item?.referenceLinks||'');
+}
+function parseMacroLinks(text){
+  return String(text||'').split(/\n+/).map(v=>v.trim()).filter(Boolean);
+}
 function openMacroItemModal(id=null,month=null){
   const item=id?macroItemById(id):null;
   _editMacroId=id;
@@ -1905,9 +1919,9 @@ function openMacroItemModal(id=null,month=null){
   const ov=document.createElement('div');
   ov.className='mo open';
   ov.id='macro-item-mo';
-  ov.innerHTML=`<div class="modal" style="max-width:680px">
-    <div class="mh"><h2>${id?'Editar ação macro':'Nova ação macro'}</h2><button class="x" onclick="closeMacroItemModal()">×</button></div>
-    <div style="padding:16px;display:grid;gap:12px">
+  ov.innerHTML=`<div class="modal flow-modal">
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">${id?'Editar ação macro':'Nova ação macro'}</div><div class="mmeta">Guarde a ideia, os links e o direcionamento do mês.</div></div><button class="mclose" onclick="closeMacroItemModal()">×</button></div>
+    <div class="flow-body">
       <div class="ff"><label class="flbl">Título da ação</label><input class="fi" id="macro-title" value="${escHtml(item?.title||'')}" placeholder="Ex: Campanha de inverno"></div>
       <div class="fgrid" style="grid-template-columns:1fr 1fr 1fr">
         <div class="ff"><label class="flbl">Mês</label><select class="fi" id="macro-month">${MONTHS.map((m,i)=>`<option value="${i}" ${Number(selectedMonth)===i?'selected':''}>${m}</option>`).join('')}</select></div>
@@ -1915,14 +1929,16 @@ function openMacroItemModal(id=null,month=null){
         <div class="ff"><label class="flbl">Status</label><select class="fi" id="macro-status">${Object.entries(MACRO_STATUS).map(([k,v])=>`<option value="${k}" ${(item?.status||'ideia')===k?'selected':''}>${v}</option>`).join('')}</select></div>
       </div>
       <div class="ff"><label class="flbl">Objetivo</label><textarea class="fi" id="macro-objective" style="min-height:90px;resize:vertical" placeholder="O que essa ação precisa alcançar?">${escHtml(item?.objective||'')}</textarea></div>
+      <div class="ff"><label class="flbl">Links de referência</label><textarea class="fi" id="macro-links" style="min-height:86px;resize:vertical" placeholder="Cole um link por linha">${escHtml(macroLinksText(item))}</textarea></div>
       <div class="ff"><label class="flbl">Ideias, ganchos e observações</label><textarea class="fi" id="macro-notes" style="min-height:130px;resize:vertical" placeholder="Pontos que já foram pensados, referências, temas, ofertas, datas importantes...">${escHtml(item?.notes||'')}</textarea></div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
+      <div class="flow-actions">
         ${id?`<button class="btn btn-d" onclick="deleteMacroItem('${id}')">Excluir</button>`:''}
         <button class="btn btn-s" onclick="closeMacroItemModal()">Cancelar</button>
         <button class="btn btn-p" onclick="saveMacroItem()">Salvar</button>
       </div>
     </div>
   </div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeMacroItemModal(); });
   document.body.appendChild(ov);
 }
 function closeMacroItemModal(){ document.getElementById('macro-item-mo')?.remove(); _editMacroId=null; }
@@ -1939,6 +1955,8 @@ async function saveMacroItem(){
     title,
     objective:document.getElementById('macro-objective')?.value||'',
     notes:document.getElementById('macro-notes')?.value||'',
+    referenceLinks:document.getElementById('macro-links')?.value||'',
+    refLinks:parseMacroLinks(document.getElementById('macro-links')?.value||''),
     format:document.getElementById('macro-format')?.value||'Carrossel',
     status:document.getElementById('macro-status')?.value||'ideia',
     order:_macroPlans.filter(i=>Number(i.month)===month).length,
@@ -1966,6 +1984,7 @@ async function deleteMacroItem(id){
 function macroPlanText(item){
   return [
     item.objective?`Objetivo:\n${item.objective}`:'',
+    macroLinksText(item)?`Links de referência:\n${macroLinksText(item)}`:'',
     item.notes?`Ideias e observações:\n${item.notes}`:''
   ].filter(Boolean).join('\n\n');
 }
@@ -1981,13 +2000,14 @@ async function openUseMacroModal(id){
   const ov=document.createElement('div');
   ov.className='mo open';
   ov.id='macro-use-mo';
-  ov.innerHTML=`<div class="modal" style="max-width:520px">
-    <div class="mh"><h2>Criar no pack</h2><button class="x" onclick="closeUseMacroModal()">×</button></div>
-    <div style="padding:16px">
+  ov.innerHTML=`<div class="modal flow-modal" style="max-width:540px">
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Criar no pack</div><div class="mmeta">Transforme a ação macro em um post de produção.</div></div><button class="mclose" onclick="closeUseMacroModal()">×</button></div>
+    <div class="flow-body">
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Escolha onde criar o post: <b>${escHtml(item.title||'Ação macro')}</b></div>
       <div style="max-height:360px;overflow:auto">${html}</div>
     </div>
   </div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeUseMacroModal(); });
   document.body.appendChild(ov);
 }
 function closeUseMacroModal(){ document.getElementById('macro-use-mo')?.remove(); _useMacroId=null; }
@@ -2012,8 +2032,8 @@ async function createPostFromMacro(id,targetPackId){
     designBriefingVersions:[],
     designBriefingMeta:null,
     caption:'',
-    refLinks:[],
-    refLink:'',
+    refLinks:parseMacroLinks(macroLinksText(item)),
+    refLink:parseMacroLinks(macroLinksText(item))[0]||'',
     images:[],
     comments:[],
     assignees:[],
@@ -2593,6 +2613,9 @@ function firebaseAttachmentUrl(url, filename){
     return raw;
   }
 }
+function directDownloadUrl(file, filename){
+  return firebaseAttachmentUrl(file?.url||file?.data||'', filename || file?.name || 'imagem.jpg');
+}
 async function finalFileBlob(file){
   const src=file?.url||file?.data||'';
   if(!src) throw new Error('Arquivo sem URL.');
@@ -2600,12 +2623,9 @@ async function finalFileBlob(file){
   const {storage, ref, getBlob}=window._fb||{};
   const storagePath=file?.path||storagePathFromDownloadUrl(src);
   if(storage&&ref&&getBlob&&storagePath){
-    try{ return await getBlob(ref(storage,storagePath)); }
-    catch(err){ console.warn('getBlob failed, trying URL fetch:',err); }
+    return await getBlob(ref(storage,storagePath));
   }
-  const res=await fetch(firebaseAttachmentUrl(src,file?.name),{mode:'cors'});
-  if(!res.ok) throw new Error('Não foi possível baixar o arquivo.');
-  return await res.blob();
+  throw new Error('Arquivo sem caminho interno para gerar ZIP.');
 }
 function triggerUrlDownload(url, filename){
   if(!url) return false;
@@ -2619,6 +2639,15 @@ function triggerUrlDownload(url, filename){
   a.remove();
   return true;
 }
+function triggerFrameDownload(url){
+  if(!url) return false;
+  const iframe=document.createElement('iframe');
+  iframe.style.display='none';
+  iframe.src=url;
+  document.body.appendChild(iframe);
+  setTimeout(()=>iframe.remove(),45000);
+  return true;
+}
 function triggerBlobDownload(blob, filename){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -2629,19 +2658,35 @@ function triggerBlobDownload(blob, filename){
   a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1200);
 }
+async function createAndUploadFinalZip(pid, files){
+  if(typeof JSZip === 'undefined' || !files?.length) return null;
+  const zip=new JSZip();
+  files.forEach((file,i)=>{
+    const ext=(file.name?.split('.').pop() || 'jpg').toLowerCase();
+    zip.file(safeDownloadName(file.name || `${String(i+1).padStart(2,'0')}_slide.${ext}`), file);
+  });
+  const blob=await zip.generateAsync({type:'blob'});
+  const zipName=safeDownloadName((posts[pid]?.title||'carrossel') + '_slides.zip','carrossel_slides.zip');
+  const zipFile=new File([blob],zipName,{type:'application/zip'});
+  return await uploadPostFileWithPath(pid,zipFile,'final-zips');
+}
 async function downloadFinalFile(pid, idx){
   const file=posts[pid]?.finalFiles?.[idx];
   if(!file) return;
   const filename=file.name||`slide-${idx+1}.jpg`;
   try{
-    const blob=await finalFileBlob(file);
-    triggerBlobDownload(blob,filename);
-    showToast('Download iniciado','ok');
+    if((file.url||file.data||'').startsWith('data:')){
+      const blob=await finalFileBlob(file);
+      triggerBlobDownload(blob,filename);
+    }else{
+      triggerFrameDownload(directDownloadUrl(file,filename)) || triggerUrlDownload(file.url||file.data||'',filename);
+    }
+    showToast('Baixando imagem...','ok');
   }catch(err){
-    console.error('downloadFinalFile:',err);
+    console.warn('downloadFinalFile fallback:',err);
     const src=file.url||file.data||'';
-    if(triggerUrlDownload(src,filename)){
-      showToast('Download iniciado','ok');
+    if(triggerFrameDownload(directDownloadUrl(file,filename)) || triggerUrlDownload(src,filename)){
+      showToast('Baixando imagem...','ok');
     }else{
       showToast('Não consegui baixar este arquivo','err');
     }
@@ -2893,6 +2938,7 @@ async function confirmFinalUpload(){
     }
     if(confirmBtn){ confirmBtn.disabled=true; confirmBtn.textContent='Salvando...'; }
     showToast('Enviando ' + uploadItems.length + ' arquivo(s)...', 'inf');
+    let zipPayload=null;
     for(const item of uploadItems){
       const f=item.file;
       const uploaded = await uploadPostFileWithPath(pid, f, 'final');
@@ -2901,7 +2947,19 @@ async function confirmFinalUpload(){
       if(replaceMode && existingIdx>=0) arr.splice(existingIdx,1,payload);
       else arr.push(payload);
     }
-    await spfDirect(pid, 'finalFiles', arr);
+    if(uploadItems.length>1 && arr.length===uploadItems.length){
+      try{
+        const zip=await createAndUploadFinalZip(pid,uploadItems.map(item=>item.file));
+        if(zip) zipPayload={name:safeDownloadName((posts[pid]?.title||'carrossel') + '_slides.zip','carrossel_slides.zip'),url:zip.url,path:zip.path,type:'application/zip',count:arr.length,updatedAt:Date.now()};
+      }catch(zipErr){ console.warn('createAndUploadFinalZip:',zipErr); }
+    }
+    const {db,doc,updateDoc}=window._fb;
+    const updatedAt=Date.now();
+    const payload={finalFiles:arr,finalZip:zipPayload,updatedAt};
+    posts[pid].finalFiles=arr;
+    posts[pid].finalZip=zipPayload;
+    posts[pid].updatedAt=updatedAt;
+    await updateDoc(doc(db,'posts',pid),payload);
     const el = document.getElementById('final-files-' + pid);
     if(el) el.innerHTML = renderFinalFiles(posts[pid]);
     closeFinalUploadReview();
@@ -2916,7 +2974,12 @@ async function confirmFinalUpload(){
 async function delFinalFile(pid, idx){
   const arr = [...(posts[pid].finalFiles || [])];
   arr.splice(idx, 1);
-  await spfDirect(pid, 'finalFiles', arr);
+  const {db,doc,updateDoc}=window._fb;
+  const updatedAt=Date.now();
+  posts[pid].finalFiles=arr;
+  posts[pid].finalZip=null;
+  posts[pid].updatedAt=updatedAt;
+  await updateDoc(doc(db,'posts',pid),{finalFiles:arr,finalZip:null,updatedAt});
   const el = document.getElementById('final-files-' + pid);
   if(el) el.innerHTML = renderFinalFiles(posts[pid]);
 }
@@ -2924,9 +2987,21 @@ async function delFinalFile(pid, idx){
 async function downloadAllFinal(pid){
   const files = posts[pid]?.finalFiles || [];
   if(!files.length) return;
+  const readyZip=posts[pid]?.finalZip;
   try{
+    if(readyZip?.url && Number(readyZip.count||0)===files.length){
+      triggerFrameDownload(directDownloadUrl(readyZip,readyZip.name||`${posts[pid]?.title||'carrossel'}_slides.zip`));
+      showToast('Baixando ZIP...','ok');
+      return;
+    }
     showToast('Preparando download...', 'inf');
     if(typeof JSZip !== 'undefined'){
+      const canZipNow=files.every(f=>String(f.url||f.data||'').startsWith('data:'));
+      if(!canZipNow){
+        files.forEach((f,i)=>setTimeout(()=>triggerFrameDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`)),i*450));
+        showToast('Baixando imagens uma a uma. Para ZIP, salve o carrossel novamente.', 'inf');
+        return;
+      }
       const zip = new JSZip();
       let failed=0;
       for(let i=0;i<files.length;i++){
@@ -2941,8 +3016,8 @@ async function downloadAllFinal(pid){
         }
       }
       if(failed===files.length){
-        files.forEach((f,i)=>setTimeout(()=>triggerUrlDownload(f.url||f.data||'',f.name||`slide-${i+1}.jpg`),i*350));
-        showToast('Não consegui montar ZIP; baixando imagens uma a uma...', 'inf');
+        files.forEach((f,i)=>setTimeout(()=>triggerFrameDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`)),i*450));
+        showToast('Baixando imagens uma a uma. Para ZIP, salve o carrossel novamente.', 'inf');
         return;
       }
       const blob = await zip.generateAsync({type:'blob'});
@@ -2956,8 +3031,9 @@ async function downloadAllFinal(pid){
       showToast('Baixando ' + files.length + ' arquivos...', 'inf');
     }
   }catch(err){
-    console.error('downloadAllFinal:',err);
-    showToast('Não consegui baixar todos os arquivos','err');
+    console.warn('downloadAllFinal fallback:',err);
+    files.forEach((f,i)=>setTimeout(()=>triggerFrameDownload(directDownloadUrl(f,f.name||`slide-${i+1}.jpg`)),i*450));
+    showToast('Baixando imagens uma a uma. Para ZIP, salve o carrossel novamente.','inf');
   }
 }
 
@@ -3941,28 +4017,28 @@ async function openMovePostModal(pid){
     const label=`${p.type||'Pack'} — ${p.month||p.operationalMonth||'Sem mês'}`;
     const statusLabel=STATUSES.find(s=>s.id===normalizePackStatusId(p.status))?.label||p.status||'';
     const detail=[statusLabel, p.postCount!==undefined?`${p.postCount} posts`:'' ].filter(Boolean).join(' · ');
-    return `<div style="border:1px solid var(--border2);background:var(--bg3);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
+    return `<div class="flow-card">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(label)}</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:3px">${escHtml(detail||'Pack disponível')}</div>
+        <div class="flow-card-title">${escHtml(label)}</div>
+        <div class="flow-card-meta">${escHtml(detail||'Pack disponível')}</div>
       </div>
-      <button class="btn btn-s btn-sm" onclick="transferPostToPack('${pid}','${p.id}','copy')">Duplicar</button>
-      <button class="btn btn-p btn-sm" onclick="transferPostToPack('${pid}','${p.id}','move')">Mover</button>
+      <div class="flow-actions">
+        <button class="btn btn-s btn-sm" onclick="transferPostToPack('${pid}','${p.id}','copy')">Duplicar</button>
+        <button class="btn btn-p btn-sm" onclick="transferPostToPack('${pid}','${p.id}','move')">Mover</button>
+      </div>
     </div>`;
   }).join(''):`<div style="padding:18px;border:1px solid var(--border2);border-radius:8px;color:var(--text3);background:var(--bg3)">Crie outro pack para este cliente antes de mover a ideia.</div>`;
   const ov=document.createElement('div');
   ov.className='mo open';
   ov.id='move-post-mo';
-  ov.innerHTML=`<div class="modal" style="max-width:620px">
-    <div class="mh">
-      <h2>Usar em outro mês</h2>
-      <button class="x" onclick="closeMovePostModal()">×</button>
-    </div>
-    <div style="padding:16px">
+  ov.innerHTML=`<div class="modal flow-modal" style="max-width:640px">
+    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Usar em outro mês</div><div class="mmeta">Mover ou duplicar esta ideia sem trocar o pack aberto.</div></div><button class="mclose" onclick="closeMovePostModal()">×</button></div>
+    <div class="flow-body">
       <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Escolha o pack de destino para <b>${escHtml(post.title||'Post sem título')}</b>. Ao mover para outro mês, a data de agendamento é limpa para evitar aparecer no calendário antigo.</div>
       <div style="max-height:420px;overflow:auto">${html}</div>
     </div>
   </div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeMovePostModal(); });
   document.body.appendChild(ov);
 }
 function closeMovePostModal(){ document.getElementById('move-post-mo')?.remove(); }
