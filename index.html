@@ -2617,6 +2617,20 @@ function firebaseAttachmentUrl(url, filename){
 function directDownloadUrl(file, filename){
   return firebaseAttachmentUrl(file?.url||file?.data||'', filename || file?.name || 'imagem.jpg');
 }
+function finalZipNameForPost(pid){
+  const post=posts[pid]||{};
+  const client=clients[post.clientId||currentClientId]||{};
+  const pack=packs[post.packId||currentPackId]||{};
+  const title=String(post.title||'Post').trim();
+  const postMatch=title.match(/post\s*0*\d+/i);
+  const postLabel=(postMatch?postMatch[0]:title.split(/[-–—|]/)[0]||'Post').trim();
+  let monthLabel=pack.month||pack.operationalMonth||'';
+  if(!monthLabel && post.postDate){
+    const d=new Date(post.postDate);
+    if(!Number.isNaN(d.getTime())) monthLabel=MONTHS[d.getMonth()];
+  }
+  return safeDownloadName(`${client.name||'Cliente'} ${postLabel} ${monthLabel||''}`.toUpperCase()+'.zip','carrossel.zip');
+}
 async function finalFileBlob(file){
   const src=file?.url||file?.data||'';
   if(!src) throw new Error('Arquivo sem URL.');
@@ -2663,7 +2677,7 @@ async function createAndUploadFinalZip(pid, files){
     zip.file(safeDownloadName(file.name || `${String(i+1).padStart(2,'0')}_slide.${ext}`), file);
   });
   const blob=await zip.generateAsync({type:'blob'});
-  const zipName=safeDownloadName((posts[pid]?.title||'carrossel') + '_slides.zip','carrossel_slides.zip');
+  const zipName=finalZipNameForPost(pid);
   const zipFile=new File([blob],zipName,{type:'application/zip'});
   return await uploadPostFileWithPath(pid,zipFile,'final-zips');
 }
@@ -2936,7 +2950,7 @@ async function confirmFinalUpload(){
     if(uploadItems.length>1 && arr.length===uploadItems.length){
       try{
         const zip=await createAndUploadFinalZip(pid,uploadItems.map(item=>item.file));
-        if(zip) zipPayload={name:safeDownloadName((posts[pid]?.title||'carrossel') + '_slides.zip','carrossel_slides.zip'),url:zip.url,path:zip.path,type:'application/zip',count:arr.length,updatedAt:Date.now()};
+        if(zip) zipPayload={name:finalZipNameForPost(pid),url:zip.url,path:zip.path,type:'application/zip',count:arr.length,updatedAt:Date.now()};
       }catch(zipErr){ console.warn('createAndUploadFinalZip:',zipErr); }
     }
     const {db,doc,updateDoc}=window._fb;
@@ -2976,7 +2990,8 @@ async function downloadAllFinal(pid){
   const readyZip=posts[pid]?.finalZip;
   try{
     if(readyZip?.url && Number(readyZip.count||0)===files.length){
-      triggerUrlDownload(directDownloadUrl(readyZip,readyZip.name||`${posts[pid]?.title||'carrossel'}_slides.zip`),readyZip.name||`${posts[pid]?.title||'carrossel'}_slides.zip`);
+      const zipName=readyZip.name||finalZipNameForPost(pid);
+      triggerUrlDownload(directDownloadUrl(readyZip,zipName),zipName);
       return;
     }
     if(typeof JSZip !== 'undefined'){
@@ -2998,12 +3013,12 @@ async function downloadAllFinal(pid){
         return;
       }
       const blob = await zip.generateAsync({type:'blob'});
-      const zipName=(posts[pid]?.title || 'post') + '_slides.zip';
+      const zipName=finalZipNameForPost(pid);
       triggerBlobDownload(blob,zipName);
       try{
-        const zipFile=new File([blob],safeDownloadName(zipName,'carrossel_slides.zip'),{type:'application/zip'});
+        const zipFile=new File([blob],zipName,{type:'application/zip'});
         const uploaded=await uploadPostFileWithPath(pid,zipFile,'final-zips');
-        const finalZip={name:safeDownloadName(zipName,'carrossel_slides.zip'),url:uploaded.url,path:uploaded.path,type:'application/zip',count:files.length,updatedAt:Date.now()};
+        const finalZip={name:zipName,url:uploaded.url,path:uploaded.path,type:'application/zip',count:files.length,updatedAt:Date.now()};
         const {db,doc,updateDoc}=window._fb;
         posts[pid].finalZip=finalZip;
         await updateDoc(doc(db,'posts',pid),{finalZip,updatedAt:Date.now()});
