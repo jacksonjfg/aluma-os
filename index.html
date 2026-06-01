@@ -1795,6 +1795,7 @@ async function renderClientDetail(){
     <div class="ptabs">
       <button class="ptab ${clientTab==='packs'?'active':''}" onclick="swCT('packs')">📦 Publicações</button>
       <button class="ptab ${clientTab==='cal'?'active':''}" onclick="swCT('cal')">📅 Calendário</button>
+      <button class="ptab ${clientTab==='macro'?'active':''}" onclick="swCT('macro')">🗓 Planejamento Macro</button>
       <button class="ptab ${clientTab==='docs'?'active':''}" onclick="swCT('docs')">📁 Documentos</button>
       <button class="ptab ${clientTab==='reunioes'?'active':''}" onclick="swCT('reunioes')">🎥 Reuniões</button>
       <button class="ptab ${clientTab==='relatorio'?'active':''}" onclick="swCT('relatorio')">📊 Relatório</button>
@@ -1811,17 +1812,225 @@ async function swCT(t){
     try{ await saveCurrentRichDraft(); }catch(err){ console.warn('swCT/saveCurrentRichDraft',err); }
   }
   clientTab=t;
-  document.querySelectorAll('.ptab').forEach(el=>{ const m={packs:'Publicações',cal:'Calendário',docs:'Documentos',reunioes:'Reuniões',relatorio:'Relatório',metricas:'Métricas'}; el.classList.toggle('active',el.textContent.trim().includes(m[t]||'__')); });
+  document.querySelectorAll('.ptab').forEach(el=>{ const m={packs:'Publicações',cal:'Calendário',macro:'Planejamento Macro',docs:'Documentos',reunioes:'Reuniões',relatorio:'Relatório',metricas:'Métricas'}; el.classList.toggle('active',el.textContent.trim().includes(m[t]||'__')); });
   await renderCT();
 }
 async function renderCT(){
   const el=document.getElementById('ct'); if(!el) return;
   if(clientTab==='packs') await renderKanbanInto(el);
   else if(clientTab==='cal') await renderClientCalInto(el);
+  else if(clientTab==='macro') await renderMacroPlanning(el);
   else if(clientTab==='relatorio') await renderRelatorio(el);
   else if(clientTab==='metricas') await renderMetricas(el);
   else if(clientTab==='reunioes') await renderReunioes(el);
   else await renderDocsInto(el);
+}
+
+// ===== PLANEJAMENTO MACRO =====
+let macroYear=new Date().getFullYear();
+let _macroPlans=[];
+let _editMacroId=null;
+let _useMacroId=null;
+const MACRO_STATUS={ideia:'Ideia',planejado:'Planejado',usado:'Usado'};
+async function loadMacroPlans(year=macroYear){
+  const {db,collection,getDocs,query,where}=window._fb;
+  const snap=await getDocs(query(collection(db,'macro_plans'),where('clientId','==',currentClientId)));
+  _macroPlans=[];
+  snap.forEach(d=>{ const item={id:d.id,...d.data()}; if(Number(item.year)===Number(year)) _macroPlans.push(item); });
+  _macroPlans.sort((a,b)=>(a.month||0)-(b.month||0)||(a.order||0)-(b.order||0)||(a.createdAt||0)-(b.createdAt||0));
+  return _macroPlans;
+}
+async function renderMacroPlanning(container){
+  container.setAttribute('style','flex:1;overflow:auto;padding:18px');
+  container.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  await loadMacroPlans(macroYear);
+  const byMonth={};
+  _macroPlans.forEach(item=>{
+    const m=Number(item.month)||0;
+    if(!byMonth[m]) byMonth[m]=[];
+    byMonth[m].push(item);
+  });
+  container.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <button class="btn btn-s" onclick="changeMacroYear(-1)">‹</button>
+    <div style="font-size:22px;font-weight:900;color:var(--text)">Planejamento Macro ${macroYear}</div>
+    <button class="btn btn-s" onclick="changeMacroYear(1)">›</button>
+    <span style="flex:1"></span>
+    <button class="btn btn-p" onclick="openMacroItemModal(null,new Date().getMonth())">+ Nova ação</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+    ${MONTHS.map((monthName,idx)=>{
+      const items=byMonth[idx]||[];
+      return `<div style="border:1px solid var(--border2);background:var(--bg2);border-radius:8px;min-height:180px;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px;border-bottom:1px solid var(--border)">
+          <div style="font-weight:900;color:var(--text);font-size:15px">${monthName}</div>
+          <span style="font-size:11px;color:var(--text3);font-weight:800">${items.length}</span>
+          <button class="btn btn-s btn-sm" style="margin-left:auto" onclick="openMacroItemModal(null,${idx})">+ Ideia</button>
+        </div>
+        <div style="padding:10px;display:flex;flex-direction:column;gap:8px;flex:1">
+          ${items.length?items.map(renderMacroCard).join(''):`<div style="color:var(--text3);font-size:12px;padding:10px;border:1px dashed var(--border2);border-radius:8px">Sem ações planejadas.</div>`}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+function renderMacroCard(item){
+  const status=item.status||'ideia';
+  const statusBg=status==='usado'?'#dcfce7':status==='planejado'?'#dbeafe':'#f3e8ff';
+  const statusColor=status==='usado'?'#166534':status==='planejado'?'#1d4ed8':'#7e22ce';
+  return `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <div style="font-weight:800;color:var(--text);line-height:1.25;flex:1">${escHtml(item.title||'Ação sem título')}</div>
+      <span style="font-size:10px;font-weight:900;text-transform:uppercase;background:${statusBg};color:${statusColor};padding:3px 7px;border-radius:999px">${MACRO_STATUS[status]||status}</span>
+    </div>
+    ${item.objective?`<div style="font-size:12px;color:var(--text2);line-height:1.35;white-space:pre-wrap">${escHtml(item.objective)}</div>`:''}
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${item.format?`<span class="ktag tag-${String(item.format).toLowerCase()}" style="font-size:10px">${escHtml(item.format)}</span>`:''}
+      ${item.usedPostId?`<span style="font-size:11px;color:var(--text3)">Criado em pack</span>`:''}
+    </div>
+    <div style="display:flex;gap:6px;justify-content:flex-end">
+      <button class="btn btn-s btn-sm" onclick="openMacroItemModal('${item.id}')">Editar</button>
+      <button class="btn btn-s btn-sm" onclick="openUseMacroModal('${item.id}')">Criar no pack</button>
+    </div>
+  </div>`;
+}
+async function changeMacroYear(delta){
+  macroYear+=delta;
+  await renderMacroPlanning(document.getElementById('ct'));
+}
+function macroItemById(id){ return _macroPlans.find(i=>i.id===id); }
+function openMacroItemModal(id=null,month=null){
+  const item=id?macroItemById(id):null;
+  _editMacroId=id;
+  const selectedMonth=item?.month??month??new Date().getMonth();
+  const ov=document.createElement('div');
+  ov.className='mo open';
+  ov.id='macro-item-mo';
+  ov.innerHTML=`<div class="modal" style="max-width:680px">
+    <div class="mh"><h2>${id?'Editar ação macro':'Nova ação macro'}</h2><button class="x" onclick="closeMacroItemModal()">×</button></div>
+    <div style="padding:16px;display:grid;gap:12px">
+      <div class="ff"><label class="flbl">Título da ação</label><input class="fi" id="macro-title" value="${escHtml(item?.title||'')}" placeholder="Ex: Campanha de inverno"></div>
+      <div class="fgrid" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="ff"><label class="flbl">Mês</label><select class="fi" id="macro-month">${MONTHS.map((m,i)=>`<option value="${i}" ${Number(selectedMonth)===i?'selected':''}>${m}</option>`).join('')}</select></div>
+        <div class="ff"><label class="flbl">Formato sugerido</label><select class="fi" id="macro-format">${['Carrossel','Reels','Stories','Feed','Artigo','Outro'].map(f=>`<option ${item?.format===f?'selected':''}>${f}</option>`).join('')}</select></div>
+        <div class="ff"><label class="flbl">Status</label><select class="fi" id="macro-status">${Object.entries(MACRO_STATUS).map(([k,v])=>`<option value="${k}" ${(item?.status||'ideia')===k?'selected':''}>${v}</option>`).join('')}</select></div>
+      </div>
+      <div class="ff"><label class="flbl">Objetivo</label><textarea class="fi" id="macro-objective" style="min-height:90px;resize:vertical" placeholder="O que essa ação precisa alcançar?">${escHtml(item?.objective||'')}</textarea></div>
+      <div class="ff"><label class="flbl">Ideias, ganchos e observações</label><textarea class="fi" id="macro-notes" style="min-height:130px;resize:vertical" placeholder="Pontos que já foram pensados, referências, temas, ofertas, datas importantes...">${escHtml(item?.notes||'')}</textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        ${id?`<button class="btn btn-d" onclick="deleteMacroItem('${id}')">Excluir</button>`:''}
+        <button class="btn btn-s" onclick="closeMacroItemModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveMacroItem()">Salvar</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+function closeMacroItemModal(){ document.getElementById('macro-item-mo')?.remove(); _editMacroId=null; }
+async function saveMacroItem(){
+  const title=document.getElementById('macro-title')?.value.trim();
+  if(!title){ showToast('Dê um título para a ação','err'); return; }
+  const month=Number(document.getElementById('macro-month')?.value||0);
+  const now=Date.now();
+  const {db,doc,setDoc,addDoc,collection}=window._fb;
+  const data={
+    clientId:currentClientId,
+    year:macroYear,
+    month,
+    title,
+    objective:document.getElementById('macro-objective')?.value||'',
+    notes:document.getElementById('macro-notes')?.value||'',
+    format:document.getElementById('macro-format')?.value||'Carrossel',
+    status:document.getElementById('macro-status')?.value||'ideia',
+    order:_macroPlans.filter(i=>Number(i.month)===month).length,
+    updatedAt:now
+  };
+  if(_editMacroId){
+    const prev=macroItemById(_editMacroId)||{};
+    await setDoc(doc(db,'macro_plans',_editMacroId),{...prev,...data,createdAt:prev.createdAt||now},{merge:true});
+  }else{
+    await addDoc(collection(db,'macro_plans'),{...data,createdAt:now});
+  }
+  closeMacroItemModal();
+  await renderMacroPlanning(document.getElementById('ct'));
+  showToast('Planejamento salvo','ok');
+}
+async function deleteMacroItem(id){
+  const ok=await confirmDangerAction('Excluir ação macro','Tem certeza que deseja excluir esta ação do planejamento?','Excluir');
+  if(!ok) return;
+  const {db,doc,deleteDoc}=window._fb;
+  await deleteDoc(doc(db,'macro_plans',id));
+  closeMacroItemModal();
+  await renderMacroPlanning(document.getElementById('ct'));
+  showToast('Ação macro excluída','inf');
+}
+function macroPlanText(item){
+  return [
+    item.objective?`Objetivo:\n${item.objective}`:'',
+    item.notes?`Ideias e observações:\n${item.notes}`:''
+  ].filter(Boolean).join('\n\n');
+}
+async function openUseMacroModal(id){
+  _useMacroId=id;
+  const item=macroItemById(id);
+  if(!item){ showToast('Ação não encontrada','err'); return; }
+  const allPacks=await getClientPacksForMove();
+  const html=allPacks.length?allPacks.map(p=>{
+    const label=`${p.type||'Pack'} — ${p.month||p.operationalMonth||'Sem mês'}`;
+    return `<button class="btn btn-s" style="width:100%;justify-content:flex-start;margin-bottom:8px" onclick="createPostFromMacro('${id}','${p.id}')">${escHtml(label)}</button>`;
+  }).join(''):`<div style="padding:16px;color:var(--text3);border:1px solid var(--border2);border-radius:8px">Crie um pack para este cliente antes de vincular a ação.</div>`;
+  const ov=document.createElement('div');
+  ov.className='mo open';
+  ov.id='macro-use-mo';
+  ov.innerHTML=`<div class="modal" style="max-width:520px">
+    <div class="mh"><h2>Criar no pack</h2><button class="x" onclick="closeUseMacroModal()">×</button></div>
+    <div style="padding:16px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Escolha onde criar o post: <b>${escHtml(item.title||'Ação macro')}</b></div>
+      <div style="max-height:360px;overflow:auto">${html}</div>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+function closeUseMacroModal(){ document.getElementById('macro-use-mo')?.remove(); _useMacroId=null; }
+async function createPostFromMacro(id,targetPackId){
+  const item=macroItemById(id);
+  if(!item){ showToast('Ação não encontrada','err'); return; }
+  const allPacks=await getClientPacksForMove();
+  const targetPack=allPacks.find(p=>p.id===targetPackId);
+  if(!targetPack){ showToast('Pack de destino não encontrado','err'); return; }
+  const {db,addDoc,collection,doc,updateDoc}=window._fb;
+  const order=await countPostsInPack(targetPackId);
+  const now=Date.now();
+  const postData={
+    packId:targetPackId,
+    clientId:currentClientId,
+    title:item.title||`Ação ${MONTHS[item.month]||''}`,
+    status:'planejamento',
+    format:item.format||'Carrossel',
+    order,
+    references:'',
+    designBriefing:macroPlanText(item),
+    designBriefingVersions:[],
+    designBriefingMeta:null,
+    caption:'',
+    refLinks:[],
+    refLink:'',
+    images:[],
+    comments:[],
+    assignees:[],
+    postDate:'',
+    macroPlanId:id,
+    createdFromMacro:true,
+    createdAt:now,
+    updatedAt:now
+  };
+  const postRef=await addDoc(collection(db,'posts'),postData);
+  await Promise.all([
+    updateDoc(doc(db,'packs',targetPackId),{postCount:order+1,updatedAt:now}),
+    updateDoc(doc(db,'macro_plans',id),{status:'usado',usedPackId:targetPackId,usedPostId:postRef.id,updatedAt:now})
+  ]);
+  closeUseMacroModal();
+  await renderMacroPlanning(document.getElementById('ct'));
+  showToast('Post criado a partir do planejamento','ok');
 }
 
 // ===== REUNIÕES =====
@@ -2366,9 +2575,23 @@ function safeDownloadName(name, fallback='imagem.jpg'){
 function storagePathFromDownloadUrl(url){
   const raw=String(url||'');
   if(!raw) return '';
-  if(raw.startsWith('gs://')) return raw;
+  if(raw.startsWith('gs://')){
+    const match=raw.match(/^gs:\/\/[^/]+\/(.+)$/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
   const match=raw.match(/\/o\/([^?]+)/);
   return match ? decodeURIComponent(match[1]) : '';
+}
+function firebaseAttachmentUrl(url, filename){
+  const raw=String(url||'');
+  if(!raw || raw.startsWith('data:')) return raw;
+  try{
+    const u=new URL(raw);
+    u.searchParams.set('response-content-disposition',`attachment; filename="${safeDownloadName(filename)}"`);
+    return u.toString();
+  }catch(e){
+    return raw;
+  }
 }
 async function finalFileBlob(file){
   const src=file?.url||file?.data||'';
@@ -2377,20 +2600,24 @@ async function finalFileBlob(file){
   const {storage, ref, getBlob}=window._fb||{};
   const storagePath=file?.path||storagePathFromDownloadUrl(src);
   if(storage&&ref&&getBlob&&storagePath){
-    return await getBlob(ref(storage,storagePath));
+    try{ return await getBlob(ref(storage,storagePath)); }
+    catch(err){ console.warn('getBlob failed, trying URL fetch:',err); }
   }
-  const res=await fetch(src,{mode:'cors'});
+  const res=await fetch(firebaseAttachmentUrl(src,file?.name),{mode:'cors'});
   if(!res.ok) throw new Error('Não foi possível baixar o arquivo.');
   return await res.blob();
 }
 function triggerUrlDownload(url, filename){
+  if(!url) return false;
   const a=document.createElement('a');
-  a.href=url;
+  a.href=firebaseAttachmentUrl(url,filename);
   a.download=safeDownloadName(filename);
   a.rel='noopener';
+  a.target='_self';
   document.body.appendChild(a);
   a.click();
   a.remove();
+  return true;
 }
 function triggerBlobDownload(blob, filename){
   const url=URL.createObjectURL(blob);
@@ -2405,15 +2632,15 @@ function triggerBlobDownload(blob, filename){
 async function downloadFinalFile(pid, idx){
   const file=posts[pid]?.finalFiles?.[idx];
   if(!file) return;
+  const filename=file.name||`slide-${idx+1}.jpg`;
   try{
     const blob=await finalFileBlob(file);
-    triggerBlobDownload(blob,file.name||`slide-${idx+1}.jpg`);
+    triggerBlobDownload(blob,filename);
     showToast('Download iniciado','ok');
   }catch(err){
     console.error('downloadFinalFile:',err);
     const src=file.url||file.data||'';
-    if(src){
-      triggerUrlDownload(src,file.name||`slide-${idx+1}.jpg`);
+    if(triggerUrlDownload(src,filename)){
       showToast('Download iniciado','ok');
     }else{
       showToast('Não consegui baixar este arquivo','err');
@@ -2423,18 +2650,19 @@ async function downloadFinalFile(pid, idx){
 function renderFinalFiles(post){
   const files = post.finalFiles || [];
   if(!files.length) return '<div style="font-size:12px;color:var(--text3);padding:4px 0">Nenhum arquivo ainda</div>';
+  const pid=post.id;
   const thumbs = files.map((f,i) =>
     '<div style="position:relative;display:inline-block">' +
     '<img src="' + (f.url||f.data||'') + '" alt="' + (f.name||'Slide '+(i+1)) + '" ' +
     'style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" ' +
-    'onclick="openFinalImg(currentPostId,' + i + ')" title="' + (f.name||'Slide '+(i+1)) + '">' +
-    '<button onclick="event.stopPropagation();downloadFinalFile(currentPostId,' + i + ')" title="Baixar imagem" style="position:absolute;top:-4px;left:-4px;width:20px;height:20px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">↓</button>' +
+    'onclick="openFinalImg(\'' + pid + '\',' + i + ')" title="' + (f.name||'Slide '+(i+1)) + '">' +
+    '<button onclick="event.stopPropagation();downloadFinalFile(\'' + pid + '\',' + i + ')" title="Baixar imagem" style="position:absolute;top:-4px;left:-4px;width:20px;height:20px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">↓</button>' +
     '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:8px;padding:2px 4px;border-radius:0 0 5px 5px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' + (f.name||'Slide '+(i+1)) + '</div>' +
-    '<button onclick="delFinalFile(currentPostId,' + i + ')" style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:9px;cursor:pointer;line-height:1">x</button>' +
+    '<button onclick="delFinalFile(\'' + pid + '\',' + i + ')" style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:9px;cursor:pointer;line-height:1">x</button>' +
     '</div>'
   ).join('');
   const dlBtn = files.length > 1
-    ? '<button class="btn btn-s btn-sm" onclick="downloadAllFinal(currentPostId)" style="margin-top:8px">⬇ Baixar tudo (.zip)</button>'
+    ? '<button class="btn btn-s btn-sm" onclick="downloadAllFinal(\'' + pid + '\')" style="margin-top:8px">⬇ Baixar tudo (.zip)</button>'
     : '';
   return '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start">' + thumbs + '</div>' + dlBtn;
 }
@@ -2568,7 +2796,7 @@ function openFinalUploadReview(pid, files, append=false){
         </label>
         <div class="brow">
           <button class="btn btn-s" onclick="closeFinalUploadReview()">Cancelar</button>
-          <button class="btn btn-p" onclick="confirmFinalUpload()">Confirmar envio</button>
+          <button class="btn btn-p" data-final-confirm-btn onclick="confirmFinalUpload()">Salvar arquivos</button>
         </div>
       </div>
     </div>`;
@@ -2651,6 +2879,7 @@ async function confirmFinalUpload(){
   if(!_pendingFinalUpload?.items?.length) return;
   const pid=_pendingFinalUpload.pid;
   const uploadItems=[..._pendingFinalUpload.items];
+  const confirmBtn=document.querySelector('#final-upload-review-mo [data-final-confirm-btn]');
   try{
     const arr = [...(posts[pid].finalFiles || [])];
     const dupNames=uploadItems
@@ -2662,12 +2891,12 @@ async function confirmFinalUpload(){
       if(choice==='cancel') return;
       replaceMode=choice==='replace';
     }
-    closeFinalUploadReview();
+    if(confirmBtn){ confirmBtn.disabled=true; confirmBtn.textContent='Salvando...'; }
     showToast('Enviando ' + uploadItems.length + ' arquivo(s)...', 'inf');
     for(const item of uploadItems){
       const f=item.file;
-      const url = await uploadPostImage(pid, f, 'final');
-      const payload={name: f.name, url, path:storagePathFromDownloadUrl(url), type: f.type};
+      const uploaded = await uploadPostFileWithPath(pid, f, 'final');
+      const payload={name: f.name, url:uploaded.url, path:uploaded.path, type: f.type};
       const existingIdx=arr.findIndex(existing=>String(existing.name||'').trim().toLowerCase()===String(f.name||'').trim().toLowerCase());
       if(replaceMode && existingIdx>=0) arr.splice(existingIdx,1,payload);
       else arr.push(payload);
@@ -2679,6 +2908,7 @@ async function confirmFinalUpload(){
     showToast(uploadItems.length + ' arquivo(s) adicionado(s)!', 'ok');
   } catch(err){
     console.error('Final file upload error:', err);
+    if(confirmBtn){ confirmBtn.disabled=false; confirmBtn.textContent='Salvar arquivos'; }
     showToast('Erro: ' + err.message, 'err');
   }
 }
@@ -2711,8 +2941,8 @@ async function downloadAllFinal(pid){
         }
       }
       if(failed===files.length){
-        files.forEach((f,i)=>setTimeout(()=>triggerUrlDownload(f.url||f.data||'',f.name||`slide-${i+1}.jpg`),i*250));
-        showToast('Baixando arquivos individualmente...', 'inf');
+        files.forEach((f,i)=>setTimeout(()=>triggerUrlDownload(f.url||f.data||'',f.name||`slide-${i+1}.jpg`),i*350));
+        showToast('Não consegui montar ZIP; baixando imagens uma a uma...', 'inf');
         return;
       }
       const blob = await zip.generateAsync({type:'blob'});
@@ -3372,6 +3602,7 @@ function renderPF(post){
       ${post.format?`<span class="ktag tag-${post.format.toLowerCase()}" style="font-size:11px">${post.format}</span>`:''}
       <span style="margin-left:auto"></span>
       <button class="btn btn-s btn-sm" onclick="copyPostLink('${post.id}')">🔗 Copiar link</button>
+      <button class="btn btn-s btn-sm" onclick="openMovePostModal('${post.id}')">↪ Usar em outro mês</button>
       <button class="btn btn-d btn-sm" onclick="deletePost('${post.id}')">🗑 Excluir post</button>
     </div>
 
@@ -3533,6 +3764,11 @@ async function uploadPostImage(pid, file, folder){
   const path = 'posts/' + pid + '/' + folder + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
   return await uploadToStorage(file, path);
 }
+async function uploadPostFileWithPath(pid, file, folder){
+  const path = 'posts/' + pid + '/' + folder + '/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const url = await uploadToStorage(file, path);
+  return {url,path};
+}
 async function uploadTeamPhoto(uid, file){
   const path = 'team/' + uid + '/photo_' + Date.now();
   return await uploadToStorage(file, path);
@@ -3659,6 +3895,107 @@ async function addPost(){
   posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()};
   await updPCnt(Object.keys(posts).length);
   renderPostsList(); openPost(ref.id); showToast('Post adicionado','ok');
+}
+async function countPostsInPack(packId){
+  const {db,collection,getDocs,query,where}=window._fb;
+  const snap=await getDocs(query(collection(db,'posts'),where('packId','==',packId)));
+  return snap.size;
+}
+function cleanPostForAnotherPack(post,targetPack,targetOrder,sourcePack){
+  const now=Date.now();
+  const targetMonth=(targetPack?.month||targetPack?.operationalMonth||'').trim();
+  const sourceMonth=(sourcePack?.month||sourcePack?.operationalMonth||'').trim();
+  const keepPostDate=targetMonth && sourceMonth && targetMonth===sourceMonth;
+  const data={...post};
+  delete data.id;
+  data.packId=targetPack.id;
+  data.clientId=post.clientId||targetPack.clientId||currentClientId;
+  data.order=targetOrder;
+  data.updatedAt=now;
+  data.createdAt=data.createdAt||now;
+  data.movedFromPackId=sourcePack?.id||post.packId||'';
+  if(!keepPostDate) data.postDate='';
+  return data;
+}
+async function getClientPacksForMove(){
+  const {db,collection,getDocs,query,where}=window._fb;
+  const snap=await getDocs(query(collection(db,'packs'),where('clientId','==',currentClientId)));
+  const list=[];
+  snap.forEach(d=>list.push({id:d.id,...d.data()}));
+  list.sort((a,b)=>{
+    const ai=MONTHS.indexOf(a.month||a.operationalMonth||'');
+    const bi=MONTHS.indexOf(b.month||b.operationalMonth||'');
+    if(ai!==bi) return (ai<0?99:ai)-(bi<0?99:bi);
+    return (a.createdAt||0)-(b.createdAt||0);
+  });
+  return list;
+}
+async function openMovePostModal(pid){
+  if(!posts[pid]){ showToast('Post não encontrado','err'); return; }
+  try{ await saveCurrentRichDraft(); }catch(err){ console.warn('openMovePostModal/saveCurrentRichDraft',err); }
+  const sourcePack=packs[currentPackId]||{};
+  const allPacks=await getClientPacksForMove();
+  const targets=allPacks.filter(p=>p.id!==currentPackId);
+  const post=posts[pid];
+  const html=targets.length?targets.map(p=>{
+    const label=`${p.type||'Pack'} — ${p.month||p.operationalMonth||'Sem mês'}`;
+    const statusLabel=STATUSES.find(s=>s.id===normalizePackStatusId(p.status))?.label||p.status||'';
+    const detail=[statusLabel, p.postCount!==undefined?`${p.postCount} posts`:'' ].filter(Boolean).join(' · ');
+    return `<div style="border:1px solid var(--border2);background:var(--bg3);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(label)}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px">${escHtml(detail||'Pack disponível')}</div>
+      </div>
+      <button class="btn btn-s btn-sm" onclick="transferPostToPack('${pid}','${p.id}','copy')">Duplicar</button>
+      <button class="btn btn-p btn-sm" onclick="transferPostToPack('${pid}','${p.id}','move')">Mover</button>
+    </div>`;
+  }).join(''):`<div style="padding:18px;border:1px solid var(--border2);border-radius:8px;color:var(--text3);background:var(--bg3)">Crie outro pack para este cliente antes de mover a ideia.</div>`;
+  const ov=document.createElement('div');
+  ov.className='mo open';
+  ov.id='move-post-mo';
+  ov.innerHTML=`<div class="modal" style="max-width:620px">
+    <div class="mh">
+      <h2>Usar em outro mês</h2>
+      <button class="x" onclick="closeMovePostModal()">×</button>
+    </div>
+    <div style="padding:16px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Escolha o pack de destino para <b>${escHtml(post.title||'Post sem título')}</b>. Ao mover para outro mês, a data de agendamento é limpa para evitar aparecer no calendário antigo.</div>
+      <div style="max-height:420px;overflow:auto">${html}</div>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+function closeMovePostModal(){ document.getElementById('move-post-mo')?.remove(); }
+async function transferPostToPack(pid,targetPackId,mode='move'){
+  const post=posts[pid];
+  if(!post){ showToast('Post não encontrado','err'); return; }
+  const {db,doc,updateDoc,addDoc,collection}=window._fb;
+  const allPacks=await getClientPacksForMove();
+  const targetPack=allPacks.find(p=>p.id===targetPackId);
+  if(!targetPack){ showToast('Pack de destino não encontrado','err'); return; }
+  const sourcePack=packs[currentPackId]||allPacks.find(p=>p.id===currentPackId)||{id:currentPackId};
+  const targetOrder=await countPostsInPack(targetPackId);
+  const data=cleanPostForAnotherPack(post,targetPack,targetOrder,sourcePack);
+  if(mode==='copy'){
+    data.createdAt=Date.now();
+    data.duplicatedFromPostId=pid;
+    await addDoc(collection(db,'posts'),data);
+    await updateDoc(doc(db,'packs',targetPackId),{postCount:targetOrder+1,updatedAt:Date.now()});
+    showToast('Ideia duplicada para outro pack','ok');
+  }else{
+    await updateDoc(doc(db,'posts',pid),data);
+    const sourceCount=Math.max(0,Object.keys(posts).length-1);
+    await Promise.all([
+      updateDoc(doc(db,'packs',targetPackId),{postCount:targetOrder+1,updatedAt:Date.now()}),
+      updateDoc(doc(db,'packs',currentPackId),{postCount:sourceCount,updatedAt:Date.now()})
+    ]);
+    delete posts[pid];
+    currentPostId='__orientacoes__';
+    renderPostsList();
+    openOrientacoes();
+    showToast('Ideia movida para outro pack','ok');
+  }
+  closeMovePostModal();
 }
 function confirmDangerAction(title,message,confirmLabel='Excluir'){
   return new Promise(resolve=>{
