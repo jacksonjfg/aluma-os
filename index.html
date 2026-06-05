@@ -35,7 +35,7 @@
 [data-theme="light"]{--bg:#f2f2f7;--bg2:#fff;--bg3:#f0f0f6;--bg4:#e8e8f2;--bg5:#dddde8;--border:#e0e0ee;--border2:#cccce0;--text:#0f0f28;--text2:#5e5c80;--text3:#9897b8;--ag:rgba(132,131,255,0.09);--shad:0 4px 24px rgba(0,0,0,0.08);}
 *{margin:0;padding:0;box-sizing:border-box;}
 /* FONT — Inter é a alternativa mais legível disponível no Google Fonts */
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:13.5px;line-height:1.55;transition:background .2s,color .2s;-webkit-font-smoothing:antialiased;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:14.2px;line-height:1.58;transition:background .2s,color .2s;-webkit-font-smoothing:antialiased;}
 h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 *{scrollbar-width:auto;scrollbar-color:#7c83ff rgba(132,131,255,.16);}
 ::-webkit-scrollbar{width:14px;height:14px;}
@@ -348,7 +348,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .rich-sync-note{display:none;margin:-2px 0 8px;padding:8px 10px;border-radius:8px;background:rgba(251,191,36,.13);border:1px solid rgba(251,191,36,.32);color:var(--text2);font-size:11.5px;line-height:1.45}
 .rich-sync-note.show{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .rich-sync-note button{height:24px;padding:0 8px;border-radius:6px;border:1px solid rgba(251,191,36,.45);background:var(--bg2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}
-.comment-composer{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s;line-height:1.55;min-height:74px;word-break:break-word;white-space:pre-wrap}
+.comment-composer{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13.8px;outline:none;transition:border-color .15s;line-height:1.6;min-height:74px;word-break:break-word;white-space:pre-wrap}
 .comment-composer:focus{border-color:var(--accent)}
 .comment-composer:empty:before{content:attr(data-placeholder);color:var(--text3)}
 .comment-mention-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:rgba(132,131,255,.16);border:1px solid rgba(132,131,255,.24);color:var(--accent);font-weight:800;white-space:nowrap}
@@ -2493,6 +2493,7 @@ async function openPack(packId,targetPostId=null,skipUrlSync=false){
   currentClientId=pack.clientId||currentClientId;
   document.getElementById('pm-title').textContent=`${pack.type||'Feed'} — ${client.name}`;
   document.getElementById('pm-meta').innerHTML=buildPM(packId);
+  document.getElementById('pm-meta').insertAdjacentHTML('beforeend',`<button type="button" class="btn btn-s btn-sm" onclick="openReorderPostsModal()">↕ Reordenar posts</button>`);
   await loadPosts(packId);
   if(targetPostId && posts[targetPostId]){
     openPost(targetPostId,skipUrlSync);
@@ -2559,12 +2560,14 @@ function renderPostsList(){
     const s=getPostStatusDef(p.status,p);
     const sColors={p:'#fb923c',c:'#60a5fa',d:'#facc15',r:'#f472b6',pdf:'#c084fc',ent:'#2dd4bf',alt:'#ff5252',ag:'#818cf8',con:'#4ade80'};
     const sc=sColors[s.cls]||'#8483ff';
-    const idxLabel=`Post ${String((p.order||0)+1).padStart(2,'0')} - `;
+    const visualIndex=list.findIndex(x=>x.id===p.id)+1;
+    const idxLabel=`Post ${String(visualIndex).padStart(2,'0')} - `;
+    const cleanTitle=String(p.title||'Tema').replace(/^Post\s*\d+\s*[-—]\s*/i,'').trim()||'Tema';
     const formatTag=p.format?`<span class="ktag tag-${(p.format||'feed').toLowerCase().replace(/\s/g,'')}" style="font-size:9.5px;margin-top:4px;display:inline-flex">${p.format}</span>`:'';
     return `<div class="mpost-item ${currentPostId===p.id?'active':''}" onclick="openPost('${p.id}')">
       <div class="mpost-dot d${s.cls}"></div>
       <div style="flex:1;min-width:0">
-        <div class="mpost-name">${idxLabel}${p.title||'Tema'}</div>
+        <div class="mpost-name">${idxLabel}${cleanTitle}</div>
         <div style="font-size:10px;font-weight:600;color:${sc};margin-top:1px">${s.label}</div>
         ${formatTag}
       </div>
@@ -2574,6 +2577,148 @@ function renderPostsList(){
   updPCnt(Object.keys(posts).length);
 }
 async function updPCnt(n){ if(!currentPackId) return; const {db,doc,updateDoc}=window._fb; await updateDoc(doc(db,'packs',currentPackId),{postCount:n}); }
+let _reorderPostIds=[];
+let _reorderDragId=null;
+let _reorderAutoScrollFrame=null;
+let _reorderAutoScrollSpeed=0;
+function orderedPackPosts(){
+  return Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0));
+}
+function closeReorderPostsModal(){
+  stopReorderAutoScroll();
+  document.getElementById('reorder-posts-mo')?.remove();
+  _reorderPostIds=[];
+  _reorderDragId=null;
+}
+function openReorderPostsModal(){
+  const list=orderedPackPosts();
+  if(!currentPackId || !list.length){ showToast('Nenhum post para reordenar','err'); return; }
+  _reorderPostIds=list.map(p=>p.id);
+  document.getElementById('reorder-posts-mo')?.remove();
+  const modalEl=document.createElement('div');
+  modalEl.className='mo open';
+  modalEl.id='reorder-posts-mo';
+  modalEl.style.zIndex='260';
+  modalEl.innerHTML=`<div class="modal modal-sm" style="max-width:620px;min-height:auto">
+    <div class="mhdr">
+      <div>
+        <h2 style="margin:0">Reordenar posts</h2>
+        <p style="margin:4px 0 0;color:var(--text3);font-size:12px">Arraste os posts para a posição desejada. A numeração só muda depois de salvar.</p>
+      </div>
+      <button class="mclose" onclick="closeReorderPostsModal()">×</button>
+    </div>
+    <div style="padding:16px 18px">
+      <div id="reorder-posts-list" ondragover="reorderPostAutoScroll(event)" style="display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow:auto"></div>
+      <div class="brow" style="margin-top:14px;justify-content:flex-end">
+        <button class="btn btn-s" onclick="closeReorderPostsModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="savePostReorder()">Salvar ordem</button>
+      </div>
+    </div>
+  </div>`;
+  modalEl.addEventListener('click',e=>{ if(e.target===modalEl) closeReorderPostsModal(); });
+  document.body.appendChild(modalEl);
+  renderReorderPostsList();
+}
+function renderReorderPostsList(){
+  const el=document.getElementById('reorder-posts-list');
+  if(!el) return;
+  el.innerHTML=_reorderPostIds.map((id,i)=>{
+    const p=posts[id]; if(!p) return '';
+    const cleanTitle=String(p.title||'Tema').replace(/^Post\s*\d+\s*[-—]\s*/i,'').trim()||'Tema';
+    const formatTag=p.format?`<span class="ktag tag-${(p.format||'feed').toLowerCase().replace(/\s/g,'')}" style="font-size:10px">${escHtml(p.format)}</span>`:'';
+    return `<div class="reorder-post-row" draggable="true" data-id="${id}"
+      ondragstart="reorderPostDragStart(event,'${id}')"
+      ondragover="event.preventDefault()"
+      ondrop="reorderPostDrop(event,'${id}')"
+      ondragend="reorderPostDragEnd()"
+      style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--card2);cursor:grab">
+      <div style="font-size:12px;font-weight:900;color:var(--accent);min-width:58px">Post ${String(i+1).padStart(2,'0')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(cleanTitle)}</div>
+        <div style="margin-top:5px">${formatTag}</div>
+      </div>
+      <div style="color:var(--text3);font-size:20px;line-height:1">☰</div>
+    </div>`;
+  }).join('')+`<div ondragover="event.preventDefault()" ondrop="reorderPostDrop(event,'__end__')"
+    style="padding:12px;border:1px dashed var(--border);border-radius:10px;text-align:center;color:var(--text3);font-size:12px">Soltar aqui para mandar para o final</div>`;
+}
+function reorderPostDragStart(event,id){
+  _reorderDragId=id;
+  if(event.dataTransfer){
+    event.dataTransfer.effectAllowed='move';
+    event.dataTransfer.setData('text/plain',id);
+  }
+  event.currentTarget.style.opacity='.5';
+}
+function stopReorderAutoScroll(){
+  _reorderAutoScrollSpeed=0;
+  if(_reorderAutoScrollFrame){
+    cancelAnimationFrame(_reorderAutoScrollFrame);
+    _reorderAutoScrollFrame=null;
+  }
+}
+function reorderPostAutoScroll(event){
+  event.preventDefault();
+  const el=document.getElementById('reorder-posts-list');
+  if(!el || !_reorderDragId) return;
+  const rect=el.getBoundingClientRect();
+  const edge=84;
+  let speed=0;
+  if(event.clientY < rect.top + edge){
+    const distance=Math.max(0,event.clientY-rect.top);
+    speed=-Math.ceil(8 + ((edge-distance)/edge)*24);
+  }else if(event.clientY > rect.bottom - edge){
+    const distance=Math.max(0,rect.bottom-event.clientY);
+    speed=Math.ceil(8 + ((edge-distance)/edge)*24);
+  }
+  _reorderAutoScrollSpeed=speed;
+  if(!speed){ stopReorderAutoScroll(); return; }
+  if(_reorderAutoScrollFrame) return;
+  const step=()=>{
+    const box=document.getElementById('reorder-posts-list');
+    if(!box || !_reorderAutoScrollSpeed){ _reorderAutoScrollFrame=null; return; }
+    box.scrollTop+=_reorderAutoScrollSpeed;
+    _reorderAutoScrollFrame=requestAnimationFrame(step);
+  };
+  _reorderAutoScrollFrame=requestAnimationFrame(step);
+}
+function reorderPostDrop(event,targetId){
+  event.preventDefault();
+  stopReorderAutoScroll();
+  const dragId=_reorderDragId || event.dataTransfer?.getData('text/plain');
+  if(!dragId || dragId===targetId) return;
+  const from=_reorderPostIds.indexOf(dragId);
+  if(from<0) return;
+  const [item]=_reorderPostIds.splice(from,1);
+  if(targetId==='__end__'){
+    _reorderPostIds.push(item);
+  }else{
+    const to=_reorderPostIds.indexOf(targetId);
+    _reorderPostIds.splice(Math.max(0,to),0,item);
+  }
+  renderReorderPostsList();
+}
+function reorderPostDragEnd(){
+  stopReorderAutoScroll();
+  _reorderDragId=null;
+  document.querySelectorAll('.reorder-post-row').forEach(el=>el.style.opacity='');
+}
+async function savePostReorder(){
+  if(!_reorderPostIds.length) return;
+  try{ await saveCurrentRichDraft(); }catch(err){ console.warn('savePostReorder/saveCurrentRichDraft',err); }
+  const {db,doc,updateDoc}=window._fb;
+  const now=Date.now();
+  await Promise.all(_reorderPostIds.map((id,i)=>{
+    if(!posts[id]) return Promise.resolve();
+    posts[id].order=i;
+    posts[id].updatedAt=now;
+    return updateDoc(doc(db,'posts',id),{order:i,updatedAt:now});
+  }));
+  closeReorderPostsModal();
+  renderPostsList();
+  if(currentPostId && posts[currentPostId]) renderPF(posts[currentPostId]);
+  showToast('Ordem dos posts salva!','ok');
+}
 function currentRichEditorDrafts(pid=currentPostId){
   if(!pid) return {};
   const fields=[['references','rt-ref-'+pid],['designBriefing','rt-brief-'+pid],['caption','rt-caption-'+pid]];
@@ -3663,6 +3808,7 @@ function openImgFull(pid, idx){
 function renderPF(post){
   const el=document.getElementById('pm-content');
   const idx=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0)).findIndex(p=>p.id===post.id)+1;
+  const cleanPostTitle=String(post.title||'Sem título').replace(/^Post\s*\d+\s*[-—]\s*/i,'').trim()||'Sem título';
   const postStatusDef=getPostStatusDef(post.status,post);
   const postStatusOptions=getPostStatuses(post);
   const imgs=(post.images||[]).map((src,i)=>`<div class="img-thumb"><img src="${src}" style="cursor:pointer" onclick="openImgFull('${post.id}',${i})"><button class="img-thumb-del" onclick="delImg('${post.id}',${i})">×</button></div>`).join('');
@@ -3676,7 +3822,7 @@ function renderPF(post){
   el.innerHTML=`
   <!-- LEFT: main form -->
   <div id="pf-left" style="flex:1;overflow-y:auto;padding:22px 28px;min-width:0">
-    <div class="pfhdr">POST ${String(idx).padStart(2,'0')} — <span contenteditable="true" onblur="updTitle(this.textContent)" style="outline:none;border-bottom:1px dashed var(--border2);min-width:100px">${post.title||'Sem título'}</span></div>
+    <div class="pfhdr">POST ${String(idx).padStart(2,'0')} — <span contenteditable="true" onblur="updTitle(this.textContent)" style="outline:none;border-bottom:1px dashed var(--border2);min-width:100px">${cleanPostTitle}</span></div>
 
     <!-- STATUS INLINE -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
@@ -4327,11 +4473,13 @@ function buildCalGrid(cid,yr,mo,postsArr,showClient){
         const idx=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0)).findIndex(x=>x.id===p.id)+1;
         const numLabel=idx>0?`P${String(idx).padStart(2,'0')} `:'';
         const label=`${time}${cn}${numLabel}${(p.title||'Post').replace(/^Post \d+ - /,'').slice(0,12)}`;
+        const formatSlug=String(p.format||'').toLowerCase().replace(/\s/g,'');
+        const formatBadge=(!showClient&&p.format)?`<span class="ktag tag-${formatSlug}" style="font-size:9px;padding:1px 5px;line-height:1;flex-shrink:0">${p.format}</span>`:'';
         return `<div class="cal-post" draggable="true"
-          style="background:${color}22;color:${color}"
+          style="background:${color}22;color:${color};display:flex;align-items:center;gap:4px"
           ondragstart="calDragStart(event,'${p.id}')"
           onclick="showPV('${p.id}')"
-          title="${cl?.name||''}: ${p.title||''}">${label}</div>`;
+          title="${cl?.name||''}: ${p.title||''}">${formatBadge}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${label}</span></div>`;
       }).join('')}
     </div>`;
   };
@@ -5116,9 +5264,25 @@ function findActiveMentionToken(value='', caret=0){
   if(/\s/.test(chunk)) return null;
   return {start:at, query:chunk.slice(1)};
 }
+function getContentEditableCaretOffset(root){
+  const sel=window.getSelection();
+  if(!root || !sel || !sel.rangeCount || !root.contains(sel.focusNode)) return (root?.innerText||'').length;
+  const range=sel.getRangeAt(0).cloneRange();
+  const pre=range.cloneRange();
+  pre.selectNodeContents(root);
+  pre.setEnd(range.endContainer,range.endOffset);
+  return pre.toString().length;
+}
 function getMentionCandidates(query=''){
   const q=accessNorm(query||'');
-  return TEAM.filter(member=>{
+  const baseTeam=(Array.isArray(TEAM)&&TEAM.length?TEAM:[
+    {id:'juliana',name:'Juliana',role:'Social Media',color:'#f472b6'},
+    {id:'jackson',name:'Jackson',role:'Admin',color:'#8483ff'},
+    {id:'tatiane',name:'Tatiane',role:'Atendimento',color:'#fb923c'},
+    {id:'cintia',name:'Cíntia',role:'Designer',color:'#c084fc'},
+    {id:'lorena',name:'Lorena',role:'Gestora',color:'#2dd4bf'}
+  ]);
+  return baseTeam.filter(member=>{
     if(!q) return true;
     const name=accessNorm(member.name);
     const first=name.split(' ')[0];
@@ -5183,7 +5347,9 @@ function renderCommentMentionMenu(pid){
   const inp=document.getElementById('ci-'+pid);
   const menu=document.getElementById('comment-mention-menu-'+pid);
   if(!inp || !menu) return;
-  const token=findActiveMentionToken(inp.innerText||'', (window.getSelection()?.focusOffset)||0);
+  const text=inp.innerText||'';
+  const caret=getContentEditableCaretOffset(inp);
+  const token=findActiveMentionToken(text, caret);
   if(!token){ closeCommentMentionMenu(pid); return; }
   const items=getMentionCandidates(token.query||'');
   if(!items.length){ closeCommentMentionMenu(pid); return; }
