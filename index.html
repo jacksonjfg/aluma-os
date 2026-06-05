@@ -662,6 +662,25 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .comercial-stat-sub{font-size:11px;color:var(--text3);margin-top:4px;}
 .tooltip-icon{cursor:help;color:var(--text3);font-size:12px;background:var(--bg4);border-radius:50%;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;}
 .alert-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.lead-drawer-overlay{position:fixed;inset:0;background:rgba(10,10,22,.45);z-index:850;opacity:0;pointer-events:none;transition:opacity .18s;}
+.lead-drawer-overlay.open{opacity:1;pointer-events:auto;}
+.lead-drawer{position:absolute;top:0;right:0;width:min(560px,100vw);height:100%;background:var(--bg);border-left:1px solid var(--border2);box-shadow:-18px 0 42px rgba(0,0,0,.24);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s ease;}
+.lead-drawer-overlay.open .lead-drawer{transform:translateX(0);}
+.lead-drawer-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:var(--bg2);}
+.lead-drawer-title{font-size:20px;font-weight:800;letter-spacing:-.2px;color:var(--text);}
+.lead-drawer-sub{font-size:12px;color:var(--text3);margin-top:3px;}
+.lead-drawer-close{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.lead-drawer-close:hover{border-color:var(--border2);color:var(--text);}
+.lead-drawer-body{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;}
+.lead-drawer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.lead-drawer-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:var(--bg2);}
+.lead-field-wide{grid-column:1/-1;}
+.lead-follow-card{cursor:pointer;transition:background .15s,border-color .15s;}
+.lead-follow-card:hover{background:var(--bg3);border-color:var(--border2);}
+.funnel-row{display:grid;grid-template-columns:120px 1fr 42px;align-items:center;gap:10px;margin-bottom:9px;}
+.funnel-bar{height:9px;border-radius:999px;background:var(--bg4);overflow:hidden;}
+.funnel-fill{height:100%;border-radius:999px;min-width:3px;}
+@media(max-width:720px){.lead-drawer-grid{grid-template-columns:1fr}.lead-drawer{width:100vw}.lead-drawer-foot{position:sticky;bottom:0}}
 
 /* === TOOLTIP SYSTEM === */
 .tooltip-wrap{position:relative;display:inline-flex;}
@@ -7779,9 +7798,10 @@ async function renderComercial(){
   main.innerHTML = `<div class="ph">
     <div class="ptitle">💼 Comercial</div>
     <div class="ptabs">
-      <button class="ptab active" id="ctab-dash"    onclick="swCom('dash',this)">📊 Dashboard</button>
-      <button class="ptab"        id="ctab-pipeline" onclick="swCom('pipeline',this)">📋 Pipeline</button>
-      <button class="ptab"        id="ctab-contracts" onclick="swCom('contracts',this)">🧾 Gerador de contratos</button>
+      <button class="ptab ${comercialTab==='dash'?'active':''}" id="ctab-dash"    onclick="swCom('dash',this)">📊 Dashboard</button>
+      <button class="ptab ${comercialTab==='pipeline'?'active':''}"        id="ctab-pipeline" onclick="swCom('pipeline',this)">📋 Pipeline</button>
+      <button class="ptab ${comercialTab==='contracts'?'active':''}"        id="ctab-contracts" onclick="swCom('contracts',this)">🧾 Gerador de contratos</button>
+      <button class="ptab ${comercialTab==='scripts'?'active':''}"        id="ctab-scripts" onclick="swCom('scripts',this)">💬 Scripts Aluma</button>
     </div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:14px 20px" id="com-content">
@@ -7822,6 +7842,7 @@ function renderComTab(tab){
   if(tab==='dash')     renderComMiniDash(el);
   else if(tab==='pipeline') renderComPipeline(el);
   else if(tab==='contracts') renderComContracts(el);
+  else if(tab==='scripts') renderComScripts(el);
 }
 
 async function renderFinanceiro(){
@@ -7866,12 +7887,24 @@ function buildWhatsAppLink(value){
   const digits=sanitizeWhatsApp(value);
   return digits?`https://wa.me/${digits}`:'';
 }
+function buildInstagramLink(value){
+  const handle=String(value||'').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/^@/,'').split(/[/?#]/)[0];
+  return handle?`https://instagram.com/${handle}`:'';
+}
 function updateProspectWhatsAppButton(){
-  const scope=getProspectModalScope();
-  const input=scope.get('cp-whatsapp');
-  const btn=scope.get('cp-whatsapp-open');
+  const input=document.getElementById('cpd-whatsapp') || getProspectModalScope().get('cp-whatsapp');
+  const btn=document.getElementById('cpd-whatsapp-open') || getProspectModalScope().get('cp-whatsapp-open');
   if(!btn) return;
   const link=buildWhatsAppLink(input?.value||'');
+  btn.href=link||'#';
+  btn.style.pointerEvents=link?'auto':'none';
+  btn.style.opacity=link?'1':'.45';
+}
+function updateProspectInstagramButton(){
+  const input=document.getElementById('cpd-instagram');
+  const btn=document.getElementById('cpd-instagram-open');
+  if(!btn) return;
+  const link=buildInstagramLink(input?.value||'');
   btn.href=link||'#';
   btn.style.pointerEvents=link?'auto':'none';
   btn.style.opacity=link?'1':'.45';
@@ -7901,17 +7934,198 @@ async function deleteCommercialReminder(id){
   await saveCommercialReminders(reminders);
   renderComTab('dash');
 }
+function comEsc(value){
+  return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function prospectDisplayName(p){
+  return p?.companyName || p?.name || p?.contactName || 'Lead sem nome';
+}
+function prospectMeta(p){
+  const parts=[p?.contactName,p?.leadSource||p?.niche].filter(Boolean);
+  return parts.length?parts.join(' · '):'Sem origem definida';
+}
+function formatProspectDateTime(value){
+  if(!value) return '';
+  const d=new Date(String(value).replace(' ','T'));
+  if(Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+function prospectFollowLabel(value){
+  if(!value) return null;
+  const d=new Date(String(value).replace(' ','T'));
+  if(Number.isNaN(d.getTime())) return null;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const day=new Date(d); day.setHours(0,0,0,0);
+  const diff=Math.round((day-today)/(1000*60*60*24));
+  if(diff<0) return {text:'Atrasado',color:'var(--red)'};
+  if(diff===0) return {text:'Hoje',color:'var(--red)'};
+  if(diff===1) return {text:'Amanhã',color:'#facc15'};
+  if(diff>=28 && diff<60) return {text:'Mês que vem',color:'var(--accent)'};
+  if(diff>=60 && diff<90) return {text:'Daqui 2 meses',color:'var(--accent)'};
+  if(diff>=90 && diff<120) return {text:'Daqui 3 meses',color:'var(--accent)'};
+  if(diff<=7) return {text:`Em ${diff} dias`,color:'var(--accent)'};
+  return null;
+}
+function normalizeDateTimeInput(value){
+  if(!value) return '';
+  const str=String(value);
+  if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str)) return str.slice(0,16);
+  const d=new Date(str.replace(' ','T'));
+  if(Number.isNaN(d.getTime())) return '';
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function getProspectFollowUps(limit){
+  const now=Date.now();
+  const items=Object.values(_comProspects)
+    .filter(p=>p.followUpAt)
+    .map(p=>({p,time:new Date(String(p.followUpAt).replace(' ','T')).getTime()}))
+    .filter(x=>!Number.isNaN(x.time))
+    .sort((a,b)=>a.time-b.time);
+  const active=items.filter(x=>!['fechado','perdido'].includes(x.p.status));
+  const dueFirst=[...active.filter(x=>x.time<=now),...active.filter(x=>x.time>now)];
+  return typeof limit==='number'?dueFirst.slice(0,limit):dueFirst;
+}
+function comMonthKey(date=_comViewMonth){
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+}
+function isComDateInViewMonth(value){
+  if(!value) return false;
+  const d=typeof value==='number'?new Date(value):new Date(String(value).replace(' ','T'));
+  return !Number.isNaN(d.getTime()) && d.getFullYear()===_comViewMonth.getFullYear() && d.getMonth()===_comViewMonth.getMonth();
+}
+function getCommercialGoalConfig(){
+  const goals=_comSettings.salesGoals||{};
+  const key=comMonthKey();
+  return {leads:0,proposals:0,closes:0,...(goals[key]||{})};
+}
+function getCommercialMonthStats(){
+  const prospects=Object.values(_comProspects);
+  return {
+    leads: prospects.filter(p=>isComDateInViewMonth(p.createdAt||p.updatedAt)).length,
+    proposals: prospects.filter(p=>['proposta','negociacao','contrato','fechado'].includes(p.status) && isComDateInViewMonth(p.updatedAt||p.createdAt)).length,
+    closes: prospects.filter(p=>p.status==='fechado' && isComDateInViewMonth(p.closedAt||p.updatedAt||p.createdAt)).length
+  };
+}
+function renderGoalMiniCard(label,current,target,color){
+  const goal=Number(target)||0;
+  const pct=goal?Math.min(100,Math.round((Number(current||0)/goal)*100)):0;
+  const status=!goal?'Sem meta':pct>=100?'Meta batida':pct>=75?'Perto da meta':'Abaixo da meta';
+  return `<div class="comercial-stat" style="padding:12px">
+    <div class="comercial-stat-lbl">${label}</div>
+    <div class="comercial-stat-val" style="font-size:24px;color:${color}">${current}<span style="font-size:12px;color:var(--text3)">/${goal||'--'}</span></div>
+    <div style="height:7px;background:var(--bg4);border-radius:999px;overflow:hidden;margin-top:8px"><div style="height:100%;width:${goal?pct:0}%;background:${color};border-radius:999px"></div></div>
+    <div class="comercial-stat-sub">${status}${goal?` · ${pct}%`:''}</div>
+  </div>`;
+}
+async function saveComSalesGoals(){
+  const key=comMonthKey();
+  const goal={
+    leads:parseInt(document.getElementById('com-goal-leads')?.value)||0,
+    proposals:parseInt(document.getElementById('com-goal-proposals')?.value)||0,
+    closes:parseInt(document.getElementById('com-goal-closes')?.value)||0
+  };
+  _comSettings.salesGoals={...(_comSettings.salesGoals||{}),[key]:goal};
+  const {db,doc,setDoc}=window._fb;
+  await setDoc(doc(db,'com_settings','main'),{salesGoals:_comSettings.salesGoals},{merge:true});
+  showToast('Metas comerciais salvas!','ok');
+  if(currentView==='comercial') renderComTab('dash');
+}
+async function resetComSalesGoals(){
+  const key=comMonthKey();
+  _comSettings.salesGoals={...(_comSettings.salesGoals||{}),[key]:{leads:0,proposals:0,closes:0}};
+  const {db,doc,setDoc}=window._fb;
+  await setDoc(doc(db,'com_settings','main'),{salesGoals:_comSettings.salesGoals},{merge:true});
+  showToast('Metas do mês zeradas','inf');
+  if(currentView==='comercial') renderComTab('dash');
+}
+function renderCommercialFollowUps(limit=6){
+  const items=getProspectFollowUps(limit);
+  return `<div class="dcard">
+    <div class="dcard-hdr">🗓 Follow-ups comerciais</div>
+    <div class="dcard-body" style="padding:0">
+      ${items.length?items.map(({p,time})=>{
+        const col=PIPELINE_COLS.find(x=>x.id===p.status)||PIPELINE_COLS[0];
+        const overdue=time<Date.now();
+        const label=prospectFollowLabel(p.followUpAt);
+        return `<div class="alert-row lead-follow-card" onclick="openProspectModal('${p.id}')">
+          <div style="width:8px;height:8px;border-radius:50%;background:${overdue?'var(--red)':col.color};flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${comEsc(prospectDisplayName(p))}</div>
+            <div style="font-size:11px;color:var(--text3)">${comEsc(p.nextAction||p.obs||col.label)}</div>
+          </div>
+          <div style="text-align:right;white-space:nowrap">
+            ${label?`<div style="font-size:10px;font-weight:900;color:${label.color};text-transform:uppercase">${label.text}</div>`:''}
+            <div style="font-size:11px;font-weight:800;color:${label?.color||col.color}">${formatProspectDateTime(p.followUpAt)}</div>
+          </div>
+        </div>`;
+      }).join(''):`<div style="padding:14px;color:var(--text3);font-size:13px;text-align:center">Nenhum follow-up agendado.</div>`}
+    </div>
+  </div>`;
+}
+function renderCommercialFunnelMetrics(prospects){
+  const all=prospects||Object.values(_comProspects);
+  const total=all.length;
+  const won=all.filter(p=>p.status==='fechado').length;
+  const lost=all.filter(p=>p.status==='perdido').length;
+  const active=all.filter(p=>!['fechado','perdido'].includes(p.status)).length;
+  const conversion=total?Math.round((won/total)*100):0;
+  const ticketTotal=all.reduce((sum,p)=>sum+(parseFloat(p.valorProposto||p.ticketEstimado)||0),0);
+  const avgTicket=total?ticketTotal/total:0;
+  const fmt=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  return `<div class="dcard">
+    <div class="dcard-hdr">📊 Funil comercial</div>
+    <div class="dcard-body">
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+        <div class="comercial-stat" style="padding:12px"><div class="comercial-stat-lbl">Leads</div><div class="comercial-stat-val" style="font-size:22px">${total}</div></div>
+        <div class="comercial-stat" style="padding:12px"><div class="comercial-stat-lbl">Ativos</div><div class="comercial-stat-val" style="font-size:22px;color:var(--accent)">${active}</div></div>
+        <div class="comercial-stat" style="padding:12px"><div class="comercial-stat-lbl">Conversão</div><div class="comercial-stat-val" style="font-size:22px;color:var(--green)">${conversion}%</div></div>
+        <div class="comercial-stat" style="padding:12px"><div class="comercial-stat-lbl">Ticket médio</div><div class="comercial-stat-val" style="font-size:22px">${fmt(avgTicket)}</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">${won} fechado${won!==1?'s':''} · ${lost} perdido${lost!==1?'s':''}</div>
+    </div>
+  </div>`;
+}
 function renderComMiniDash(el){
   const prospects=Object.values(_comProspects);
   const activeProspects=prospects.filter(p=>!['fechado','perdido'].includes(p.status));
   const emNegociacao=prospects.filter(p=>['proposta','negociacao','contrato'].includes(p.status));
   const totalNegociacao=emNegociacao.reduce((sum,p)=>sum+(parseFloat(p.valorProposto)||0),0);
   const reminders=getComReminders().sort((a,b)=>(a.done===b.done)?((b.createdAt||0)-(a.createdAt||0)):(a.done?1:-1));
-  const nextActions=activeProspects
-    .sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0))
-    .slice(0,6);
   const fmt=v=>'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const monthLabel=MONTHS[_comViewMonth.getMonth()]+' '+_comViewMonth.getFullYear();
+  const goals=getCommercialGoalConfig();
+  const monthStats=getCommercialMonthStats();
   el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn btn-s btn-sm" onclick="changeComMonth(-1)">‹</button>
+        <div style="font-size:15px;font-weight:800;min-width:142px;text-align:center">${monthLabel}</div>
+        <button class="btn btn-s btn-sm" onclick="changeComMonth(1)">›</button>
+      </div>
+      <button class="btn btn-p btn-sm" onclick="openProspectModal()">+ Novo lead</button>
+    </div>
+    <div class="dcard" style="margin-bottom:14px">
+      <div class="dcard-hdr">🎯 Metas comerciais do mês</div>
+      <div class="dcard-body">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px">
+          ${renderGoalMiniCard('Leads chamados',monthStats.leads,goals.leads,'var(--accent)')}
+          ${renderGoalMiniCard('Propostas enviadas',monthStats.proposals,goals.proposals,'#facc15')}
+          ${renderGoalMiniCard('Fechamentos',monthStats.closes,goals.closes,'var(--green)')}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(120px,1fr)) auto auto;gap:8px;align-items:end">
+          <div class="ff"><label class="flbl">Meta leads</label><input class="fi" id="com-goal-leads" type="number" min="0" value="${goals.leads||''}" placeholder="0"></div>
+          <div class="ff"><label class="flbl">Meta propostas</label><input class="fi" id="com-goal-proposals" type="number" min="0" value="${goals.proposals||''}" placeholder="0"></div>
+          <div class="ff"><label class="flbl">Meta fechamentos</label><input class="fi" id="com-goal-closes" type="number" min="0" value="${goals.closes||''}" placeholder="0"></div>
+          <button class="btn btn-p btn-sm" onclick="saveComSalesGoals()">Salvar metas</button>
+          <button class="btn btn-s btn-sm" onclick="resetComSalesGoals()">Zerar</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(360px,1.1fr) minmax(280px,.9fr);gap:14px;margin-bottom:14px;align-items:start">
+      ${renderCommercialFunnelMetrics(prospects)}
+      ${renderCommercialFollowUps(8)}
+    </div>
     <div style="display:grid;grid-template-columns:minmax(320px,1.1fr) minmax(260px,.9fr);gap:14px;align-items:start">
       <div class="dcard">
         <div class="dcard-hdr">📌 Lembretes comerciais</div>
@@ -7935,22 +8149,114 @@ function renderComMiniDash(el){
           <div class="comercial-stat-val" style="color:var(--accent)">${fmt(totalNegociacao)}</div>
           <div class="comercial-stat-sub">${emNegociacao.length} oportunidade${emNegociacao.length!==1?'s':''} entre proposta, negociação e contrato</div>
         </div>
-        <div class="dcard">
-          <div class="dcard-hdr">🗓 Próximos passos</div>
-          <div class="dcard-body" style="padding:0">
-            ${nextActions.length?nextActions.map(p=>{
-              const col=PIPELINE_COLS.find(x=>x.id===p.status)||PIPELINE_COLS[0];
-              const wa=buildWhatsAppLink(p.whatsapp);
-              return `<div class="alert-row">
-                <div style="width:8px;height:8px;border-radius:50%;background:${col.color};flex-shrink:0"></div>
-                <div style="flex:1;min-width:0">
-                  <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
-                  <div style="font-size:11px;color:var(--text3)">${p.niche||'Sem nicho'} · ${col.label}</div>
-                </div>
-                ${wa?`<a href="${wa}" target="_blank" class="btn btn-s btn-sm" style="text-decoration:none">WhatsApp</a>`:''}
-              </div>`;
-            }).join(''):`<div style="padding:14px;color:var(--text3);font-size:13px;text-align:center">Nada em andamento no pipeline.</div>`}
+      </div>
+    </div>`;
+}
+let _editComScriptId = null;
+function getComScripts(){
+  return Array.isArray(_comSettings.scriptsAluma)?_comSettings.scriptsAluma:[];
+}
+async function persistComScripts(scripts){
+  _comSettings.scriptsAluma=scripts;
+  const {db,doc,setDoc}=window._fb;
+  await setDoc(doc(db,'com_settings','main'),{scriptsAluma:scripts},{merge:true});
+}
+function clearComScriptForm(){
+  _editComScriptId=null;
+  ['com-script-title','com-script-category','com-script-text'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const btn=document.getElementById('com-script-save-btn');
+  if(btn) btn.textContent='Salvar script';
+}
+function editComScript(id){
+  const script=getComScripts().find(s=>s.id===id);
+  if(!script) return;
+  _editComScriptId=id;
+  document.getElementById('com-script-title').value=script.title||'';
+  document.getElementById('com-script-category').value=script.category||'WhatsApp';
+  document.getElementById('com-script-text').value=script.text||'';
+  document.getElementById('com-script-save-btn').textContent='Atualizar script';
+  document.getElementById('com-script-title')?.focus();
+}
+async function saveComScript(){
+  const title=document.getElementById('com-script-title')?.value.trim()||'';
+  const category=document.getElementById('com-script-category')?.value.trim()||'WhatsApp';
+  const text=document.getElementById('com-script-text')?.value.trim()||'';
+  if(!title || !text){ showToast('Preencha título e texto','err'); return; }
+  const now=Date.now();
+  let scripts=getComScripts();
+  if(_editComScriptId){
+    scripts=scripts.map(s=>s.id===_editComScriptId?{...s,title,category,text,updatedAt:now}:s);
+    showToast('Script atualizado!','ok');
+  }else{
+    scripts=[{id:'scr_'+now,title,category,text,createdAt:now,updatedAt:now},...scripts];
+    showToast('Script salvo!','ok');
+  }
+  await persistComScripts(scripts);
+  clearComScriptForm();
+  renderComTab('scripts');
+}
+async function deleteComScript(id){
+  if(!confirm('Excluir este script?')) return;
+  await persistComScripts(getComScripts().filter(s=>s.id!==id));
+  showToast('Script removido','inf');
+  renderComTab('scripts');
+}
+async function copyComScript(id){
+  const script=getComScripts().find(s=>s.id===id);
+  if(!script) return;
+  try{
+    await navigator.clipboard.writeText(script.text||'');
+    showToast('Script copiado!','ok');
+  }catch(err){
+    const ta=document.createElement('textarea');
+    ta.value=script.text||'';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    showToast('Script copiado!','ok');
+  }
+}
+function renderComScripts(el){
+  const scripts=getComScripts().sort((a,b)=>(b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0));
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:minmax(320px,.85fr) minmax(420px,1.15fr);gap:14px;align-items:start">
+      <div class="dcard">
+        <div class="dcard-hdr">💬 Novo script</div>
+        <div class="dcard-body">
+          <div class="ff" style="margin-bottom:10px"><label class="flbl">Título</label><input class="fi" id="com-script-title" placeholder="Ex: Primeiro contato pelo WhatsApp"></div>
+          <div class="ff" style="margin-bottom:10px"><label class="flbl">Tipo</label><select class="fs" id="com-script-category">
+            <option>WhatsApp</option>
+            <option>Quebra de objeção</option>
+            <option>Follow-up</option>
+            <option>Proposta</option>
+            <option>Reativação</option>
+            <option>Outro</option>
+          </select></div>
+          <div class="ff" style="margin-bottom:12px"><label class="flbl">Texto</label><textarea class="fta" id="com-script-text" rows="10" placeholder="Cole ou escreva o script aqui..."></textarea></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-s" onclick="clearComScriptForm()">Limpar</button>
+            <button class="btn btn-p" id="com-script-save-btn" onclick="saveComScript()">Salvar script</button>
           </div>
+        </div>
+      </div>
+      <div class="dcard">
+        <div class="dcard-hdr">📚 Biblioteca de scripts <span style="font-size:11px;color:var(--text3);font-weight:400">${scripts.length} salvo${scripts.length!==1?'s':''}</span></div>
+        <div class="dcard-body" style="display:flex;flex-direction:column;gap:10px">
+          ${scripts.length?scripts.map(s=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px">
+            <div style="display:flex;align-items:flex-start;gap:10px;justify-content:space-between;margin-bottom:8px">
+              <div style="min-width:0">
+                <div style="font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${comEsc(s.title)}</div>
+                <div style="font-size:11px;color:var(--accent);font-weight:800;margin-top:2px">${comEsc(s.category||'Script')}</div>
+              </div>
+              <div style="display:flex;gap:6px;flex-shrink:0">
+                <button class="btn btn-p btn-sm" onclick="copyComScript('${s.id}')">Copiar</button>
+                <button class="btn btn-s btn-sm" onclick="editComScript('${s.id}')">Editar</button>
+                <button class="btn btn-d btn-sm" onclick="deleteComScript('${s.id}')">Excluir</button>
+              </div>
+            </div>
+            <div style="font-size:12px;line-height:1.55;color:var(--text2);white-space:pre-wrap;max-height:180px;overflow:auto">${comEsc(s.text)}</div>
+          </div>`).join(''):`<div style="padding:30px 12px;text-align:center;color:var(--text3);font-size:13px">Nenhum script salvo ainda.</div>`}
         </div>
       </div>
     </div>`;
@@ -8311,7 +8617,8 @@ function renderComDash(el){
   }).sort((a,b)=>a.fim.localeCompare(b.fim));
 
   // Prospects in pipeline (not closed/lost)
-  const prospects = Object.values(_comProspects).filter(p=>!['fechado','perdido'].includes(p.status));
+  const allProspects = Object.values(_comProspects);
+  const prospects = allProspects.filter(p=>!['fechado','perdido'].includes(p.status));
 
   // Historical data for evolution chart (last 6 months)
   const evoData = buildComEvoData();
@@ -8455,7 +8762,8 @@ function renderComDash(el){
 
 function changeComMonth(delta){
   _comViewMonth.setMonth(_comViewMonth.getMonth()+delta);
-  renderFinanceiroTab('dash');
+  if(currentView==='comercial') renderComTab('dash');
+  else renderFinanceiroTab('dash');
 }
 
 function buildComEvoData(){
@@ -8600,10 +8908,11 @@ function renderComPipeline(el){
           </div>
           <div class="pipeline-col-body" ondragover="event.preventDefault();this.closest('.pipeline-col').classList.add('drag-over')" ondragleave="this.closest('.pipeline-col').classList.remove('drag-over')" ondrop="dropProspectCard(event,'${col.id}',this.closest('.pipeline-col'))">
             ${cards.map(p=>`<div class="pipeline-card" draggable="true" ondragstart="dragProspectCard(event,'${p.id}')" onclick="openProspectModal('${p.id}')">
-              <div class="pipeline-card-name">${p.name}</div>
-              <div class="pipeline-card-meta">${p.niche||'—'}</div>
+              <div class="pipeline-card-name">${comEsc(prospectDisplayName(p))}</div>
+              <div class="pipeline-card-meta">${comEsc(prospectMeta(p))}</div>
               ${p.valorProposto?`<div style="font-size:12px;font-weight:700;color:var(--green);margin-top:4px">${fmt(p.valorProposto)}/mês</div>`:''}
               ${p.instagram?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${p.instagram}</div>`:''}
+              ${p.followUpAt?`<div style="font-size:10px;color:var(--accent);font-weight:800;margin-top:6px">Follow-up: ${formatProspectDateTime(p.followUpAt)}</div>`:''}
               ${p.whatsapp?`<div style="margin-top:8px"><a href="${buildWhatsAppLink(p.whatsapp)}" target="_blank" onclick="event.stopPropagation()" class="btn btn-s btn-sm" style="text-decoration:none">WhatsApp</a></div>`:''}
             </div>`).join('')||`<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">Vazio</div>`}
             <button style="background:none;border:1px dashed var(--border);border-radius:var(--rs);padding:6px;font-size:12px;color:var(--text3);cursor:pointer;width:100%;margin-top:4px" onclick="openProspectModal(null,'${col.id}')">+ Adicionar</button>
@@ -8760,52 +9069,139 @@ function getProspectModalScope(){
     }
   };
 }
+function prospectDrawerVal(id){
+  return document.getElementById(id)?.value?.trim() || '';
+}
+function ensureProspectDrawer(){
+  let root=document.getElementById('prospect-drawer-root');
+  if(root) return root;
+  document.body.insertAdjacentHTML('beforeend',`
+    <div class="lead-drawer-overlay" id="prospect-drawer-root" onclick="if(event.target.id==='prospect-drawer-root') closeProspectModal()">
+      <aside class="lead-drawer" role="dialog" aria-modal="true" aria-labelledby="cpd-title">
+        <div class="lead-drawer-head">
+          <div>
+            <div class="lead-drawer-title" id="cpd-title">Novo lead</div>
+            <div class="lead-drawer-sub" id="cpd-subtitle">Cadastro comercial inteligente</div>
+          </div>
+          <button class="lead-drawer-close" type="button" onclick="closeProspectModal()" title="Fechar">×</button>
+        </div>
+        <div class="lead-drawer-body">
+          <div class="lead-drawer-grid">
+            <div class="ff lead-field-wide"><label class="flbl">Nome da empresa *</label><input class="fi" id="cpd-company" placeholder="Razão social ou nome comercial"></div>
+            <div class="ff"><label class="flbl">Contato principal</label><input class="fi" id="cpd-contact" placeholder="Nome completo"></div>
+            <div class="ff"><label class="flbl">Cargo do contato</label><input class="fi" id="cpd-role" placeholder="Ex: sócia, diretor, marketing"></div>
+            <div class="ff">
+              <label class="flbl">Telefone / WhatsApp</label>
+              <div style="display:flex;gap:8px">
+                <input class="fi" id="cpd-whatsapp" placeholder="5511999999999" oninput="updateProspectWhatsAppButton()">
+                <a id="cpd-whatsapp-open" class="btn btn-s btn-sm" href="#" target="_blank" style="text-decoration:none;white-space:nowrap;pointer-events:none;opacity:.45">Abrir</a>
+              </div>
+            </div>
+            <div class="ff"><label class="flbl">E-mail</label><input class="fi" id="cpd-email" type="email" placeholder="email@empresa.com"></div>
+            <div class="ff"><label class="flbl">Fonte do lead</label><input class="fi" id="cpd-source" placeholder="Indicação, LinkedIn, inbound..."></div>
+            <div class="ff"><label class="flbl">Quem iniciou contato</label><select class="fs" id="cpd-owner"><option value="">Selecionar</option><option value="Juliana">Juliana</option><option value="Jackson">Jackson</option></select></div>
+            <div class="ff"><label class="flbl">Ticket estimado</label><input class="fi" id="cpd-ticket" type="number" min="0" step="50" placeholder="R$ 0"></div>
+            <div class="ff"><label class="flbl">Etapa do funil</label><select class="fs" id="cpd-status">${PIPELINE_COLS.map(col=>`<option value="${col.id}">${col.label}</option>`).join('')}</select></div>
+            <div class="ff"><label class="flbl">Data do último contato</label><input class="fi" id="cpd-last-contact" type="date"></div>
+            <div class="ff"><label class="flbl">Follow-up</label><input class="fi" id="cpd-follow-up" type="datetime-local"></div>
+            <div class="ff lead-field-wide"><label class="flbl">Interesse ou necessidade</label><textarea class="fta" id="cpd-need" rows="4" placeholder="Qual problema a empresa quer resolver?"></textarea></div>
+            <div class="ff lead-field-wide"><label class="flbl">Próxima ação</label><textarea class="fta" id="cpd-next-action" rows="3" placeholder="Ex: enviar proposta, marcar call, cobrar retorno..."></textarea></div>
+            <div class="ff">
+              <label class="flbl">Instagram</label>
+              <div style="display:flex;gap:8px">
+                <input class="fi" id="cpd-instagram" placeholder="@empresa" oninput="updateProspectInstagramButton()">
+                <a id="cpd-instagram-open" class="btn btn-s btn-sm" href="#" target="_blank" style="text-decoration:none;white-space:nowrap;pointer-events:none;opacity:.45">Abrir</a>
+              </div>
+            </div>
+            <div class="ff"><label class="flbl">Segmento</label><input class="fi" id="cpd-niche" placeholder="Área/nicho"></div>
+            <div class="ff lead-field-wide"><label class="flbl">Observações internas</label><textarea class="fta" id="cpd-obs" rows="3" placeholder="Notas livres"></textarea></div>
+          </div>
+        </div>
+        <div class="lead-drawer-foot">
+          <button class="btn btn-d" id="cpd-delete-btn" type="button" onclick="deleteProspect()" style="display:none;margin-right:auto">Excluir</button>
+          <button class="btn btn-s" type="button" onclick="closeProspectModal()">Cancelar</button>
+          <button class="btn btn-p" type="button" onclick="saveProspect()">Salvar lead</button>
+        </div>
+      </aside>
+    </div>`);
+  return document.getElementById('prospect-drawer-root');
+}
 function openProspectModal(id, defaultStatus){
   _editProspectId = id||null;
-  const p = id ? _comProspects[id] : {};
-  const scope=getProspectModalScope();
-  const mo = scope.modal;
-  if(!mo) return;
-  scope.get('cp-name').value = p.name||'';
-  scope.get('cp-instagram').value = p.instagram||'';
-  scope.get('cp-whatsapp').value = p.whatsapp||'';
-  scope.get('cp-niche').value = p.niche||'';
-  scope.get('cp-valor').value = p.valorProposto||'';
-  scope.get('cp-status').value = p.status||(defaultStatus||'prospeccao');
-  scope.get('cp-obs').value = p.obs||'';
-  scope.get('cp-modal-title').textContent = id?'Editar prospect':'Novo prospect';
-  scope.get('cp-delete-btn').style.display = id?'flex':'none';
+  const p = id ? (_comProspects[id]||{}) : {};
+  const root=ensureProspectDrawer();
+  const set=(field,value)=>{ const el=document.getElementById(field); if(el) el.value=value||''; };
+  set('cpd-company', p.companyName||p.name||'');
+  set('cpd-contact', p.contactName||'');
+  set('cpd-role', p.contactRole||'');
+  set('cpd-whatsapp', p.phone||p.whatsapp||'');
+  set('cpd-email', p.email||'');
+  set('cpd-source', p.leadSource||p.niche||'');
+  set('cpd-owner', p.initiatedBy||p.contactOwner||'');
+  set('cpd-ticket', p.ticketEstimado||p.valorProposto||'');
+  set('cpd-status', p.status||(defaultStatus||'prospeccao'));
+  set('cpd-last-contact', p.lastContactAt||'');
+  set('cpd-follow-up', normalizeDateTimeInput(p.followUpAt));
+  set('cpd-need', p.need||p.interest||'');
+  set('cpd-next-action', p.nextAction||'');
+  set('cpd-instagram', p.instagram||'');
+  set('cpd-niche', p.niche||'');
+  set('cpd-obs', p.obs||'');
+  document.getElementById('cpd-title').textContent = id?'Editar lead':'Novo lead';
+  document.getElementById('cpd-subtitle').textContent = id?prospectDisplayName(p):'Preencha os dados comerciais e agende o próximo contato';
+  document.getElementById('cpd-delete-btn').style.display = id?'flex':'none';
   updateProspectWhatsAppButton();
-  mo.classList.add('open');
+  updateProspectInstagramButton();
+  root.classList.add('open');
+  setTimeout(()=>document.getElementById('cpd-company')?.focus(),60);
 }
-function closeProspectModal(){ const scope=getProspectModalScope(); scope.modal?.classList.remove('open'); }
+function closeProspectModal(){
+  document.getElementById('prospect-drawer-root')?.classList.remove('open');
+  const scope=getProspectModalScope();
+  scope.modal?.classList.remove('open');
+}
 
 async function saveProspect(){
   const {db,doc,setDoc,addDoc,collection} = window._fb;
-  const scope=getProspectModalScope();
+  const ticket=parseFloat(prospectDrawerVal('cpd-ticket'))||0;
   const data = {
-    name: scope.get('cp-name').value.trim(),
-    instagram: scope.get('cp-instagram').value.trim(),
-    whatsapp: scope.get('cp-whatsapp').value.trim(),
-    niche: scope.get('cp-niche').value.trim(),
-    valorProposto: parseFloat(scope.get('cp-valor').value)||0,
-    status: scope.get('cp-status').value,
-    obs: scope.get('cp-obs').value.trim(),
+    companyName: prospectDrawerVal('cpd-company'),
+    contactName: prospectDrawerVal('cpd-contact'),
+    contactRole: prospectDrawerVal('cpd-role'),
+    phone: prospectDrawerVal('cpd-whatsapp'),
+    whatsapp: prospectDrawerVal('cpd-whatsapp'),
+    email: prospectDrawerVal('cpd-email'),
+    leadSource: prospectDrawerVal('cpd-source'),
+    initiatedBy: prospectDrawerVal('cpd-owner'),
+    contactOwner: prospectDrawerVal('cpd-owner'),
+    ticketEstimado: ticket,
+    valorProposto: ticket,
+    status: prospectDrawerVal('cpd-status')||'prospeccao',
+    lastContactAt: prospectDrawerVal('cpd-last-contact'),
+    followUpAt: prospectDrawerVal('cpd-follow-up'),
+    need: prospectDrawerVal('cpd-need'),
+    interest: prospectDrawerVal('cpd-need'),
+    nextAction: prospectDrawerVal('cpd-next-action'),
+    instagram: prospectDrawerVal('cpd-instagram'),
+    niche: prospectDrawerVal('cpd-niche') || prospectDrawerVal('cpd-source'),
+    obs: prospectDrawerVal('cpd-obs'),
     updatedAt: Date.now()
   };
-  if(!data.name){ showToast('Nome obrigatório','err'); return; }
+  data.name = data.companyName || data.contactName;
+  if(!data.name){ showToast('Nome da empresa obrigatório','err'); return; }
   if(_editProspectId){
     await setDoc(doc(db,'com_prospects',_editProspectId),data,{merge:true});
-    _comProspects[_editProspectId] = {id:_editProspectId,...data};
+    _comProspects[_editProspectId] = {...(_comProspects[_editProspectId]||{}),id:_editProspectId,...data};
     showToast('Atualizado!','ok');
   } else {
     data.createdAt = Date.now();
     const ref = await addDoc(collection(db,'com_prospects'),data);
     _comProspects[ref.id] = {id:ref.id,...data};
-    showToast('Prospect adicionado!','ok');
+    showToast('Lead adicionado!','ok');
   }
   closeProspectModal();
-  renderComTab('pipeline');
+  if(currentView==='comercial') renderComTab(comercialTab);
+  else if(currentView==='financeiro') renderFinanceiroTab(financeiroTab);
 }
 
 async function deleteProspect(){
@@ -8815,7 +9211,8 @@ async function deleteProspect(){
   delete _comProspects[_editProspectId];
   closeProspectModal();
   showToast('Removido','inf');
-  renderComTab('pipeline');
+  if(currentView==='comercial') renderComTab(comercialTab);
+  else if(currentView==='financeiro') renderFinanceiroTab(financeiroTab);
 }
 </script>
 
