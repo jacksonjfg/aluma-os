@@ -7944,6 +7944,7 @@ let _comClientes = {};  // { id: {name,instagram,niche,valor,custo,inicio,fim,st
 let _comProspects = {}; // { id: {name,instagram,niche,valorProposto,status,obs,createdAt} }
 let _comSettings = {meta:0, custoFixo:0, proLabore:0, reminders:[]}; // meta mensal e custo fixo agência
 let _comCustos = {}; // { id: {categoria, descricao, valor, recorrente, data} }
+let _finReceitas = {}; // { id: {descricao, valor, data, categoria} }
 
 const CUSTO_CATEGORIAS = [
   {id:'operacionais', label:'Despesas Operacionais', icon:'⚙️', desc:'Ferramentas, softwares, hospedagem'},
@@ -7987,11 +7988,12 @@ function swCom(tab, btn){
 
 async function loadComercialData(){
   const {db, collection, getDocs, doc, getDoc} = window._fb;
-  const [cSnap, pSnap, sSnap, custosSnap] = await Promise.allSettled([
+  const [cSnap, pSnap, sSnap, custosSnap, receitasSnap] = await Promise.allSettled([
     getDocs(collection(db,'com_clientes')),
     getDocs(collection(db,'com_prospects')),
     getDoc(doc(db,'com_settings','main')),
-    getDocs(collection(db,'com_custos'))
+    getDocs(collection(db,'com_custos')),
+    getDocs(collection(db,'com_receitas'))
   ]);
   _comClientes = {};
   if(cSnap.status==='fulfilled') cSnap.value.forEach(d => _comClientes[d.id] = {id:d.id,...d.data()});
@@ -7999,6 +8001,8 @@ async function loadComercialData(){
   if(pSnap.status==='fulfilled') pSnap.value.forEach(d => _comProspects[d.id] = {id:d.id,...d.data()});
   _comCustos = {};
   if(custosSnap.status==='fulfilled') custosSnap.value.forEach(d => _comCustos[d.id] = {id:d.id,...d.data()});
+  _finReceitas = {};
+  if(receitasSnap.status==='fulfilled') receitasSnap.value.forEach(d => _finReceitas[d.id] = {id:d.id,...d.data()});
   if(sSnap.status==='fulfilled' && sSnap.value.exists()) _comSettings = {..._comSettings, ...sSnap.value.data()};
 }
 
@@ -8021,9 +8025,11 @@ async function renderFinanceiro(){
   main.innerHTML = `<div class="ph">
     <div class="ptitle">💸 Financeiro</div>
     <div class="ptabs">
-      <button class="ptab active" id="ftab-dash" onclick="swFinanceiro('dash',this)">📊 Dashboard</button>
-      <button class="ptab" id="ftab-clientes" onclick="swFinanceiro('clientes',this)">🤝 Clientes</button>
-      <button class="ptab" id="ftab-custos" onclick="swFinanceiro('custos',this)">💸 Custos</button>
+      <button class="ptab ${financeiroTab==='dash'?'active':''}" id="ftab-dash" onclick="swFinanceiro('dash',this)">📊 Dashboard</button>
+      <button class="ptab ${financeiroTab==='clientes'?'active':''}" id="ftab-clientes" onclick="swFinanceiro('clientes',this)">🤝 Clientes</button>
+      <button class="ptab ${financeiroTab==='receitas'?'active':''}" id="ftab-receitas" onclick="swFinanceiro('receitas',this)">💰 Receitas variáveis</button>
+      <button class="ptab ${financeiroTab==='custos'?'active':''}" id="ftab-custos" onclick="swFinanceiro('custos',this)">💸 Custos</button>
+      <button class="ptab ${financeiroTab==='historico'?'active':''}" id="ftab-historico" onclick="swFinanceiro('historico',this)">📈 Histórico mensal</button>
     </div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:14px 20px" id="finance-content">
@@ -8042,9 +8048,11 @@ function swFinanceiro(tab, btn){
 function renderFinanceiroTab(tab){
   const el = document.getElementById('finance-content');
   if(!el) return;
-  if(tab==='dash') renderComDash(el);
+  if(tab==='dash') renderFinanceiroDash(el);
   else if(tab==='clientes') renderComClientes(el);
+  else if(tab==='receitas') renderFinReceitas(el);
   else if(tab==='custos') renderComCustos(el);
+  else if(tab==='historico') renderFinHistorico(el);
 }
 function sanitizeWhatsApp(value){
   return String(value||'').replace(/\D/g,'');
@@ -8755,6 +8763,145 @@ function generateContractPDF(){
 
 // ── DASHBOARD ──
 let _comViewMonth = new Date();
+function finMonthKey(date){
+  const d=date instanceof Date?date:new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function finItemMonth(item){
+  if(item?.data) return String(item.data).slice(0,7);
+  if(item?.createdAt) return finMonthKey(new Date(item.createdAt));
+  return '';
+}
+function finClientActiveInMonth(client,date){
+  if(client.status!=='ativo') return false;
+  const start=new Date(date.getFullYear(),date.getMonth(),1);
+  const end=new Date(date.getFullYear(),date.getMonth()+1,0,23,59,59);
+  const inicio=client.inicio?new Date(client.inicio+'T00:00:00'):null;
+  const fim=client.fim?new Date(client.fim+'T23:59:59'):null;
+  return (!inicio || inicio<=end) && (!fim || fim>=start);
+}
+function getFinanceSnapshot(date=_comViewMonth){
+  const key=finMonthKey(date);
+  const clientes=Object.values(_comClientes).filter(c=>finClientActiveInMonth(c,date));
+  const receitaRecorrente=clientes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const receitasVariaveis=Object.values(_finReceitas).filter(r=>finItemMonth(r)===key).reduce((s,r)=>s+(parseFloat(r.valor)||0),0);
+  const receitaTotal=receitaRecorrente+receitasVariaveis;
+  const custosCliente=clientes.reduce((s,c)=>s+(parseFloat(c.custo)||0),0);
+  const custosMes=Object.values(_comCustos).filter(c=>c.recorrente || finItemMonth(c)===key);
+  const impostos=custosMes.filter(c=>c.categoria==='impostos').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const despesasVariaveis=custosMes.filter(c=>c.categoria==='variaveis').reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const despesasOperacionais=custosMes.filter(c=>!['impostos','variaveis'].includes(c.categoria)).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
+  const proLabore=parseFloat(_comSettings.proLabore)||0;
+  const custosDiretos=custosCliente+despesasVariaveis;
+  const lucroBruto=receitaTotal-custosDiretos;
+  const custoTotal=custosDiretos+despesasOperacionais+impostos+proLabore;
+  const lucroLiquido=receitaTotal-custoTotal;
+  const margem=receitaTotal?(lucroLiquido/receitaTotal)*100:0;
+  const ticketMedio=clientes.length?receitaRecorrente/clientes.length:0;
+  const custosFixos=despesasOperacionais+proLabore;
+  const margemContribuicao=receitaTotal?Math.max(0,(receitaTotal-custosDiretos-impostos)/receitaTotal):0;
+  const pontoEquilibrio=margemContribuicao?custosFixos/margemContribuicao:0;
+  return {key,clientes,receitaRecorrente,receitasVariaveis,receitaTotal,custosCliente,despesasVariaveis,despesasOperacionais,impostos,proLabore,custosDiretos,lucroBruto,custoTotal,lucroLiquido,margem,ticketMedio,pontoEquilibrio};
+}
+function finFmt(v){
+  return 'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function buildFinanceHistoryData(){
+  const history=_comSettings.financeHistory||{};
+  const data=[];
+  const now=new Date();
+  for(let i=11;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const key=finMonthKey(d);
+    const manual=history[key];
+    let receita=0;
+    let custos=0;
+    if(manual){
+      receita=parseFloat(manual.receita)||0;
+      custos=parseFloat(manual.custos)||0;
+    }else if(key===finMonthKey(now)){
+      const snap=getFinanceSnapshot(d);
+      receita=snap.receitaTotal;
+      custos=snap.custoTotal;
+    }
+    data.push({key,label:`${MONTHS[d.getMonth()]} ${d.getFullYear()}`,short:MONTHS[d.getMonth()].slice(0,3),receita,custos,lucro:receita-custos});
+  }
+  return data;
+}
+function renderFinanceLineChart(data){
+  const width=900,height=230,padX=42,padTop=18,padBottom=38;
+  const max=Math.max(...data.flatMap(d=>[d.receita,Math.max(0,d.lucro)]),1);
+  const x=i=>padX+(i*(width-padX*2)/Math.max(1,data.length-1));
+  const y=v=>padTop+(height-padTop-padBottom)*(1-Math.max(0,v)/max);
+  const receitaPts=data.map((d,i)=>`${x(i)},${y(d.receita)}`).join(' ');
+  const lucroPts=data.map((d,i)=>`${x(i)},${y(Math.max(0,d.lucro))}`).join(' ');
+  return `<div style="overflow-x:auto">
+    <svg viewBox="0 0 ${width} ${height}" style="width:100%;min-width:720px;height:230px;display:block" role="img" aria-label="Evolução mensal de faturamento e lucro">
+      ${[0,.25,.5,.75,1].map(p=>`<line x1="${padX}" x2="${width-padX}" y1="${y(max*p)}" y2="${y(max*p)}" stroke="var(--border)" stroke-width="1"/>`).join('')}
+      <polyline points="${receitaPts}" fill="none" stroke="#60a5fa" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="${lucroPts}" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      ${data.map((d,i)=>`<g><circle cx="${x(i)}" cy="${y(d.receita)}" r="4" fill="#60a5fa"><title>${d.label}: ${finFmt(d.receita)}</title></circle><text x="${x(i)}" y="${height-12}" fill="var(--text3)" font-size="10" text-anchor="middle">${d.short}</text></g>`).join('')}
+    </svg>
+    <div style="display:flex;gap:18px;justify-content:center;font-size:11px;color:var(--text3)">
+      <span><i style="display:inline-block;width:18px;height:3px;background:#60a5fa;vertical-align:middle;margin-right:6px"></i>Faturamento</span>
+      <span><i style="display:inline-block;width:18px;height:3px;background:#4ade80;vertical-align:middle;margin-right:6px"></i>Lucro</span>
+    </div>
+  </div>`;
+}
+function renderFinanceiroDash(el){
+  const snap=getFinanceSnapshot(_comViewMonth);
+  const meta=parseFloat(_comSettings.meta)||0;
+  const metaPct=meta?Math.min(Math.round(snap.receitaTotal/meta*100),100):0;
+  const monthLabel=MONTHS[_comViewMonth.getMonth()]+' '+_comViewMonth.getFullYear();
+  const history=buildFinanceHistoryData();
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn btn-s btn-sm" onclick="changeComMonth(-1)">‹</button>
+        <span style="font-size:15px;font-weight:800;min-width:150px;text-align:center">${monthLabel}</span>
+        <button class="btn btn-s btn-sm" onclick="changeComMonth(1)">›</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <label class="flbl" style="margin:0">Meta mensal</label>
+        <input type="number" class="fi" id="com-meta-inp" value="${_comSettings.meta||''}" placeholder="R$ 0,00" style="width:130px;padding:6px 10px" onblur="saveComSettings()">
+        <label class="flbl" style="margin:0 0 0 6px">Pró-labore</label>
+        <input type="number" class="fi" id="com-prolabore-inp" value="${_comSettings.proLabore||''}" placeholder="R$ 0,00" style="width:130px;padding:6px 10px" onblur="saveComSettings()">
+        <input type="hidden" id="com-custo-inp" value="${_comSettings.custoFixo||0}">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px">
+      <div class="comercial-stat"><div class="comercial-stat-lbl">Faturamento total</div><div class="comercial-stat-val" style="color:var(--green)">${finFmt(snap.receitaTotal)}</div><div class="comercial-stat-sub">${finFmt(snap.receitaRecorrente)} recorrente + ${finFmt(snap.receitasVariaveis)} variável</div></div>
+      <div class="comercial-stat"><div class="comercial-stat-lbl">Lucro líquido</div><div class="comercial-stat-val" style="color:${snap.lucroLiquido>=0?'var(--green)':'var(--red)'}">${finFmt(snap.lucroLiquido)}</div><div class="comercial-stat-sub">após custos e pró-labore</div></div>
+      <div class="comercial-stat"><div class="comercial-stat-lbl">Ticket médio</div><div class="comercial-stat-val">${finFmt(snap.ticketMedio)}</div><div class="comercial-stat-sub">${snap.clientes.length} cliente${snap.clientes.length===1?'':'s'} ativo${snap.clientes.length===1?'':'s'}</div></div>
+      <div class="comercial-stat"><div class="comercial-stat-lbl">Margem líquida</div><div class="comercial-stat-val" style="color:${snap.margem>=20?'var(--green)':snap.margem>=0?'var(--yellow)':'var(--red)'}">${snap.margem.toFixed(1)}%</div><div class="comercial-stat-sub">lucro sobre faturamento</div></div>
+      <div class="comercial-stat"><div class="comercial-stat-lbl">Ponto de equilíbrio</div><div class="comercial-stat-val">${finFmt(snap.pontoEquilibrio)}</div><div class="comercial-stat-sub">faturamento mínimo estimado</div></div>
+      <div class="comercial-stat"><div class="comercial-stat-lbl">Meta do mês</div><div class="comercial-stat-val" style="color:${metaPct>=100?'var(--green)':'var(--accent)'}">${metaPct}%</div><div class="comercial-stat-sub">${meta?`${finFmt(snap.receitaTotal)} de ${finFmt(meta)}`:'Defina uma meta mensal'}</div></div>
+    </div>
+    ${meta?`<div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-bottom:16px"><div style="height:100%;width:${metaPct}%;background:${metaPct>=100?'var(--green)':'var(--accent)'}"></div></div>`:''}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:14px;align-items:start">
+      <div class="dcard">
+        <div class="dcard-hdr">DRE simplificada — ${monthLabel}</div>
+        <div class="dcard-body" style="padding:4px 14px">
+          ${[
+            ['Receita recorrente',snap.receitaRecorrente,'var(--green)',false],
+            ['(+) Receitas variáveis',snap.receitasVariaveis,'var(--green)',false],
+            ['Receita bruta',snap.receitaTotal,'var(--text)',true],
+            ['(-) Custos diretos por cliente',-snap.custosCliente,'var(--red)',false],
+            ['(-) Despesas variáveis',-snap.despesasVariaveis,'var(--red)',false],
+            ['Lucro bruto',snap.lucroBruto,snap.lucroBruto>=0?'var(--green)':'var(--red)',true],
+            ['(-) Despesas operacionais',-snap.despesasOperacionais,'var(--red)',false],
+            ['(-) Impostos',-snap.impostos,'var(--red)',false],
+            ['(-) Pró-labore',-snap.proLabore,'var(--red)',false],
+            ['Resultado líquido',snap.lucroLiquido,snap.lucroLiquido>=0?'var(--green)':'var(--red)',true]
+          ].map(([label,value,color,strong])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;${strong?'font-weight:800':''}"><span>${label}</span><span style="color:${color}">${value<0?'- ':''}${finFmt(Math.abs(value))}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="dcard">
+        <div class="dcard-hdr" style="display:flex;justify-content:space-between;align-items:center"><span>Evolução financeira — 12 meses</span><button class="btn btn-s btn-sm" onclick="swFinanceiro('historico',document.getElementById('ftab-historico'))">Editar histórico</button></div>
+        <div class="dcard-body">${renderFinanceLineChart(history)}</div>
+      </div>
+    </div>`;
+}
 function renderComDash(el){
   const clientes = Object.values(_comClientes).filter(c=>c.status==='ativo');
   const receitaTotal = clientes.reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
@@ -8966,6 +9113,122 @@ async function saveComSettings(){
   if(currentView==='financeiro') renderFinanceiroTab('dash');
 }
 
+// ── RECEITAS VARIÁVEIS ──
+let _editFinReceitaId=null;
+function renderFinReceitas(el){
+  const list=Object.values(_finReceitas).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
+  const editing=_editFinReceitaId?_finReceitas[_editFinReceitaId]||{}:{};
+  el.innerHTML=`
+    <div class="dcard" style="margin-bottom:14px">
+      <div class="dcard-hdr">${_editFinReceitaId?'Editar receita variável':'Nova receita variável'}</div>
+      <div class="dcard-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
+          <div class="ff"><label class="flbl">Descrição</label><input class="fi" id="fr-desc" value="${escHtml(editing.descricao||'')}" placeholder="Ex: projeto avulso, consultoria, comissão"></div>
+          <div class="ff"><label class="flbl">Valor (R$)</label><input type="number" step="0.01" class="fi" id="fr-valor" value="${editing.valor||''}" placeholder="0,00"></div>
+          <div class="ff"><label class="flbl">Data de recebimento</label><input type="date" class="fi" id="fr-data" value="${editing.data||new Date().toISOString().slice(0,10)}"></div>
+          <div style="display:flex;gap:6px"><button class="btn btn-p" onclick="saveFinReceita()">Salvar</button>${_editFinReceitaId?`<button class="btn btn-s" onclick="_editFinReceitaId=null;renderFinanceiroTab('receitas')">Cancelar</button>`:''}</div>
+        </div>
+      </div>
+    </div>
+    <div class="dcard">
+      <div class="dcard-hdr">Receitas cadastradas <span style="color:var(--text3);font-size:11px;font-weight:500">${list.length} lançamento${list.length===1?'':'s'}</span></div>
+      <div class="dcard-body" style="padding:0">
+        ${list.length?list.map(r=>`<div class="alert-row">
+          <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">${escHtml(r.descricao||'Receita')}</div><div style="font-size:11px;color:var(--text3)">${r.data?new Date(r.data+'T00:00:00').toLocaleDateString('pt-BR'):'Sem data'}</div></div>
+          <strong style="color:var(--green)">${finFmt(r.valor)}</strong>
+          <button class="btn btn-s btn-sm" onclick="_editFinReceitaId='${r.id}';renderFinanceiroTab('receitas')">Editar</button>
+          <button class="btn btn-d btn-sm" onclick="deleteFinReceita('${r.id}')">Excluir</button>
+        </div>`).join(''):`<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Nenhuma receita variável cadastrada.</div>`}
+      </div>
+    </div>`;
+}
+async function saveFinReceita(){
+  const descricao=document.getElementById('fr-desc')?.value.trim();
+  const valor=parseFloat(document.getElementById('fr-valor')?.value)||0;
+  const data=document.getElementById('fr-data')?.value;
+  if(!descricao || !valor || !data){ showToast('Preencha descrição, valor e data','err'); return; }
+  const payload={descricao,valor,data,categoria:'variavel',updatedAt:Date.now()};
+  const {db,doc,setDoc,addDoc,collection}=window._fb;
+  if(_editFinReceitaId){
+    await setDoc(doc(db,'com_receitas',_editFinReceitaId),payload,{merge:true});
+    _finReceitas[_editFinReceitaId]={..._finReceitas[_editFinReceitaId],id:_editFinReceitaId,...payload};
+  }else{
+    payload.createdAt=Date.now();
+    const ref=await addDoc(collection(db,'com_receitas'),payload);
+    _finReceitas[ref.id]={id:ref.id,...payload};
+  }
+  _editFinReceitaId=null;
+  showToast('Receita salva!','ok');
+  renderFinanceiroTab('receitas');
+}
+async function deleteFinReceita(id){
+  if(!id || !confirm('Excluir esta receita?')) return;
+  const {db,doc,deleteDoc}=window._fb;
+  await deleteDoc(doc(db,'com_receitas',id));
+  delete _finReceitas[id];
+  if(_editFinReceitaId===id) _editFinReceitaId=null;
+  showToast('Receita removida','inf');
+  renderFinanceiroTab('receitas');
+}
+
+// ── HISTÓRICO FINANCEIRO ──
+function renderFinHistorico(el){
+  const history=_comSettings.financeHistory||{};
+  const rows=[];
+  const now=new Date();
+  for(let i=23;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const key=finMonthKey(d);
+    const item=history[key]||{};
+    rows.push({key,label:`${MONTHS[d.getMonth()]} ${d.getFullYear()}`,receita:item.receita||'',custos:item.custos||''});
+  }
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <div><div style="font-size:16px;font-weight:800">Histórico financeiro manual</div><div style="font-size:12px;color:var(--text3);margin-top:3px">Preencha os dados da sua planilha. O lucro é calculado automaticamente e alimenta o gráfico do dashboard.</div></div>
+      <button class="btn btn-p" onclick="saveFinHistorico()">Salvar histórico</button>
+    </div>
+    <div class="dcard">
+      <div class="dcard-body" style="padding:0;max-height:65vh;overflow:auto">
+        <div style="min-width:680px">
+        <div style="display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(150px,1fr) minmax(150px,1fr);gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;position:sticky;top:0;background:var(--bg2);z-index:2">
+          <span>Competência</span><span>Faturamento</span><span>Custos totais</span><span>Lucro</span>
+        </div>
+        ${rows.reverse().map(r=>`<div class="fin-history-row" data-key="${r.key}" style="display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(150px,1fr) minmax(150px,1fr);gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center">
+          <strong style="font-size:13px">${r.label}</strong>
+          <input type="number" step="0.01" class="fi fin-h-receita" value="${r.receita}" placeholder="R$ 0,00" oninput="updateFinHistoryProfit(this)">
+          <input type="number" step="0.01" class="fi fin-h-custos" value="${r.custos}" placeholder="R$ 0,00" oninput="updateFinHistoryProfit(this)">
+          <strong class="fin-h-lucro" style="font-size:13px;color:${Number(r.receita)-Number(r.custos)>=0?'var(--green)':'var(--red)'}">${finFmt(Number(r.receita)-Number(r.custos))}</strong>
+        </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+function updateFinHistoryProfit(input){
+  const row=input.closest('.fin-history-row');
+  if(!row) return;
+  const receita=parseFloat(row.querySelector('.fin-h-receita')?.value)||0;
+  const custos=parseFloat(row.querySelector('.fin-h-custos')?.value)||0;
+  const lucro=receita-custos;
+  const out=row.querySelector('.fin-h-lucro');
+  out.textContent=finFmt(lucro);
+  out.style.color=lucro>=0?'var(--green)':'var(--red)';
+}
+async function saveFinHistorico(){
+  const history={...(_comSettings.financeHistory||{})};
+  document.querySelectorAll('.fin-history-row').forEach(row=>{
+    const key=row.dataset.key;
+    const receita=parseFloat(row.querySelector('.fin-h-receita')?.value)||0;
+    const custos=parseFloat(row.querySelector('.fin-h-custos')?.value)||0;
+    if(receita || custos) history[key]={receita,custos,updatedAt:Date.now()};
+    else delete history[key];
+  });
+  _comSettings.financeHistory=history;
+  const {db,doc,setDoc}=window._fb;
+  await setDoc(doc(db,'com_settings','main'),{financeHistory:history},{merge:true});
+  showToast('Histórico financeiro salvo!','ok');
+  renderFinanceiroTab('historico');
+}
+
 // ── CLIENTES COMERCIAL ──
 function renderComClientes(el){
   const list = Object.values(_comClientes).sort((a,b)=>a.name.localeCompare(b.name));
@@ -9173,6 +9436,7 @@ function openCustoModal(id, defaultCategoria){
   document.getElementById('cc-desc').value = c.descricao||'';
   document.getElementById('cc-valor').value = c.valor||'';
   document.getElementById('cc-categoria').value = c.categoria||(defaultCategoria||'operacionais');
+  document.getElementById('cc-data').value = c.data||new Date().toISOString().slice(0,10);
   document.getElementById('cc-recorrente').checked = c.recorrente!==false;
   document.getElementById('cc-delete-btn').style.display = id?'flex':'none';
   document.getElementById('com-custo-mo').classList.add('open');
@@ -9185,6 +9449,7 @@ async function saveCusto(){
     descricao: document.getElementById('cc-desc').value.trim(),
     valor: parseFloat(document.getElementById('cc-valor').value)||0,
     categoria: document.getElementById('cc-categoria').value,
+    data: document.getElementById('cc-data').value||new Date().toISOString().slice(0,10),
     recorrente: document.getElementById('cc-recorrente').checked,
     updatedAt: Date.now()
   };
@@ -9719,6 +9984,10 @@ async function deleteProspect(){
           </select>
         </div>
       </div>
+      <div class="ff" style="margin-bottom:10px">
+        <label class="flbl">Data / competência</label>
+        <input type="date" class="fi" id="cc-data">
+      </div>
       <div class="ff" style="margin-bottom:14px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
           <input type="checkbox" id="cc-recorrente" checked style="width:18px;height:18px;accent-color:var(--accent)">
@@ -9772,7 +10041,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=21').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=22').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
