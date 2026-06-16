@@ -290,6 +290,15 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .dash-greet-title span{color:var(--accent);}
 .dash-verse{font-size:13px;line-height:1.55;color:var(--text2);max-width:760px;}
 .dash-verse span{color:var(--accent);font-weight:700;}
+.agenda-carousel{overflow-x:auto;overflow-y:hidden;position:relative;scroll-behavior:smooth;scroll-snap-type:x mandatory;padding-bottom:0;scrollbar-width:none;-ms-overflow-style:none}
+.agenda-carousel::-webkit-scrollbar{display:none}
+.agenda-track{display:flex;gap:12px}
+.agenda-card{min-width:190px;max-width:190px;border:1px solid var(--border);border-radius:12px;background:var(--bg3);overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s;scroll-snap-align:start}
+.agenda-card:hover{transform:translateY(-2px);border-color:var(--border2)}
+.agenda-cover{aspect-ratio:4/5;background:linear-gradient(135deg,rgba(132,131,255,.16),rgba(96,165,250,.08));display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:26px;overflow:hidden}
+.agenda-cover img{width:100%;height:100%;object-fit:cover}
+.agenda-nav-btn{width:30px;height:30px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:18px;display:inline-flex;align-items:center;justify-content:center}
+.agenda-nav-btn:hover{border-color:var(--border2);color:var(--accent)}
 .dash-mnav{display:flex;align-items:center;gap:8px;margin-bottom:13px;}
 .dash-mlbl{font-size:14px;font-weight:700;letter-spacing:-.3px;}
 .statsgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
@@ -1074,6 +1083,8 @@ let currentUser=null,currentUserData=null,currentView='dashboard',currentClientI
 let currentPackId=null,currentPostId=null;
 let clients={},packs={},posts={};
 let calDate=new Date(),dashDate=new Date(),cliCalDate=new Date();
+let dashAgendaOffset=0;
+let dashAgendaAutoTimer=null;
 let calFC='',calFF='';
 let isDark=false,dragPackId=null;
 window._calP={};
@@ -1424,7 +1435,7 @@ async function renderDashData(){
   const inner=document.getElementById('dash-inner'); if(!inner) return;
 
   // Month chart bars — with historical data baked in
-  const historical2026=[44,96,108,120,0,0,0,0,0,0,0,0];
+  const historical2026=[44,96,108,120,132,0,0,0,0,0,0,0];
   const histBase=(yr===2026?historical2026:Array(12).fill(0)).slice();
   const mCounts=histBase;
   const allYearPosts=APs.filter(p=>p.postDate&&new Date(p.postDate).getFullYear()===yr);
@@ -1439,7 +1450,7 @@ async function renderDashData(){
   });
 
   // Total posts all time — include historical pre-system posts
-  const historicalTotal=(yr>=2026?368:0); // jan44+fev96+mar108+abr120=368
+  const historicalTotal=(yr>=2026?500:0); // jan44+fev96+mar108+abr120+mai132=500
   const totalPostsAllTime=APs.length+historicalTotal;
 
   // Marcos
@@ -1545,6 +1556,49 @@ async function renderDashData(){
     ${demandSection('Demandas do dia',personalTodayItems,'Nada para hoje')}
     ${demandSection('Próximas demandas',personalUpcomingItems,'Nada nos próximos 7 dias')}
   </div>`:`<div style="height:100%;min-height:160px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text3);font-size:13px;background:var(--bg2);border:1px dashed var(--border);border-radius:10px;padding:18px">Não encontrei seu usuário vinculado a um membro da equipe.</div>`;
+  const todayDateForAgenda=new Date();
+  const agendaDate=new Date(todayDateForAgenda.getFullYear(),todayDateForAgenda.getMonth(),todayDateForAgenda.getDate()+dashAgendaOffset);
+  const todayKey=`${agendaDate.getFullYear()}-${String(agendaDate.getMonth()+1).padStart(2,'0')}-${String(agendaDate.getDate()).padStart(2,'0')}`;
+  const agendaDayLabel=dashAgendaOffset===0?'Hoje':dashAgendaOffset===1?'Amanhã':dashAgendaOffset===-1?'Ontem':agendaDate.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+  const scheduledPosts=APs
+    .filter(p=>{
+      if(p.status!=='concluido' || !p.postDate || clients[p.clientId]?.inactive) return false;
+      return String(p.postDate).slice(0,10)===todayKey;
+    })
+    .sort((a,b)=>{
+      if(a.postDate&&b.postDate) return String(a.postDate).localeCompare(String(b.postDate));
+      if(a.postDate) return -1;
+      if(b.postDate) return 1;
+      return (a.order||0)-(b.order||0);
+    });
+  const coverForPost=(p)=>{
+    const final=(p.finalFiles||[]).find(f=>f?.url||f?.data);
+    return final?.url||final?.data||(p.images||[]).find(Boolean)||'';
+  };
+  const cleanPostTitle=(p)=>String(p.title||'Post').replace(/^Post\s*\d+\s*[-—]\s*/i,'').trim()||'Post';
+  const agendaCard=(p)=>{
+    const client=clients[p.clientId]||{};
+    const cover=coverForPost(p);
+    const d=p.postDate?new Date(p.postDate):null;
+    const hasDate=d&&!Number.isNaN(d.getTime());
+    const dateTxt=hasDate?d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'Sem data';
+    const timeTxt=hasDate?d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    return `<button type="button" class="agenda-card" onclick="currentClientId='${p.clientId||''}';openPack('${p.packId}','${p.id}')" title="Abrir post">
+      <div class="agenda-cover">${cover?`<img src="${escHtml(cover)}" alt="">`:'📅'}</div>
+      <div style="padding:10px 11px;text-align:left">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap">
+          <span class="ktag" style="font-size:9px;background:rgba(74,222,128,.14);color:var(--green)">Programado</span>
+          ${p.format?`<span class="ktag tag-${String(p.format).toLowerCase().replace(/\s/g,'')}" style="font-size:9px">${escHtml(p.format)}</span>`:''}
+        </div>
+        <div style="font-size:12.5px;font-weight:800;color:var(--text);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escHtml(cleanPostTitle(p))}</div>
+        <div style="font-size:10.5px;color:var(--text3);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(client.name||'Cliente')}</div>
+        <div style="display:flex;align-items:center;gap:7px;margin-top:8px;font-size:11px;color:var(--text3)">
+          <span>📅 ${dateTxt}</span>${timeTxt?`<span>⏱ ${timeTxt}</span>`:''}
+        </div>
+      </div>
+    </button>`;
+  };
+  const agendaCards=scheduledPosts.map(agendaCard).join('');
 
   inner.innerHTML=`
     <!-- TOP: indicadores + demandas da equipe -->
@@ -1568,7 +1622,6 @@ async function renderDashData(){
             <div style="font-size:44px;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--text)">${mPs.length}</div>
             <div style="font-size:14px;color:var(--text3)">no total</div>
           </div>
-          <div style="font-size:13px;color:var(--green);font-weight:600">${mPs.filter(p=>p.status==='concluido').length} finalizados</div>
           <div style="margin-top:10px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden">
             <div style="height:100%;width:${mPs.length?Math.round(mPs.filter(p=>p.status==='concluido').length/mPs.length*100):0}%;background:var(--green);border-radius:2px;transition:width .6s"></div>
           </div>
@@ -1577,7 +1630,7 @@ async function renderDashData(){
         <div style="grid-column:1/-1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;display:flex;align-items:center;gap:18px;min-height:150px">
           <div style="flex:1;min-width:0">
             <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:9px">📊 Andamento da pauta</div>
-            ${(()=>{const entregues=mP.filter(p=>['entregue','em_alteracoes','agendamento','concluido'].includes(p.status)).length;const pct=mP.length?Math.round(entregues/mP.length*100):0;return `<div style="font-size:13px;color:var(--text3)">${entregues} de ${mP.length} packs entregues</div><div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-top:12px"><div style="height:100%;width:${pct}%;background:${pct>=100?'#4ade80':'var(--accent)'};border-radius:4px;transition:width .6s"></div></div>${pct>=100?`<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:8px">🎉 Magic Number batido!</div>`:''}`})()}
+            ${(()=>{const entregues=mP.filter(p=>['entregue','em_alteracoes','agendamento','concluido'].includes(p.status)).length;const pct=mP.length?Math.round(entregues/mP.length*100):0;return `<div style="height:6px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-top:12px"><div style="height:100%;width:${pct}%;background:${pct>=100?'#4ade80':'var(--accent)'};border-radius:4px;transition:width .6s"></div></div>${pct>=100?`<div style="font-size:11px;color:#4ade80;font-weight:700;margin-top:8px">🎉 Magic Number batido!</div>`:''}`})()}
           </div>
           ${(()=>{const entregues=mP.filter(p=>['entregue','em_alteracoes','agendamento','concluido'].includes(p.status)).length;const pct=mP.length?Math.round(entregues/mP.length*100):0;const r=43;const circ=2*Math.PI*r;const dash=pct/100*circ;return `<div style="position:relative;width:100px;height:100px;flex-shrink:0"><svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="9"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${pct>=100?'#4ade80':'var(--accent)'}" stroke-width="9" stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">${pct}%</div></div>`})()}
         </div>
@@ -1612,22 +1665,27 @@ async function renderDashData(){
             ${STATUSES.map(s=>`<div class="prog-item"><div class="prog-lbl"><span class="ktag s${s.cls}" style="font-size:10px">${s.label}</span><span>${sc[s.id]||0}</span></div><div class="prog-bg"><div class="prog-bar d${s.cls}" style="width:${mP.length?(sc[s.id]||0)/mP.length*100:0}%"></div></div></div>`).join('')||'<div style="font-size:13px;color:var(--text3);padding:10px 0;text-align:center">Nenhum pack</div>'}
           </div>
         </div>
-        <!-- Entrega total -->
+        <!-- Agenda de Publicações -->
         <div class="dcard">
-          <div class="dcard-hdr">Entrega total (incl. alterações e agendamentos) — ${mn}</div>
+          <div class="dcard-hdr" style="gap:10px;flex-wrap:wrap">
+            <span>📅 Agenda de Publicações — ${agendaDayLabel}</span>
+            <span style="font-size:11px;color:var(--text3);font-weight:500">${scheduledPosts.length} programado${scheduledPosts.length===1?'':'s'}</span>
+            <span style="margin-left:auto;display:inline-flex;gap:6px;align-items:center">
+              <button class="agenda-nav-btn" onclick="changeDashAgendaDay(-1)" title="Dia anterior">‹</button>
+              <button class="btn btn-s btn-sm" onclick="resetDashAgendaDay()" style="font-size:11px;min-height:30px">Hoje</button>
+              <button class="agenda-nav-btn" onclick="changeDashAgendaDay(1)" title="Próximo dia">›</button>
+            </span>
+          </div>
           <div class="dcard-body">
-            ${(()=>{
-              const fs=['entregue','em_alteracoes','agendamento','concluido'];
-              return Object.values(cp).filter(cl=>cl.total>0).map(cl=>{
-                const cPacks=mP.filter(p=>p.clientId===cl.id);
-                const cFinal=cPacks.filter(p=>fs.includes(p.status)).length;
-                const cpct=cPacks.length?Math.round(cFinal/cPacks.length*100):0;
-                return `<div class="prog-item">
-                  <div class="prog-lbl"><span style="font-weight:600">${cl.name}</span><span style="font-size:11px;color:var(--text3)">${cFinal}/${cPacks.length}</span></div>
-                  <div class="prog-bg"><div class="prog-bar" style="width:${cpct}%;background:${cl.color}"></div></div>
-                </div>`;
-              }).join('')||'<div style="font-size:13px;color:var(--text3);padding:14px 0;text-align:center">Nenhum pack este mês</div>';
-            })()}
+            ${scheduledPosts.length?`<div style="display:flex;align-items:center;gap:8px">
+              <button class="agenda-nav-btn" onclick="scrollAgendaCarousel(-1)" title="Voltar posts">‹</button>
+              <div class="agenda-carousel" id="agenda-carousel">
+                <div class="agenda-track">
+                  ${agendaCards}
+                </div>
+              </div>
+              <button class="agenda-nav-btn" onclick="scrollAgendaCarousel(1)" title="Avançar posts">›</button>
+            </div>`:`<div style="font-size:13px;color:var(--text3);padding:34px 12px;text-align:center;background:var(--bg3);border:1px dashed var(--border);border-radius:12px">Nenhum post programado para ${dashAgendaOffset===0?'hoje':'este dia'}.</div>`}
           </div>
         </div>
       </div>
@@ -1657,8 +1715,33 @@ async function renderDashData(){
       launchConfetti(0,'🎉 Magic Number batido!','Todos os conteúdos de '+mn+' foram entregues aos clientes!');
     }
     checkMarcos(totalPostsAllTime);
+    startAgendaAutoSlide();
 }
 function changeDM(d){ dashDate.setMonth(dashDate.getMonth()+d); renderDashData(); }
+function changeDashAgendaDay(delta){ dashAgendaOffset+=delta; renderDashData(); }
+function resetDashAgendaDay(){ dashAgendaOffset=0; renderDashData(); }
+function scrollAgendaCarousel(direction){
+  const el=document.getElementById('agenda-carousel');
+  if(!el) return;
+  el.scrollBy({left:direction*420,behavior:'smooth'});
+}
+function startAgendaAutoSlide(){
+  if(dashAgendaAutoTimer){ clearInterval(dashAgendaAutoTimer); dashAgendaAutoTimer=null; }
+  const el=document.getElementById('agenda-carousel');
+  if(!el || el.scrollWidth<=el.clientWidth+8) return;
+  let paused=false;
+  el.addEventListener('mouseenter',()=>paused=true,{once:false});
+  el.addEventListener('mouseleave',()=>paused=false,{once:false});
+  dashAgendaAutoTimer=setInterval(()=>{
+    if(currentView!=='dashboard' || paused || !document.body.contains(el)){
+      if(currentView!=='dashboard' || !document.body.contains(el)){ clearInterval(dashAgendaAutoTimer); dashAgendaAutoTimer=null; }
+      return;
+    }
+    const nearEnd=el.scrollLeft+el.clientWidth>=el.scrollWidth-12;
+    if(nearEnd) el.scrollTo({left:0,behavior:'smooth'});
+    else scrollAgendaCarousel(1);
+  },4200);
+}
 
 // ===== TODOS OS CLIENTES (visão global kanban + calendário) =====
 let todosTab='kanban';
@@ -10041,7 +10124,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=22').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=26').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
