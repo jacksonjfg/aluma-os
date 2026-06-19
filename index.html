@@ -8591,6 +8591,9 @@ function getContractFormData(){
     end:document.getElementById('contract-end')?.value||'',
     monthlyValue:document.getElementById('contract-value')?.value||'',
     dueDay:document.getElementById('contract-due-day')?.value||'5',
+    weeklyMinimum:document.getElementById('contract-weekly-min')?.value||'',
+    planningDueDay:document.getElementById('contract-planning-day')?.value||'25',
+    terminationRule:document.getElementById('contract-termination-rule')?.value||'no_penalty',
     channels:document.getElementById('contract-channels')?.value.trim()||'',
     additionalDeliverables:document.getElementById('contract-additional')?.value.trim()||'',
     extraClauses:document.getElementById('contract-extra')?.value.trim()||'',
@@ -8599,7 +8602,7 @@ function getContractFormData(){
   return data;
 }
 function validateContractData(data){
-  if(!data.name||!data.cnpj||!data.responsible||!data.cpf||!data.start||!data.monthlyValue||!data.channels){
+  if(!data.name||!data.cnpj||!data.responsible||!data.cpf||!data.start||!data.monthlyValue||!data.channels||Number(data.weeklyMinimum)<1){
     showToast('Preencha os campos obrigatórios do contrato','err');
     return false;
   }
@@ -8613,6 +8616,9 @@ function buildContractText(data){
   const deliverablesText=data.deliverables.map((item,idx)=>`${idx+1}. ${item.label}: ${item.desc}`).join('\n');
   const extraBlock=data.additionalDeliverables?`\nEntregáveis adicionais: ${data.additionalDeliverables}`:'';
   const clauseExtra=data.extraClauses?`\n\nCláusulas complementares acordadas entre as partes:\n${data.extraClauses}`:'';
+  const terminationText=data.terminationRule==='initial_90'
+    ? 'Fica estabelecido período inicial de permanência de 90 dias, contado do início da vigência, destinado à implantação e avaliação da estratégia. Após esse período, qualquer das partes poderá rescindir o contrato mediante aviso prévio escrito de 30 dias, sem multa. Permanecem devidos os valores vencidos, os serviços já executados e os materiais aprovados ou em produção.'
+    : 'Qualquer das partes poderá rescindir o contrato mediante aviso prévio escrito de 30 dias, sem aplicação de multa. Permanecem devidos os valores vencidos, os serviços já executados e os materiais aprovados ou em produção até a data efetiva do encerramento.';
   return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS PARA GERENCIAMENTO DE REDES SOCIAIS
 
 CONTRATANTE: ${data.name}
@@ -8640,8 +8646,13 @@ O presente contrato terá início em ${formatLongDateBR(data.start)} e término 
 3. ESCOPO DO TRABALHO
 ${deliverablesText}${extraBlock}
 
+VOLUME MÍNIMO SEMANAL
+A CONTRATADA realizará o mínimo de ${data.weeklyMinimum} conteúdos por semana, considerando posts, carrosséis, reels e demais formatos previstos no planejamento aprovado. A distribuição entre formatos poderá variar conforme a estratégia do período, mantendo-se o volume mínimo acordado. A publicação será realizada quando o agendamento ou a publicação estiver incluído no escopo e dependerá da aprovação e do fornecimento tempestivo de materiais e acessos pelo CONTRATANTE.
+
 4. DIRETRIZES DO TRABALHO
-O planejamento mensal será apresentado ao CONTRATANTE para alinhamento e aprovação. Ajustes pontuais poderão ser realizados dentro do fluxo acordado. Demandas fora do escopo poderão ser orçadas à parte mediante aceite expresso.
+O planejamento mensal será apresentado ao CONTRATANTE até o dia ${data.planningDueDay} do mês anterior ao período de execução, para análise, alinhamento e aprovação antes do início do mês planejado. Ajustes pontuais poderão ser realizados dentro do fluxo acordado. Demandas fora do escopo poderão ser orçadas à parte mediante aceite expresso.
+
+A CONTRATADA entregará relatório mensal de desempenho contendo, no mínimo: alcance dos conteúdos; engajamento; crescimento de seguidores; conteúdos de melhor desempenho; principais métricas do período; e recomendações estratégicas para o mês seguinte. A disponibilidade de métricas dependerá dos dados fornecidos pelas plataformas e dos acessos concedidos pelo CONTRATANTE.
 
 5. INVESTIMENTO, COBRANÇA E ATRASO
 O valor mensal ajustado entre as partes é de ${fmtCurrencyBR(data.monthlyValue)}, com vencimento todo dia ${data.dueDay} de cada mês. A cobrança poderá ser enviada por boleto, PIX, cartão, link de pagamento ou plataforma de cobrança, inclusive Asaas. Em caso de atraso, poderão incidir multa de 2% sobre o valor vencido, juros de 1% ao mês, correção monetária quando aplicável e suspensão das entregas após 7 dias de inadimplência, sem prejuízo da cobrança dos valores em aberto.
@@ -8649,8 +8660,8 @@ O valor mensal ajustado entre as partes é de ${fmtCurrencyBR(data.monthlyValue)
 6. GESTÃO DE TRÁFEGO PAGO E VERBA DE MÍDIA
 Quando contratada, a gestão de tráfego pago compreende planejamento, configuração, acompanhamento e otimização das campanhas. A verba de mídia, impulsionamentos, taxas das plataformas e eventuais custos de terceiros não estão incluídos no valor mensal, salvo se houver previsão expressa em proposta, aditivo ou aceite escrito.
 
-7. PERMANÊNCIA, CANCELAMENTO E MULTA
-O contrato possui a vigência indicada na Cláusula 2. A rescisão antecipada sem justa causa exige aviso prévio mínimo de 30 dias e quitação dos valores vencidos, dos serviços já executados e dos materiais aprovados ou em produção. Se a rescisão ocorrer antes do fim da vigência mínima por iniciativa do CONTRATANTE, poderá ser cobrada multa compensatória de 20% sobre as mensalidades vincendas, limitada ao equilíbrio do contrato e ao trabalho já reservado pela CONTRATADA.
+7. ENCERRAMENTO CONTRATUAL
+${terminationText}
 
 8. RESPONSABILIDADES DO CONTRATANTE
 O CONTRATANTE deverá fornecer acessos, informações, materiais, aprovações e retornos necessários à execução dos serviços. Atrasos nesses retornos poderão impactar prazos de entrega e publicação, sem caracterizar descumprimento da CONTRATADA.
@@ -8719,6 +8730,11 @@ function renderComContracts(el){
           </div>
 
           <div class="fsect">Escopo do trabalho</div>
+          <div class="fgrid" style="margin-bottom:12px">
+            <div class="ff"><label class="flbl">Mínimo de conteúdos por semana *</label><input class="fi" id="contract-weekly-min" type="number" min="1" step="1" placeholder="Ex: 3" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">Entregar planejamento até o dia</label><select class="fs" id="contract-planning-day" onchange="updateContractPreview()">${[20,21,22,23,24,25,26,27,28].map(day=>`<option value="${day}" ${day===25?'selected':''}>Dia ${day} do mês anterior</option>`).join('')}</select></div>
+            <div class="ff"><label class="flbl">Regra de encerramento</label><select class="fs" id="contract-termination-rule" onchange="updateContractPreview()"><option value="no_penalty">30 dias de aviso, sem multa</option><option value="initial_90">Permanência inicial de 90 dias</option></select></div>
+          </div>
           <div class="ff" style="margin-bottom:10px"><label class="flbl">Entregáveis</label>
             <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
               ${CONTRACT_DELIVERABLES.map(item=>`<label style="display:flex;gap:9px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);font-size:12px;line-height:1.35;cursor:pointer"><input type="checkbox" id="ct-deliv-${item.id}" ${item.checked?'checked':''} onchange="updateContractPreview()" style="margin-top:2px"><span><b>${item.label}</b><br><span style="color:var(--text3)">${item.desc}</span></span></label>`).join('')}
@@ -8751,9 +8767,11 @@ function fillContractFromProspect(){
   updateContractPreview();
 }
 function clearContractForm(){
-  ['contract-prospect','contract-name','contract-cnpj','contract-responsible','contract-responsible-cpf','contract-email','contract-phone','contract-address','contract-start','contract-end','contract-value','contract-channels','contract-additional','contract-extra'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['contract-prospect','contract-name','contract-cnpj','contract-responsible','contract-responsible-cpf','contract-email','contract-phone','contract-address','contract-start','contract-end','contract-value','contract-channels','contract-weekly-min','contract-additional','contract-extra'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const duration=document.getElementById('contract-duration'); if(duration) duration.value='3';
   const due=document.getElementById('contract-due-day'); if(due) due.value='5';
+  const planningDay=document.getElementById('contract-planning-day'); if(planningDay) planningDay.value='25';
+  const terminationRule=document.getElementById('contract-termination-rule'); if(terminationRule) terminationRule.value='no_penalty';
   CONTRACT_DELIVERABLES.forEach(item=>{ const ck=document.getElementById('ct-deliv-'+item.id); if(ck) ck.checked=!!item.checked; });
   const startEl=document.getElementById('contract-start');
   if(startEl) startEl.value=new Date().toISOString().slice(0,10);
@@ -8780,17 +8798,20 @@ function generateContractPDF(){
   const deliverablesHtml=data.deliverables.map(item=>`<li><b>${esc(item.label)}:</b> ${esc(item.desc)}</li>`).join('');
   const extraDeliverables=data.additionalDeliverables?`<p><b>Entregáveis adicionais:</b> ${esc(data.additionalDeliverables)}</p>`:'';
   const extraClauses=data.extraClauses?`<div class="note"><b>Cláusulas complementares:</b><br>${esc(data.extraClauses).replace(/\n/g,'<br>')}</div>`:'';
+  const terminationHtml=data.terminationRule==='initial_90'
+    ? 'Fica estabelecido período inicial de permanência de <b>90 dias</b>, contado do início da vigência, destinado à implantação e avaliação da estratégia. Após esse período, qualquer das partes poderá rescindir o contrato mediante aviso prévio escrito de <b>30 dias</b>, sem multa. Permanecem devidos os valores vencidos, os serviços já executados e os materiais aprovados ou em produção.'
+    : 'Qualquer das partes poderá rescindir o contrato mediante aviso prévio escrito de <b>30 dias</b>, sem aplicação de multa. Permanecem devidos os valores vencidos, os serviços já executados e os materiais aprovados ou em produção até a data efetiva do encerramento.';
   const html=`<!doctype html><html><head><meta charset="UTF-8"><title>Contrato - ${esc(data.name)}</title><style>
     *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:#f2f3fb;color:#1a1730;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .actions{position:fixed;right:24px;bottom:24px;z-index:30}.actions button{border:0;border-radius:999px;background:#6f73ff;color:#fff;padding:14px 22px;font-weight:800;cursor:pointer;box-shadow:0 16px 32px rgba(15,15,35,.2)}
-    .page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:18mm 18mm 16mm;page-break-after:always;position:relative}
-    .page:last-child{page-break-after:auto}.brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:14mm;padding-bottom:5mm;border-bottom:1px solid #ebeefe}.brand-mark{font-size:28px;font-weight:900;color:#6f73ff}.brand-sub{font-size:11px;color:#7d7a9a;text-transform:uppercase;letter-spacing:2.4px}
+    .page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:14mm 16mm 13mm;page-break-after:always;position:relative}
+    .page:last-child{page-break-after:auto}.brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:7mm;padding-bottom:4mm;border-bottom:1px solid #ebeefe}.brand-mark{font-size:28px;font-weight:900;color:#6f73ff}.brand-sub{font-size:11px;color:#7d7a9a;text-transform:uppercase;letter-spacing:2.4px}
     .brand-left{display:flex;align-items:center;gap:0}.brand-logo{height:34px;max-width:220px;object-fit:contain;display:block}
-    h1{font-size:24px;line-height:1.15;margin:0 0 12mm;color:#141230} h2{font-size:13px;text-transform:uppercase;letter-spacing:1.6px;color:#6f73ff;margin:0 0 4mm} h3{font-size:15px;margin:0 0 3mm;color:#141230}
-    p,li{font-size:12px;line-height:1.65;color:#2f2b4f} ul{margin:0;padding-left:18px} .two{display:grid;grid-template-columns:1fr 1fr;gap:10mm;margin-bottom:9mm}
+    h1{font-size:23px;line-height:1.15;margin:0 0 8mm;color:#141230} h2{font-size:12px;text-transform:uppercase;letter-spacing:1.6px;color:#6f73ff;margin:0 0 3mm} h3{font-size:14px;margin:0 0 2.5mm;color:#141230;break-after:avoid;page-break-after:avoid}
+    p,li{font-size:11px;line-height:1.52;color:#2f2b4f} p{margin:0 0 3mm} ul{margin:0;padding-left:18px} li{break-inside:avoid;page-break-inside:avoid;margin-bottom:1.5mm}.two{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-bottom:7mm}
     .box{border:1px solid #e2e5f2;border-radius:12px;padding:5mm 5.5mm;background:#fafbff}.muted{font-size:10.5px;color:#7d7a9a}
-    .clause{margin-bottom:7mm}.note{margin:7mm 0 8mm;padding:5.5mm 6mm;border-radius:12px;background:linear-gradient(135deg,#f6f4ff 0%,#eef2ff 100%);border:1px solid #d9dcfb}.note-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.1px;color:#5e60e8;margin-bottom:6px}.note-text{font-size:12px;line-height:1.65;color:#2f2b4f}
-    .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:16mm;margin-top:16mm}.sig{padding-top:14mm;border-top:1px solid #cfd3e6;font-size:12px;line-height:1.6}
+    .clause{margin-bottom:4.5mm;break-inside:avoid;page-break-inside:avoid}.clause.scope{break-inside:auto;page-break-inside:auto}.note{margin:5mm 0 6mm;padding:4.5mm 5mm;border-radius:10px;background:linear-gradient(135deg,#f6f4ff 0%,#eef2ff 100%);border:1px solid #d9dcfb;break-inside:avoid;page-break-inside:avoid}.note-title{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.1px;color:#5e60e8;margin-bottom:5px}.note-text{font-size:11px;line-height:1.52;color:#2f2b4f}
+    .sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:16mm;margin-top:12mm;break-inside:avoid;page-break-inside:avoid}.sig{padding-top:12mm;border-top:1px solid #cfd3e6;font-size:11px;line-height:1.55}
     .footer-note{margin-top:10mm;font-size:10px;color:#7d7a9a}.badge{display:inline-flex;padding:5px 10px;border-radius:999px;background:#eef0ff;color:#6f73ff;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px}
     @page{size:A4;margin:0} @media print {.actions{display:none} body{background:#fff}}
   </style></head><body>
@@ -8814,14 +8835,17 @@ function generateContractPDF(){
       </div>
       <div class="clause"><h3>Cláusula 1 — Objeto do contrato</h3><p>A CONTRATADA prestará serviços de gerenciamento de redes sociais, conteúdo e apoio estratégico para ${esc(data.channels)} do CONTRATANTE, nos limites do escopo aprovado e das condições previstas neste instrumento.</p></div>
       <div class="clause"><h3>Cláusula 2 — Vigência</h3><p>O presente contrato terá início em ${esc(formatLongDateBR(data.start))} e término em ${esc(formatLongDateBR(data.end))}, totalizando ${esc(data.duration)} meses de vigência.</p></div>
-      <div class="clause"><h3>Cláusula 3 — Escopo do trabalho</h3><ul>${deliverablesHtml}</ul>${extraDeliverables}</div>
+    </section>
+    <section class="page">
+      <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Escopo e operação</span></div>
+      <div class="clause scope"><h3>Cláusula 3 — Escopo do trabalho</h3><ul>${deliverablesHtml}</ul>${extraDeliverables}<div class="note"><div class="note-title">Volume mínimo semanal</div><div class="note-text">A CONTRATADA realizará o mínimo de <b>${esc(data.weeklyMinimum)} conteúdos por semana</b>, considerando posts, carrosséis, reels e demais formatos previstos no planejamento aprovado. A distribuição entre formatos poderá variar conforme a estratégia do período, mantendo-se o volume mínimo acordado. A publicação será realizada quando o agendamento ou a publicação estiver incluído no escopo e dependerá da aprovação e do fornecimento tempestivo de materiais e acessos pelo CONTRATANTE.</div></div></div>
+      <div class="clause"><h3>Cláusula 4 — Planejamento, aprovação e relatório</h3><p>O planejamento mensal deverá ser apresentado ao CONTRATANTE até o dia <b>${esc(data.planningDueDay)}</b> do mês anterior ao período de execução, para análise, alinhamento e aprovação antes do início do mês planejado. Ajustes pontuais poderão ser realizados dentro do fluxo operacional acordado. Solicitações extraordinárias, não previstas no escopo acima, poderão ser orçadas à parte mediante aceite expresso das partes.</p><p>A CONTRATADA entregará relatório mensal de desempenho contendo, no mínimo: alcance dos conteúdos; engajamento; crescimento de seguidores; conteúdos de melhor desempenho; principais métricas do período; e recomendações estratégicas para o mês seguinte. A disponibilidade de métricas dependerá dos dados fornecidos pelas plataformas e dos acessos concedidos pelo CONTRATANTE.</p></div>
     </section>
     <section class="page">
       <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Condições</span></div>
-      <div class="clause"><h3>Cláusula 4 — Diretrizes do trabalho</h3><p>O planejamento mensal será apresentado ao CONTRATANTE para alinhamento e aprovação. Ajustes pontuais poderão ser realizados dentro do fluxo operacional acordado. Solicitações extraordinárias, não previstas no escopo acima, poderão ser orçadas à parte mediante aceite expresso das partes.</p></div>
       <div class="clause"><h3>Cláusula 5 — Investimento, cobrança e atraso</h3><p>Pelos serviços contratados, o CONTRATANTE pagará à CONTRATADA o valor mensal de <b>${esc(fmtCurrencyBR(data.monthlyValue))}</b>, com vencimento todo dia <b>${esc(data.dueDay)}</b> de cada mês. A cobrança poderá ser enviada por boleto, PIX, cartão, link de pagamento ou plataforma de cobrança, inclusive Asaas.</p><p>Em caso de atraso, poderão incidir multa de 2% sobre o valor vencido, juros de 1% ao mês, correção monetária quando aplicável e suspensão das entregas após 7 dias de inadimplência, sem prejuízo da cobrança dos valores em aberto.</p></div>
       <div class="clause"><h3>Cláusula 6 — Gestão de tráfego pago e verba de mídia</h3><p>Quando contratada, a gestão de tráfego pago compreende planejamento, configuração, acompanhamento e otimização das campanhas. A verba de mídia, impulsionamentos, taxas das plataformas e eventuais custos de terceiros não estão incluídos no valor mensal, salvo se houver previsão expressa em proposta, aditivo ou aceite escrito.</p></div>
-      <div class="clause"><h3>Cláusula 7 — Permanência, cancelamento e multa</h3><p>O contrato possui a vigência indicada na Cláusula 2. A rescisão antecipada sem justa causa exige aviso prévio mínimo de 30 dias e quitação dos valores vencidos, dos serviços já executados e dos materiais aprovados ou em produção.</p><p>Se a rescisão ocorrer antes do fim da vigência mínima por iniciativa do CONTRATANTE, poderá ser cobrada multa compensatória de 20% sobre as mensalidades vincendas, limitada ao equilíbrio do contrato e ao trabalho já reservado pela CONTRATADA.</p></div>
+      <div class="clause"><h3>Cláusula 7 — Encerramento contratual</h3><p>${terminationHtml}</p></div>
       <div class="clause"><h3>Cláusula 8 — Responsabilidades do contratante</h3><p>O CONTRATANTE deverá fornecer acessos, informações, materiais, aprovações e retornos necessários à execução dos serviços. Atrasos nesses retornos poderão impactar prazos de entrega e publicação, sem caracterizar descumprimento da CONTRATADA.</p></div>
     </section>
     <section class="page">
@@ -10124,7 +10148,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=26').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=27').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
