@@ -1216,6 +1216,11 @@ function hasCommercialAccess(){
   const keys = currentAccessKeys().map(accessNorm);
   return !!(currentUserData?.allowCommercial || keys.includes('juliana') || accessNorm(member?.id)==='juliana' || accessNorm(member?.name).includes('juliana'));
 }
+function hasPerfilAlumaAccess(){
+  if(currentUserData?.role === 'admin') return true;
+  const member=currentMemberProfile();
+  return !!(currentUserData?.allowPerfilAluma || member?.allowPerfilAluma);
+}
 function canManagePacks(){
   if(currentUserData?.role === 'admin') return true;
   return hasCommercialAccess();
@@ -1243,10 +1248,11 @@ async function fetchVisibleTasks(){
 function applyAccessControl(){
   const isAdmin = currentUserData?.role === 'admin';
   const canCommercial = hasCommercialAccess();
+  const canPerfilAluma = hasPerfilAlumaAccess();
   // Topbar tabs - Comercial/Financeiro/Perfil
   document.querySelectorAll('.ttab').forEach(tab => {
     if(tab.textContent.includes('Comercial') || tab.textContent.includes('Financeiro') || tab.textContent.includes('Perfil Aluma')){
-      if(tab.textContent.includes('Perfil Aluma')) tab.style.display = isAdmin ? '' : 'none';
+      if(tab.textContent.includes('Perfil Aluma')) tab.style.display = canPerfilAluma ? '' : 'none';
       else if(tab.textContent.includes('Financeiro')) tab.style.display = isAdmin ? '' : 'none';
       else tab.style.display = canCommercial ? '' : 'none';
     }
@@ -1254,7 +1260,7 @@ function applyAccessControl(){
   // Sidebar items - Comercial/Financeiro/Perfil
   document.querySelectorAll('.sb-item').forEach(item => {
     if(item.textContent.includes('Comercial') || item.textContent.includes('Financeiro') || item.textContent.includes('Perfil Aluma')){
-      if(item.textContent.includes('Perfil Aluma')) item.style.display = isAdmin ? '' : 'none';
+      if(item.textContent.includes('Perfil Aluma')) item.style.display = canPerfilAluma ? '' : 'none';
       else if(item.textContent.includes('Financeiro')) item.style.display = isAdmin ? '' : 'none';
       else item.style.display = canCommercial ? '' : 'none';
     }
@@ -1263,7 +1269,7 @@ function applyAccessControl(){
   if(inactiveBtn) inactiveBtn.style.display = isAdmin && hasInactiveClients() ? 'flex' : 'none';
 }
 
-async function initApp(){ await loadTeam(); await loadClients(); setView('dashboard'); await openPostFromUrl(); initPresence(); }
+async function initApp(){ await loadTeam(); applyAccessControl(); await loadClients(); setView('dashboard'); await openPostFromUrl(); initPresence(); }
 function getAppBasePath(){
   let path=window.location.pathname||'/';
   path=path.replace(/\/post\/[^/]+\/?$/,'/');
@@ -5057,6 +5063,7 @@ function showAddMember(){
   document.getElementById('m-name').value='';
   document.getElementById('m-role').value='';
   document.getElementById('m-color').value='#8483ff';
+  document.getElementById('m-perfil-aluma').checked=false;
   document.getElementById('m-delete-btn').style.display='none';
   document.getElementById('member-mo').classList.add('open');
 }
@@ -5067,6 +5074,7 @@ function showEditMember(mid){
   document.getElementById('m-name').value=m.name;
   document.getElementById('m-role').value=m.role||'';
   document.getElementById('m-color').value=m.color||'#8483ff';
+  document.getElementById('m-perfil-aluma').checked=!!m.allowPerfilAluma;
   document.getElementById('m-delete-btn').style.display='flex';
   document.getElementById('member-mo').classList.add('open');
 }
@@ -5075,17 +5083,18 @@ async function saveMember(){
   const name=document.getElementById('m-name').value.trim();
   const role=document.getElementById('m-role').value.trim();
   const color=document.getElementById('m-color').value;
+  const allowPerfilAluma=document.getElementById('m-perfil-aluma').checked;
   if(!name){ showToast('Nome obrigatorio','err'); return; }
   const {db,doc,setDoc}=window._fb;
   if(_editMemberId){
     const idx=TEAM.findIndex(t=>t.id===_editMemberId);
-    if(idx>-1) TEAM[idx]={...TEAM[idx],name,role,color};
-    await setDoc(doc(db,'team',_editMemberId),{name,role,color},{merge:true});
+    if(idx>-1) TEAM[idx]={...TEAM[idx],name,role,color,allowPerfilAluma};
+    await setDoc(doc(db,'team',_editMemberId),{name,role,color,allowPerfilAluma},{merge:true});
     showToast(name+' atualizado!','ok');
   } else {
     const id=name.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/g,'').slice(0,20)+'_'+Date.now().toString(36);
-    await setDoc(doc(db,'team',id),{name,role,color});
-    TEAM.push({id,name,role,color});
+    await setDoc(doc(db,'team',id),{name,role,color,allowPerfilAluma});
+    TEAM.push({id,name,role,color,allowPerfilAluma});
     showToast(name+' adicionado!','ok');
   }
   closeMemberModal(); renderEquipe();
@@ -5729,6 +5738,7 @@ async function loadEquipeData(){
         <div style="flex:1;min-width:0">
           <div style="font-size:15px;font-weight:700;letter-spacing:-.2px;margin-bottom:2px">${m.name}</div>
           <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px">${roleLabel}</div>
+          ${m.allowPerfilAluma?`<div style="display:inline-flex;align-items:center;font-size:10px;font-weight:800;padding:3px 7px;border-radius:999px;background:var(--ag);color:var(--accent);margin:0 5px 6px 0">⚡ Perfil Aluma</div>`:''}
           <div style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;background:${isOnline?'rgba(74,222,128,.12)':'var(--bg3)'};color:${isOnline?'#4ade80':'var(--text3)'}">
             <span style="width:6px;height:6px;border-radius:50%;background:${isOnline?'#4ade80':'var(--text3)'}"></span>
             ${isOnline?'Online agora':lastSeen}
@@ -7644,8 +7654,8 @@ function alumaStatusById(id){
 }
 
 async function renderPerfilAluma(){
-  if(currentUserData?.role !== 'admin'){
-    document.getElementById('main').innerHTML = `<div class="empty">Área exclusiva para administradores.</div>`;
+  if(!hasPerfilAlumaAccess()){
+    document.getElementById('main').innerHTML = `<div class="empty">Você não tem permissão para acessar o Perfil Aluma.</div>`;
     return;
   }
   await loadAlumaData();
@@ -8578,6 +8588,7 @@ function getSelectedContractDeliverables(){
 }
 function getContractFormData(){
   const data={
+    documentType:document.getElementById('contract-document-type')?.value||'contract',
     prospectId:document.getElementById('contract-prospect')?.value||'',
     name:document.getElementById('contract-name')?.value.trim()||'',
     cnpj:document.getElementById('contract-cnpj')?.value.trim()||'',
@@ -8590,6 +8601,7 @@ function getContractFormData(){
     duration:document.getElementById('contract-duration')?.value||'3',
     end:document.getElementById('contract-end')?.value||'',
     monthlyValue:document.getElementById('contract-value')?.value||'',
+    firstChargeDate:document.getElementById('contract-first-charge')?.value||'',
     dueDay:document.getElementById('contract-due-day')?.value||'5',
     weeklyMinimum:document.getElementById('contract-weekly-min')?.value||'',
     planningDueDay:document.getElementById('contract-planning-day')?.value||'25',
@@ -8597,13 +8609,18 @@ function getContractFormData(){
     channels:document.getElementById('contract-channels')?.value.trim()||'',
     additionalDeliverables:document.getElementById('contract-additional')?.value.trim()||'',
     extraClauses:document.getElementById('contract-extra')?.value.trim()||'',
+    amendmentDetails:document.getElementById('contract-amendment-details')?.value.trim()||'',
     deliverables:getSelectedContractDeliverables()
   };
   return data;
 }
 function validateContractData(data){
-  if(!data.name||!data.cnpj||!data.responsible||!data.cpf||!data.start||!data.monthlyValue||!data.channels||Number(data.weeklyMinimum)<1){
+  if(!data.responsible||!data.cpf||!data.start||!data.monthlyValue||!data.channels||Number(data.weeklyMinimum)<1){
     showToast('Preencha os campos obrigatórios do contrato','err');
+    return false;
+  }
+  if(data.documentType==='amendment'&&!data.amendmentDetails){
+    showToast('Descreva o que será incluído ou alterado no aditivo','err');
     return false;
   }
   if(!data.deliverables.length){
@@ -8613,18 +8630,22 @@ function validateContractData(data){
   return true;
 }
 function buildContractText(data){
+  const documentTitle=data.documentType==='amendment'?'ADITIVO AO CONTRATO DE PRESTAÇÃO DE SERVIÇOS PARA GERENCIAMENTO DE REDES SOCIAIS':'CONTRATO DE PRESTAÇÃO DE SERVIÇOS PARA GERENCIAMENTO DE REDES SOCIAIS';
+  const firstChargeText=data.firstChargeDate
+    ? `A primeira cobrança vencerá em ${formatLongDateBR(data.firstChargeDate)}. As demais mensalidades vencerão todo dia ${data.dueDay} de cada mês.`
+    : `As mensalidades vencerão todo dia ${data.dueDay} de cada mês.`;
+  const amendmentText=data.documentType==='amendment'?`\n\nALTERAÇÕES DESTE ADITIVO\n${data.amendmentDetails}\n\nAs demais cláusulas do contrato original permanecem inalteradas e em pleno vigor.`:'';
   const deliverablesText=data.deliverables.map((item,idx)=>`${idx+1}. ${item.label}: ${item.desc}`).join('\n');
   const extraBlock=data.additionalDeliverables?`\nEntregáveis adicionais: ${data.additionalDeliverables}`:'';
   const clauseExtra=data.extraClauses?`\n\nCláusulas complementares acordadas entre as partes:\n${data.extraClauses}`:'';
   const terminationText=data.terminationRule==='initial_90'
     ? 'Fica estabelecido período inicial de permanência de 90 dias, contado do início da vigência, destinado à implantação e avaliação da estratégia. Após esse período, qualquer das partes poderá rescindir o contrato mediante aviso prévio escrito de 30 dias, sem multa. Permanecem devidos os valores vencidos, os serviços já executados e os materiais aprovados ou em produção.'
     : 'Qualquer das partes poderá rescindir o contrato mediante aviso prévio escrito de 30 dias, sem aplicação de multa. Permanecem devidos os valores vencidos, os serviços já executados e os materiais aprovados ou em produção até a data efetiva do encerramento.';
-  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS PARA GERENCIAMENTO DE REDES SOCIAIS
+  return `${documentTitle}
 
-CONTRATANTE: ${data.name}
-CNPJ: ${data.cnpj}
-RESPONSÁVEL: ${data.responsible}
-CPF: ${data.cpf}
+CONTRATANTE: ${data.name||data.responsible}
+CNPJ: ${data.cnpj||'não informado / não aplicável'}
+${data.name?`RESPONSÁVEL: ${data.responsible}\n`:''}CPF: ${data.cpf}
 EMAIL: ${data.email||'não informado'}
 TELEFONE: ${data.phone||'não informado'}
 ENDEREÇO: ${data.address||'não informado'}
@@ -8638,7 +8659,7 @@ TELEFONE: ${CONTRACT_FIXED_PARTY.phone}
 ENDEREÇO: ${CONTRACT_FIXED_PARTY.address}
 
 1. OBJETO
-Prestação de serviços continuados de gerenciamento de redes sociais, conteúdo e apoio estratégico para ${data.channels}.
+Prestação de serviços continuados de gerenciamento de redes sociais, conteúdo e apoio estratégico para ${data.channels}.${amendmentText}
 
 2. VIGÊNCIA
 O presente contrato terá início em ${formatLongDateBR(data.start)} e término em ${formatLongDateBR(data.end)}, totalizando ${data.duration} meses de vigência.
@@ -8655,7 +8676,7 @@ O planejamento mensal será apresentado ao CONTRATANTE até o dia ${data.plannin
 A CONTRATADA entregará relatório mensal de desempenho contendo, no mínimo: alcance dos conteúdos; engajamento; crescimento de seguidores; conteúdos de melhor desempenho; principais métricas do período; e recomendações estratégicas para o mês seguinte. A disponibilidade de métricas dependerá dos dados fornecidos pelas plataformas e dos acessos concedidos pelo CONTRATANTE.
 
 5. INVESTIMENTO, COBRANÇA E ATRASO
-O valor mensal ajustado entre as partes é de ${fmtCurrencyBR(data.monthlyValue)}, com vencimento todo dia ${data.dueDay} de cada mês. A cobrança poderá ser enviada por boleto, PIX, cartão, link de pagamento ou plataforma de cobrança, inclusive Asaas. Em caso de atraso, poderão incidir multa de 2% sobre o valor vencido, juros de 1% ao mês, correção monetária quando aplicável e suspensão das entregas após 7 dias de inadimplência, sem prejuízo da cobrança dos valores em aberto.
+O valor mensal ajustado entre as partes é de ${fmtCurrencyBR(data.monthlyValue)}. ${firstChargeText} A cobrança poderá ser enviada por boleto, PIX, cartão, link de pagamento ou plataforma de cobrança, inclusive Asaas. Em caso de atraso, poderão incidir multa de 2% sobre o valor vencido, juros de 1% ao mês, correção monetária quando aplicável e suspensão das entregas após 7 dias de inadimplência, sem prejuízo da cobrança dos valores em aberto.
 
 6. GESTÃO DE TRÁFEGO PAGO E VERBA DE MÍDIA
 Quando contratada, a gestão de tráfego pago compreende planejamento, configuração, acompanhamento e otimização das campanhas. A verba de mídia, impulsionamentos, taxas das plataformas e eventuais custos de terceiros não estão incluídos no valor mensal, salvo se houver previsão expressa em proposta, aditivo ou aceite escrito.
@@ -8694,6 +8715,12 @@ function updateContractPreview(){
   const data=getContractFormData();
   output.value=buildContractText(data);
 }
+function toggleContractDocumentType(){
+  const isAmendment=document.getElementById('contract-document-type')?.value==='amendment';
+  const wrap=document.getElementById('contract-amendment-wrap');
+  if(wrap) wrap.style.display=isAmendment?'block':'none';
+  updateContractPreview();
+}
 function renderComContracts(el){
   const prospectOptions=Object.values(_comProspects).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   el.innerHTML=`
@@ -8701,14 +8728,16 @@ function renderComContracts(el){
         <div class="dcard-hdr">📝 Gerador de contratos</div>
         <div class="dcard-body">
           <div class="fgrid" style="margin-bottom:14px">
+            <div class="ff"><label class="flbl">Tipo de documento</label><select class="fs" id="contract-document-type" onchange="toggleContractDocumentType()"><option value="contract">Contrato</option><option value="amendment">Aditivo de contrato</option></select></div>
             <div class="ff"><label class="flbl">Prospect base</label><select class="fs" id="contract-prospect" onchange="fillContractFromProspect()"><option value="">Selecionar</option>${prospectOptions}</select></div>
             <div class="ff"><label class="flbl">Canais contemplados *</label><input class="fi" id="contract-channels" placeholder="Ex: Instagram e LinkedIn da Empresa X" oninput="updateContractPreview()"></div>
           </div>
+          <div class="ff" id="contract-amendment-wrap" style="display:none;margin-bottom:14px"><label class="flbl">O que será incluído ou alterado neste aditivo *</label><textarea class="fta" id="contract-amendment-details" rows="4" placeholder="Descreva com clareza o novo serviço, valor, prazo, entregável ou cláusula alterada" oninput="updateContractPreview()"></textarea></div>
 
           <div class="fsect">Dados do contratante</div>
           <div class="fgrid">
-            <div class="ff"><label class="flbl">Nome / Razão Social *</label><input class="fi" id="contract-name" oninput="updateContractPreview()"></div>
-            <div class="ff"><label class="flbl">CNPJ *</label><input class="fi" id="contract-cnpj" placeholder="00.000.000/0000-00" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">Nome / Razão Social</label><input class="fi" id="contract-name" placeholder="Opcional para contratação em nome próprio" oninput="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">CNPJ</label><input class="fi" id="contract-cnpj" placeholder="Opcional / não aplicável para pessoa física" oninput="updateContractPreview()"></div>
             <div class="ff"><label class="flbl">Responsável *</label><input class="fi" id="contract-responsible" oninput="updateContractPreview()"></div>
             <div class="ff"><label class="flbl">CPF do responsável *</label><input class="fi" id="contract-responsible-cpf" placeholder="000.000.000-00" oninput="updateContractPreview()"></div>
             <div class="ff"><label class="flbl">Email</label><input class="fi" id="contract-email" type="email" oninput="updateContractPreview()"></div>
@@ -8726,7 +8755,8 @@ function renderComContracts(el){
           <div class="fsect">Investimento</div>
           <div class="fgrid">
             <div class="ff"><label class="flbl">Valor mensal em R$ *</label><input class="fi" id="contract-value" type="number" step="0.01" oninput="updateContractPreview()"></div>
-            <div class="ff"><label class="flbl">Dia de vencimento</label><select class="fs" id="contract-due-day" onchange="updateContractPreview()"><option value="1">Dia 1</option><option value="5" selected>Dia 5</option><option value="10">Dia 10</option><option value="15">Dia 15</option><option value="20">Dia 20</option><option value="25">Dia 25</option></select></div>
+            <div class="ff"><label class="flbl">Data da primeira cobrança</label><input class="fi" id="contract-first-charge" type="date" onchange="updateContractPreview()"></div>
+            <div class="ff"><label class="flbl">Vencimento das demais mensalidades</label><select class="fs" id="contract-due-day" onchange="updateContractPreview()"><option value="1">Dia 1</option><option value="5" selected>Dia 5</option><option value="10">Dia 10</option><option value="15">Dia 15</option><option value="20">Dia 20</option><option value="25">Dia 25</option></select></div>
           </div>
 
           <div class="fsect">Escopo do trabalho</div>
@@ -8767,11 +8797,13 @@ function fillContractFromProspect(){
   updateContractPreview();
 }
 function clearContractForm(){
-  ['contract-prospect','contract-name','contract-cnpj','contract-responsible','contract-responsible-cpf','contract-email','contract-phone','contract-address','contract-start','contract-end','contract-value','contract-channels','contract-weekly-min','contract-additional','contract-extra'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['contract-prospect','contract-name','contract-cnpj','contract-responsible','contract-responsible-cpf','contract-email','contract-phone','contract-address','contract-start','contract-end','contract-value','contract-first-charge','contract-channels','contract-weekly-min','contract-amendment-details','contract-additional','contract-extra'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const documentType=document.getElementById('contract-document-type'); if(documentType) documentType.value='contract';
   const duration=document.getElementById('contract-duration'); if(duration) duration.value='3';
   const due=document.getElementById('contract-due-day'); if(due) due.value='5';
   const planningDay=document.getElementById('contract-planning-day'); if(planningDay) planningDay.value='25';
   const terminationRule=document.getElementById('contract-termination-rule'); if(terminationRule) terminationRule.value='no_penalty';
+  const amendmentWrap=document.getElementById('contract-amendment-wrap'); if(amendmentWrap) amendmentWrap.style.display='none';
   CONTRACT_DELIVERABLES.forEach(item=>{ const ck=document.getElementById('ct-deliv-'+item.id); if(ck) ck.checked=!!item.checked; });
   const startEl=document.getElementById('contract-start');
   if(startEl) startEl.value=new Date().toISOString().slice(0,10);
@@ -8795,13 +8827,20 @@ function generateContractPDF(){
   updateContractPreview();
   const todayLong=formatLongDateBR(new Date().toISOString().slice(0,10));
   const esc=s=>String(s||'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const partyName=data.name||data.responsible;
+  const documentHeading=data.documentType==='amendment'?'Aditivo ao Contrato de Prestação de Serviços para Gerenciamento de Redes Sociais':'Contrato de Prestação de Serviços para Gerenciamento de Redes Sociais';
+  const documentBadge=data.documentType==='amendment'?'Aditivo contratual':'Contrato comercial';
   const deliverablesHtml=data.deliverables.map(item=>`<li><b>${esc(item.label)}:</b> ${esc(item.desc)}</li>`).join('');
   const extraDeliverables=data.additionalDeliverables?`<p><b>Entregáveis adicionais:</b> ${esc(data.additionalDeliverables)}</p>`:'';
   const extraClauses=data.extraClauses?`<div class="note"><b>Cláusulas complementares:</b><br>${esc(data.extraClauses).replace(/\n/g,'<br>')}</div>`:'';
   const terminationHtml=data.terminationRule==='initial_90'
     ? 'Fica estabelecido período inicial de permanência de <b>90 dias</b>, contado do início da vigência, destinado à implantação e avaliação da estratégia. Após esse período, qualquer das partes poderá rescindir o contrato mediante aviso prévio escrito de <b>30 dias</b>, sem multa. Permanecem devidos os valores vencidos, os serviços já executados e os materiais aprovados ou em produção.'
     : 'Qualquer das partes poderá rescindir o contrato mediante aviso prévio escrito de <b>30 dias</b>, sem aplicação de multa. Permanecem devidos os valores vencidos, os serviços já executados e os materiais aprovados ou em produção até a data efetiva do encerramento.';
-  const html=`<!doctype html><html><head><meta charset="UTF-8"><title>Contrato - ${esc(data.name)}</title><style>
+  const firstChargeHtml=data.firstChargeDate
+    ? `A primeira cobrança vencerá em <b>${esc(formatLongDateBR(data.firstChargeDate))}</b>. As demais mensalidades vencerão todo dia <b>${esc(data.dueDay)}</b> de cada mês.`
+    : `As mensalidades vencerão todo dia <b>${esc(data.dueDay)}</b> de cada mês.`;
+  const amendmentHtml=data.documentType==='amendment'?`<div class="note"><div class="note-title">Inclusões e alterações deste aditivo</div><div class="note-text">${esc(data.amendmentDetails).replace(/\n/g,'<br>')}<br><br>As demais cláusulas do contrato original permanecem inalteradas e em pleno vigor.</div></div>`:'';
+  const html=`<!doctype html><html><head><meta charset="UTF-8"><title>${esc(documentBadge)} - ${esc(partyName)}</title><style>
     *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:#f2f3fb;color:#1a1730;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .actions{position:fixed;right:24px;bottom:24px;z-index:30}.actions button{border:0;border-radius:999px;background:#6f73ff;color:#fff;padding:14px 22px;font-weight:800;cursor:pointer;box-shadow:0 16px 32px rgba(15,15,35,.2)}
     .page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:14mm 16mm 13mm;page-break-after:always;position:relative}
@@ -8817,8 +8856,8 @@ function generateContractPDF(){
   </style></head><body>
     <div class="actions"><button onclick="window.print()">Salvar PDF / Imprimir</button></div>
     <section class="page">
-      <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Contrato comercial</span></div>
-      <h1>Contrato de Prestação de Serviços para Gerenciamento de Redes Sociais</h1>
+      <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">${esc(documentBadge)}</span></div>
+      <h1>${esc(documentHeading)}</h1>
       <div class="two">
         <div class="box">
           <h2>Contratada</h2>
@@ -8826,14 +8865,15 @@ function generateContractPDF(){
         </div>
         <div class="box">
           <h2>Contratante</h2>
-          <p><b>${esc(data.name)}</b><br>CNPJ: ${esc(data.cnpj)}<br>Responsável: ${esc(data.responsible)}<br>CPF: ${esc(data.cpf)}<br>${data.email?`Email: ${esc(data.email)}<br>`:''}${data.phone?`Telefone: ${esc(data.phone)}<br>`:''}${data.address?`Endereço: ${esc(data.address)}`:''}</p>
+          <p><b>${esc(partyName)}</b><br>${data.cnpj?`CNPJ: ${esc(data.cnpj)}<br>`:''}${data.name?`Responsável: ${esc(data.responsible)}<br>`:''}CPF: ${esc(data.cpf)}<br>${data.email?`Email: ${esc(data.email)}<br>`:''}${data.phone?`Telefone: ${esc(data.phone)}<br>`:''}${data.address?`Endereço: ${esc(data.address)}`:''}</p>
         </div>
       </div>
       <div class="note">
         <div class="note-title">Validade jurídica e assinatura eletrônica</div>
         <div class="note-text">As partes reconhecem a validade jurídica da assinatura eletrônica deste instrumento, nos termos da Lei nº 14.063/2020, produzindo os mesmos efeitos de uma assinatura física, desde que vinculada às partes signatárias e passível de verificação.</div>
       </div>
-      <div class="clause"><h3>Cláusula 1 — Objeto do contrato</h3><p>A CONTRATADA prestará serviços de gerenciamento de redes sociais, conteúdo e apoio estratégico para ${esc(data.channels)} do CONTRATANTE, nos limites do escopo aprovado e das condições previstas neste instrumento.</p></div>
+      ${amendmentHtml}
+      <div class="clause"><h3>Cláusula 1 — Objeto ${data.documentType==='amendment'?'do aditivo':'do contrato'}</h3><p>A CONTRATADA prestará serviços de gerenciamento de redes sociais, conteúdo e apoio estratégico para ${esc(data.channels)} do CONTRATANTE, nos limites do escopo aprovado e das condições previstas neste instrumento.</p></div>
       <div class="clause"><h3>Cláusula 2 — Vigência</h3><p>O presente contrato terá início em ${esc(formatLongDateBR(data.start))} e término em ${esc(formatLongDateBR(data.end))}, totalizando ${esc(data.duration)} meses de vigência.</p></div>
     </section>
     <section class="page">
@@ -8843,7 +8883,7 @@ function generateContractPDF(){
     </section>
     <section class="page">
       <div class="brand"><div class="brand-left"><img class="brand-logo" src="${CONTRACT_LOGO}" alt="Aluma"></div><span class="badge">Condições</span></div>
-      <div class="clause"><h3>Cláusula 5 — Investimento, cobrança e atraso</h3><p>Pelos serviços contratados, o CONTRATANTE pagará à CONTRATADA o valor mensal de <b>${esc(fmtCurrencyBR(data.monthlyValue))}</b>, com vencimento todo dia <b>${esc(data.dueDay)}</b> de cada mês. A cobrança poderá ser enviada por boleto, PIX, cartão, link de pagamento ou plataforma de cobrança, inclusive Asaas.</p><p>Em caso de atraso, poderão incidir multa de 2% sobre o valor vencido, juros de 1% ao mês, correção monetária quando aplicável e suspensão das entregas após 7 dias de inadimplência, sem prejuízo da cobrança dos valores em aberto.</p></div>
+      <div class="clause"><h3>Cláusula 5 — Investimento, cobrança e atraso</h3><p>Pelos serviços contratados, o CONTRATANTE pagará à CONTRATADA o valor mensal de <b>${esc(fmtCurrencyBR(data.monthlyValue))}</b>. ${firstChargeHtml} A cobrança poderá ser enviada por boleto, PIX, cartão, link de pagamento ou plataforma de cobrança, inclusive Asaas.</p><p>Em caso de atraso, poderão incidir multa de 2% sobre o valor vencido, juros de 1% ao mês, correção monetária quando aplicável e suspensão das entregas após 7 dias de inadimplência, sem prejuízo da cobrança dos valores em aberto.</p></div>
       <div class="clause"><h3>Cláusula 6 — Gestão de tráfego pago e verba de mídia</h3><p>Quando contratada, a gestão de tráfego pago compreende planejamento, configuração, acompanhamento e otimização das campanhas. A verba de mídia, impulsionamentos, taxas das plataformas e eventuais custos de terceiros não estão incluídos no valor mensal, salvo se houver previsão expressa em proposta, aditivo ou aceite escrito.</p></div>
       <div class="clause"><h3>Cláusula 7 — Encerramento contratual</h3><p>${terminationHtml}</p></div>
       <div class="clause"><h3>Cláusula 8 — Responsabilidades do contratante</h3><p>O CONTRATANTE deverá fornecer acessos, informações, materiais, aprovações e retornos necessários à execução dos serviços. Atrasos nesses retornos poderão impactar prazos de entrega e publicação, sem caracterizar descumprimento da CONTRATADA.</p></div>
@@ -8856,7 +8896,7 @@ function generateContractPDF(){
       <p>São Pedro/SP, ${esc(todayLong)}.</p>
       <div class="sig-grid">
         <div class="sig"><b>CONTRATADA</b><br>${esc(CONTRACT_FIXED_PARTY.responsible)}<br>CPF: ${esc(CONTRACT_FIXED_PARTY.cpf)}<br>${esc(CONTRACT_FIXED_PARTY.company)}</div>
-        <div class="sig"><b>CONTRATANTE</b><br>${esc(data.responsible)}<br>CPF: ${esc(data.cpf)}<br>${esc(data.name)}</div>
+        <div class="sig"><b>CONTRATANTE</b><br>${esc(data.responsible)}<br>CPF: ${esc(data.cpf)}<br>${esc(partyName)}</div>
       </div>
       <div class="footer-note">Documento preparado para assinatura eletrônica. Antes do uso definitivo, recomenda-se validação jurídica da redação e das cláusulas comerciais aplicáveis ao caso concreto.</div>
     </section>
@@ -8936,18 +8976,19 @@ function buildFinanceHistoryData(){
   return data;
 }
 function renderFinanceLineChart(data){
-  const width=900,height=230,padX=42,padTop=18,padBottom=38;
+  const width=900,height=250,padX=48,padTop=34,padBottom=38;
   const max=Math.max(...data.flatMap(d=>[d.receita,Math.max(0,d.lucro)]),1);
   const x=i=>padX+(i*(width-padX*2)/Math.max(1,data.length-1));
   const y=v=>padTop+(height-padTop-padBottom)*(1-Math.max(0,v)/max);
   const receitaPts=data.map((d,i)=>`${x(i)},${y(d.receita)}`).join(' ');
   const lucroPts=data.map((d,i)=>`${x(i)},${y(Math.max(0,d.lucro))}`).join(' ');
+  const chartMoney=v=>'R$ '+Math.round(Number(v)||0).toLocaleString('pt-BR');
   return `<div style="overflow-x:auto">
-    <svg viewBox="0 0 ${width} ${height}" style="width:100%;min-width:720px;height:230px;display:block" role="img" aria-label="Evolução mensal de faturamento e lucro">
+    <svg viewBox="0 0 ${width} ${height}" style="width:100%;min-width:720px;height:250px;display:block" role="img" aria-label="Evolução mensal de faturamento e lucro">
       ${[0,.25,.5,.75,1].map(p=>`<line x1="${padX}" x2="${width-padX}" y1="${y(max*p)}" y2="${y(max*p)}" stroke="var(--border)" stroke-width="1"/>`).join('')}
       <polyline points="${receitaPts}" fill="none" stroke="#60a5fa" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
       <polyline points="${lucroPts}" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      ${data.map((d,i)=>`<g><circle cx="${x(i)}" cy="${y(d.receita)}" r="4" fill="#60a5fa"><title>${d.label}: ${finFmt(d.receita)}</title></circle><text x="${x(i)}" y="${height-12}" fill="var(--text3)" font-size="10" text-anchor="middle">${d.short}</text></g>`).join('')}
+      ${data.map((d,i)=>`<g><circle cx="${x(i)}" cy="${y(d.receita)}" r="4" fill="#60a5fa"><title>${d.label}: ${finFmt(d.receita)}</title></circle><text x="${x(i)}" y="${Math.max(12,y(d.receita)-9)}" fill="var(--text2)" font-size="9" font-weight="700" text-anchor="middle">${chartMoney(d.receita)}</text><text x="${x(i)}" y="${height-12}" fill="var(--text3)" font-size="10" text-anchor="middle">${d.short}</text></g>`).join('')}
     </svg>
     <div style="display:flex;gap:18px;justify-content:center;font-size:11px;color:var(--text3)">
       <span><i style="display:inline-block;width:18px;height:3px;background:#60a5fa;vertical-align:middle;margin-right:6px"></i>Faturamento</span>
@@ -8978,10 +9019,10 @@ function renderFinanceiroDash(el){
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px">
       <div class="comercial-stat"><div class="comercial-stat-lbl">Faturamento total</div><div class="comercial-stat-val" style="color:var(--green)">${finFmt(snap.receitaTotal)}</div><div class="comercial-stat-sub">${finFmt(snap.receitaRecorrente)} recorrente + ${finFmt(snap.receitasVariaveis)} variável</div></div>
+      <div class="comercial-stat"><div class="comercial-stat-lbl">Despesas totais</div><div class="comercial-stat-val" style="color:var(--red)">${finFmt(snap.custoTotal)}</div><div class="comercial-stat-sub">custos, impostos e pró-labore</div></div>
       <div class="comercial-stat"><div class="comercial-stat-lbl">Lucro líquido</div><div class="comercial-stat-val" style="color:${snap.lucroLiquido>=0?'var(--green)':'var(--red)'}">${finFmt(snap.lucroLiquido)}</div><div class="comercial-stat-sub">após custos e pró-labore</div></div>
-      <div class="comercial-stat"><div class="comercial-stat-lbl">Ticket médio</div><div class="comercial-stat-val">${finFmt(snap.ticketMedio)}</div><div class="comercial-stat-sub">${snap.clientes.length} cliente${snap.clientes.length===1?'':'s'} ativo${snap.clientes.length===1?'':'s'}</div></div>
       <div class="comercial-stat"><div class="comercial-stat-lbl">Margem líquida</div><div class="comercial-stat-val" style="color:${snap.margem>=20?'var(--green)':snap.margem>=0?'var(--yellow)':'var(--red)'}">${snap.margem.toFixed(1)}%</div><div class="comercial-stat-sub">lucro sobre faturamento</div></div>
-      <div class="comercial-stat"><div class="comercial-stat-lbl">Ponto de equilíbrio</div><div class="comercial-stat-val">${finFmt(snap.pontoEquilibrio)}</div><div class="comercial-stat-sub">faturamento mínimo estimado</div></div>
+      <div class="comercial-stat"><div class="comercial-stat-lbl">Ticket médio</div><div class="comercial-stat-val">${finFmt(snap.ticketMedio)}</div><div class="comercial-stat-sub">${snap.clientes.length} cliente${snap.clientes.length===1?'':'s'} ativo${snap.clientes.length===1?'':'s'}</div><div class="comercial-stat-sub" style="margin-top:6px">Ponto de equilíbrio: <strong style="color:var(--text2)">${finFmt(snap.pontoEquilibrio)}</strong></div></div>
       <div class="comercial-stat"><div class="comercial-stat-lbl">Meta do mês</div><div class="comercial-stat-val" style="color:${metaPct>=100?'var(--green)':'var(--accent)'}">${metaPct}%</div><div class="comercial-stat-sub">${meta?`${finFmt(snap.receitaTotal)} de ${finFmt(meta)}`:'Defina uma meta mensal'}</div></div>
     </div>
     ${meta?`<div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;margin-bottom:16px"><div style="height:100%;width:${metaPct}%;background:${metaPct>=100?'var(--green)':'var(--accent)'}"></div></div>`:''}
@@ -8999,6 +9040,7 @@ function renderFinanceiroDash(el){
             ['(-) Despesas operacionais',-snap.despesasOperacionais,'var(--red)',false],
             ['(-) Impostos',-snap.impostos,'var(--red)',false],
             ['(-) Pró-labore',-snap.proLabore,'var(--red)',false],
+            ['Total de despesas',-snap.custoTotal,'var(--red)',true],
             ['Resultado líquido',snap.lucroLiquido,snap.lucroLiquido>=0?'var(--green)':'var(--red)',true]
           ].map(([label,value,color,strong])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;${strong?'font-weight:800':''}"><span>${label}</span><span style="color:${color}">${value<0?'- ':''}${finFmt(Math.abs(value))}</span></div>`).join('')}
         </div>
@@ -9931,6 +9973,10 @@ async function deleteProspect(){
           </div>
         </div>
       </div>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:16px;cursor:pointer">
+        <input type="checkbox" id="m-perfil-aluma" style="width:18px;height:18px;accent-color:var(--accent)">
+        <span><b style="display:block;font-size:13px;color:var(--text)">Acessar Perfil Aluma</b><span style="display:block;font-size:11px;color:var(--text3);margin-top:2px">Libera a aba e o conteúdo do perfil interno da agência.</span></span>
+      </label>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:11px 13px;margin-bottom:16px;font-size:12px;color:var(--text3);line-height:1.6">
         💡 Para que o membro acesse o sistema, crie o login em<br>
         <strong style="color:var(--accent)">Firebase Console → Authentication → Add user</strong>
@@ -10148,7 +10194,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=27').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=29').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
