@@ -3547,6 +3547,7 @@ function aiReviewErrorMessage(err){
   const message=String(err?.message||'');
   if(code.includes('unauthenticated')) return 'Sua sessão expirou. Entre novamente no sistema.';
   if(code.includes('resource-exhausted')) return 'O limite de revisões foi atingido. Tente novamente mais tarde.';
+  if(message.includes('sem créditos ativos')) return 'A conta da OpenAI API está sem créditos. Adicione saldo no painel de faturamento da OpenAI.';
   if(code.includes('failed-precondition')||message.includes('OPENAI_API_KEY')) return 'A revisão por IA ainda não foi configurada no servidor.';
   return 'Não consegui revisar o texto agora. Tente novamente em instantes.';
 }
@@ -3554,7 +3555,8 @@ function buildAiReviewModal(title,original){
   closeAiReviewModal();
   const ov=document.createElement('div');
   ov.id='ai-review-mo';
-  ov.className='mo show';
+  ov.className='mo open';
+  ov.style.zIndex='1100';
   ov.innerHTML=`<div class="modal" style="width:min(980px,94vw);max-height:90vh;display:flex;flex-direction:column">
     <div class="mhdr">
       <div class="mhdr-info"><div class="mtitle">Revisar ${title} com IA</div><div class="mmeta">A revisão corrige ortografia, gramática, pontuação e concordância sem mudar o tom.</div></div>
@@ -3569,11 +3571,13 @@ function buildAiReviewModal(title,original){
   document.body.appendChild(ov);
   _aiReviewTarget={..._aiReviewTarget,original};
 }
-async function openAiReview(targetId,pid,field){
+async function openAiReview(targetId,pid,field,buttonEl=null){
   const editor=document.getElementById(targetId);
   const original=getRichText(editor);
   if(!original.trim()){ showToast('Escreva um texto antes de revisar.','err'); return; }
   if(original.length>12000){ showToast('O texto é muito longo para uma única revisão.','err'); return; }
+  const previousButtonText=buttonEl?.textContent||'';
+  if(buttonEl){ buttonEl.disabled=true; buttonEl.textContent='Revisando...'; }
   const title=field==='caption'?'a legenda':'o conteúdo';
   _aiReviewTarget={targetId,pid,field,title,original,revised:''};
   buildAiReviewModal(title,original);
@@ -3597,6 +3601,8 @@ async function openAiReview(targetId,pid,field){
     console.error('openAiReview:',err);
     const body=document.getElementById('ai-review-body');
     if(body) body.innerHTML=`<div class="empty" style="padding:35px"><div class="empty-title">Revisão indisponível</div><div style="color:var(--text3);font-size:13px;margin-top:7px;text-align:center">${aiReviewErrorMessage(err)}</div></div>`;
+  }finally{
+    if(buttonEl){ buttonEl.disabled=false; buttonEl.textContent=previousButtonText||'Revisar texto'; }
   }
 }
 async function applyAiReview(){
@@ -4045,13 +4051,13 @@ function renderPF(post){
     <div id="brief-meta-${post.id}" class="rich-meta" style="${briefMeta?'':'display:none'}">${briefMeta||''}</div>
     <div id="rich-sync-${post.id}" class="rich-sync-note"><span>Chegou uma atualização deste post enquanto você estava escrevendo. Seu texto foi mantido para não sobrescrever sem querer.</span><button type="button" onclick="acceptRemotePostUpdate('${post.id}')">Ver versão atual</button></div>
     <div class="ff" style="margin-bottom:11px">
-      ${richToolbar('rt-brief-'+post.id,false,true,`<button class="rich-tool-btn" type="button" onclick="openAiReview('rt-brief-${post.id}','${post.id}','designBriefing')">Revisar texto</button>`)}
+      ${richToolbar('rt-brief-'+post.id,false,true,`<button class="rich-tool-btn" type="button" onclick="openAiReview('rt-brief-${post.id}','${post.id}','designBriefing',this)">Revisar texto</button>`)}
       <div class="rich-area post-copy-editor" contenteditable="true" id="rt-brief-${post.id}" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="saveBriefingField('rt-brief-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('designBriefing','rt-brief-${post.id}')" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
     </div>
 
     <div class="fsect">💬 Legenda</div>
     <div class="ff" style="margin-bottom:14px">
-      ${richToolbar('rt-caption-'+post.id,true,false,`<button class="rich-tool-btn" type="button" onclick="openCaptionTemplatesModal('${post.id}')">Textos salvos</button><button class="rich-tool-btn" type="button" onclick="openAiReview('rt-caption-${post.id}','${post.id}','caption')">Revisar texto</button>`)}
+      ${richToolbar('rt-caption-'+post.id,true,false,`<button class="rich-tool-btn" type="button" onclick="openCaptionTemplatesModal('${post.id}')">Textos salvos</button><button class="rich-tool-btn" type="button" onclick="openAiReview('rt-caption-${post.id}','${post.id}','caption',this)">Revisar texto</button>`)}
       <div class="rich-area post-copy-editor" contenteditable="true" id="rt-caption-${post.id}" onpaste="handleRichPaste(event,'rt-caption-${post.id}')" onblur="flushRichAutosave('${post.id}','caption','rt-caption-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('caption','rt-caption-${post.id}')" style="min-height:110px">${renderRichText(post.caption||'')}</div>
     </div>
 
@@ -10267,7 +10273,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=30').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=32').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
