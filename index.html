@@ -17,10 +17,11 @@
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
   import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, getBlob, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
   const firebaseConfig = { apiKey:"AIzaSyDGzrCPsrV7b2JkX73wxBZpFKtNmDsnJHc", authDomain:"aluma-os.firebaseapp.com", projectId:"aluma-os", storageBucket:"aluma-os.firebasestorage.app", messagingSenderId:"912583832715", appId:"1:912583832715:web:b6a34c7efc4bbaec37908e" };
   const app = initializeApp(firebaseConfig);
   const storage = getStorage(app);
-  window._fb = { auth:getAuth(app), db:getFirestore(app), storage, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, ref, uploadBytes, getDownloadURL, getBlob, deleteObject };
+  window._fb = { auth:getAuth(app), db:getFirestore(app), storage, functions:getFunctions(app,'southamerica-east1'), httpsCallable, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, ref, uploadBytes, getDownloadURL, getBlob, deleteObject };
 </script>
 <style>
 :root{
@@ -350,6 +351,8 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 
 /* RICH TEXT AREA */
 .rich-area{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s,background .15s;line-height:1.65;min-height:60px;word-break:break-word;white-space:pre-wrap;}
+.rich-area.post-copy-editor{font-size:16px;line-height:1.72;}
+@media(max-width:760px){.ai-review-grid{grid-template-columns:1fr!important}}
 .rich-area:focus{border-color:var(--accent);background:var(--bg2);box-shadow:0 0 0 3px rgba(132,131,255,.12);}
 .rich-area a{color:var(--accent);text-decoration:underline;cursor:pointer;}
 .rich-area[data-saving="1"]{border-color:rgba(132,131,255,.55)}
@@ -3537,6 +3540,76 @@ function richToolbar(targetId,withCopy=false,withHistory=false,rightHtml=''){
     <div class="rich-tools-right">${rightHtml||''}</div>
   </div>`;
 }
+let _aiReviewTarget=null;
+function closeAiReviewModal(){ document.getElementById('ai-review-mo')?.remove(); }
+function aiReviewErrorMessage(err){
+  const code=String(err?.code||'');
+  const message=String(err?.message||'');
+  if(code.includes('unauthenticated')) return 'Sua sessão expirou. Entre novamente no sistema.';
+  if(code.includes('resource-exhausted')) return 'O limite de revisões foi atingido. Tente novamente mais tarde.';
+  if(code.includes('failed-precondition')||message.includes('OPENAI_API_KEY')) return 'A revisão por IA ainda não foi configurada no servidor.';
+  return 'Não consegui revisar o texto agora. Tente novamente em instantes.';
+}
+function buildAiReviewModal(title,original){
+  closeAiReviewModal();
+  const ov=document.createElement('div');
+  ov.id='ai-review-mo';
+  ov.className='mo show';
+  ov.innerHTML=`<div class="modal" style="width:min(980px,94vw);max-height:90vh;display:flex;flex-direction:column">
+    <div class="mhdr">
+      <div class="mhdr-info"><div class="mtitle">Revisar ${title} com IA</div><div class="mmeta">A revisão corrige ortografia, gramática, pontuação e concordância sem mudar o tom.</div></div>
+      <button class="mclose" type="button" onclick="closeAiReviewModal()" aria-label="Fechar">×</button>
+    </div>
+    <div id="ai-review-body" style="padding:18px;overflow:auto">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:210px;color:var(--text2);font-weight:700"><span class="spin"></span> Revisando texto...</div>
+    </div>
+    <div class="mfoot"><button class="btn btn-s" type="button" onclick="closeAiReviewModal()">Cancelar</button><button class="btn btn-p" id="ai-review-apply" type="button" disabled onclick="applyAiReview()">Aplicar revisão</button></div>
+  </div>`;
+  ov.onclick=e=>{ if(e.target===ov) closeAiReviewModal(); };
+  document.body.appendChild(ov);
+  _aiReviewTarget={..._aiReviewTarget,original};
+}
+async function openAiReview(targetId,pid,field){
+  const editor=document.getElementById(targetId);
+  const original=getRichText(editor);
+  if(!original.trim()){ showToast('Escreva um texto antes de revisar.','err'); return; }
+  if(original.length>12000){ showToast('O texto é muito longo para uma única revisão.','err'); return; }
+  const title=field==='caption'?'a legenda':'o conteúdo';
+  _aiReviewTarget={targetId,pid,field,title,original,revised:''};
+  buildAiReviewModal(title,original);
+  try{
+    const {functions,httpsCallable}=window._fb;
+    const review=httpsCallable(functions,'reviewPortugueseText',{timeout:60000});
+    const result=await review({text:original,kind:field==='caption'?'legenda':'conteúdo'});
+    const revised=String(result?.data?.revisedText||'').trim();
+    if(!revised) throw new Error('empty-response');
+    _aiReviewTarget.revised=revised;
+    const body=document.getElementById('ai-review-body');
+    if(!body) return;
+    body.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="ai-review-grid">
+      <div><div class="flbl" style="margin-bottom:7px">Original</div><textarea id="ai-review-original" class="fta" readonly style="min-height:330px;font-size:15px;line-height:1.65;resize:vertical"></textarea></div>
+      <div><div class="flbl" style="margin-bottom:7px">Texto revisado</div><textarea id="ai-review-revised" class="fta" style="min-height:330px;font-size:15px;line-height:1.65;resize:vertical"></textarea></div>
+    </div><div style="font-size:11px;color:var(--text3);margin-top:10px">Você ainda pode ajustar o texto revisado antes de aplicar.</div>`;
+    document.getElementById('ai-review-original').value=original;
+    document.getElementById('ai-review-revised').value=revised;
+    document.getElementById('ai-review-apply').disabled=false;
+  }catch(err){
+    console.error('openAiReview:',err);
+    const body=document.getElementById('ai-review-body');
+    if(body) body.innerHTML=`<div class="empty" style="padding:35px"><div class="empty-title">Revisão indisponível</div><div style="color:var(--text3);font-size:13px;margin-top:7px;text-align:center">${aiReviewErrorMessage(err)}</div></div>`;
+  }
+}
+async function applyAiReview(){
+  if(!_aiReviewTarget) return;
+  const revised=(document.getElementById('ai-review-revised')?.value||_aiReviewTarget.revised||'').trim();
+  const el=document.getElementById(_aiReviewTarget.targetId);
+  if(!el||!revised) return;
+  el.innerHTML=renderRichText(revised);
+  queueRichAutosave(_aiReviewTarget.field,_aiReviewTarget.targetId);
+  await flushRichAutosave(_aiReviewTarget.pid,_aiReviewTarget.field,_aiReviewTarget.targetId);
+  closeAiReviewModal();
+  showToast('Revisão aplicada e salva!','ok');
+}
 function closeEmojiPickers(){ document.querySelectorAll('.emoji-picker.open').forEach(p=>p.classList.remove('open')); }
 function toggleEmojiPicker(id){
   const picker=document.getElementById(id);
@@ -3972,14 +4045,14 @@ function renderPF(post){
     <div id="brief-meta-${post.id}" class="rich-meta" style="${briefMeta?'':'display:none'}">${briefMeta||''}</div>
     <div id="rich-sync-${post.id}" class="rich-sync-note"><span>Chegou uma atualização deste post enquanto você estava escrevendo. Seu texto foi mantido para não sobrescrever sem querer.</span><button type="button" onclick="acceptRemotePostUpdate('${post.id}')">Ver versão atual</button></div>
     <div class="ff" style="margin-bottom:11px">
-      ${richToolbar('rt-brief-'+post.id,false,true)}
-      <div class="rich-area" contenteditable="true" id="rt-brief-${post.id}" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="saveBriefingField('rt-brief-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('designBriefing','rt-brief-${post.id}')" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
+      ${richToolbar('rt-brief-'+post.id,false,true,`<button class="rich-tool-btn" type="button" onclick="openAiReview('rt-brief-${post.id}','${post.id}','designBriefing')">Revisar texto</button>`)}
+      <div class="rich-area post-copy-editor" contenteditable="true" id="rt-brief-${post.id}" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="saveBriefingField('rt-brief-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('designBriefing','rt-brief-${post.id}')" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
     </div>
 
     <div class="fsect">💬 Legenda</div>
     <div class="ff" style="margin-bottom:14px">
-      ${richToolbar('rt-caption-'+post.id,true,false,`<button class="rich-tool-btn" type="button" onclick="openCaptionTemplatesModal('${post.id}')">Textos salvos</button>`)}
-      <div class="rich-area" contenteditable="true" id="rt-caption-${post.id}" onpaste="handleRichPaste(event,'rt-caption-${post.id}')" onblur="flushRichAutosave('${post.id}','caption','rt-caption-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('caption','rt-caption-${post.id}')" style="min-height:110px">${renderRichText(post.caption||'')}</div>
+      ${richToolbar('rt-caption-'+post.id,true,false,`<button class="rich-tool-btn" type="button" onclick="openCaptionTemplatesModal('${post.id}')">Textos salvos</button><button class="rich-tool-btn" type="button" onclick="openAiReview('rt-caption-${post.id}','${post.id}','caption')">Revisar texto</button>`)}
+      <div class="rich-area post-copy-editor" contenteditable="true" id="rt-caption-${post.id}" onpaste="handleRichPaste(event,'rt-caption-${post.id}')" onblur="flushRichAutosave('${post.id}','caption','rt-caption-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('caption','rt-caption-${post.id}')" style="min-height:110px">${renderRichText(post.caption||'')}</div>
     </div>
 
     <div class="brow"><button class="btn btn-d btn-sm" onclick="deletePost('${post.id}')">🗑 Excluir post</button></div>
@@ -10194,7 +10267,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=29').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=30').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
