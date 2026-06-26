@@ -124,17 +124,18 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .av-stat-sub{font-size:11.5px;color:var(--text3);margin-top:7px;}
 .av-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
 .av-filter{background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:inherit;font-size:13px;padding:8px 11px;outline:none;}
-.av-week-grid{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;margin-bottom:12px;}
-.av-week{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:9px 10px;}
-.av-week-title{font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;}
-.av-week-num{font-size:20px;font-weight:850;margin-top:3px;color:var(--accent);}
+.av-workspace{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:3px;}
+.av-board-scroll{overflow-x:auto;overflow-y:visible;padding:0 0 12px;min-height:0;}
+.av-board-scroll .kanban-board{height:auto;align-items:stretch;}
+.av-board-scroll .kcol{height:auto;min-height:420px;max-height:none;}
+.av-board-scroll .kcol-body{overflow:visible;flex:0 0 auto;min-height:350px;}
 .av-card{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:11px;cursor:grab;transition:all .15s;}
 .av-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:var(--shad);}
 .av-card-title{font-size:13px;font-weight:800;line-height:1.35;color:var(--text);margin:6px 0 8px;}
 .av-meta-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:6px;}
 .av-mini{font-size:11px;color:var(--text3);line-height:1.35;}
 .av-editor{width:100%;margin-top:8px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text2);font-family:inherit;font-size:12px;padding:7px 8px;outline:none;}
-@media(max-width:980px){.av-dash{grid-template-columns:repeat(2,1fr)}.av-week-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:980px){.av-dash{grid-template-columns:repeat(2,1fr)}}
 .month-pill-wrap{position:relative;display:inline-block;}
 .mpill{font-size:11px;padding:2px 7px;border-radius:4px;background:rgba(96,165,250,.14);color:#60a5fa;font-weight:600;cursor:pointer;border:none;font-family:inherit;}
 .mpill:hover{background:rgba(96,165,250,.25);}
@@ -1021,6 +1022,11 @@ const AUDIOVISUAL_STATUSES=[
   {id:'ajustes',label:'Ajustes',color:'#fb923c'},
   {id:'finalizado',label:'Finalizado',color:'#4ade80'}
 ];
+const AUDIOVISUAL_LEVELS=[
+  {id:'facil',label:'Fácil',hint:'Vídeo curto'},
+  {id:'medio',label:'Médio',hint:'Cortes e montagem'},
+  {id:'dificil',label:'Difícil',hint:'Edição trabalhada'}
+];
 const STATUSES=PACK_STATUSES;
 const FORMATS=['Carrossel','Reels','Estático','Stories','TikTok','Foto','LinkedIn'];
 const FUNNEL=['Topo','Meio','Fundo','Autoridade','Conexão','Venda'];
@@ -1113,7 +1119,7 @@ async function seedDefaultTeam(){
 // ===== STATE =====
 let currentUser=null,currentUserData=null,currentView='dashboard',currentClientId=null;
 let currentPackId=null,currentPostId=null;
-let audiovisualMonthDate=new Date(),audiovisualClientFilter='',audiovisualStatusFilter='',audiovisualEditorFilter='';
+let audiovisualMonthDate=new Date(),audiovisualClientFilter='',audiovisualStatusFilter='',audiovisualEditorFilter='',audiovisualLevelFilter='';
 let clients={},packs={},posts={};
 let calDate=new Date(),dashDate=new Date(),cliCalDate=new Date();
 let dashAgendaOffset=0;
@@ -4044,7 +4050,7 @@ function renderPF(post){
     ${renderPostVisualGallery(post)}
 
     <div class="fsect">📊 Campos</div>
-    <div class="fgrid" style="grid-template-columns:minmax(220px,1.15fr) minmax(160px,.7fr) minmax(150px,.55fr);margin-bottom:10px">
+    <div class="fgrid" style="grid-template-columns:minmax(220px,1.15fr) minmax(150px,.58fr) minmax(150px,.58fr) minmax(140px,.5fr);margin-bottom:10px">
       <div class="ff"><label class="flbl">Data e hora</label>
         <div class="time-field-wrap">
           <input type="datetime-local" class="fi" id="pf-dt-${post.id}" value="${post.postDate||''}" onchange="spfAndRender('postDate',this.value)">
@@ -4057,6 +4063,7 @@ function renderPF(post){
         </div>
       </div>
       <div class="ff"><label class="flbl">Formato</label><select class="fs" onchange="spfAndRender('format',this.value)">${FORMATS.map(f=>`<option ${post.format===f?'selected':''}>${f}</option>`).join('')}</select></div>
+      <div class="ff"><label class="flbl">Nível de edição</label><select class="fs" onchange="spf('audiovisualLevel',this.value)"><option value="">—</option>${AUDIOVISUAL_LEVELS.map(l=>`<option value="${l.id}" ${post.audiovisualLevel===l.id?'selected':''}>${l.label} · ${l.hint}</option>`).join('')}</select></div>
       <div class="ff"><label class="flbl">Funil</label><select class="fs" onchange="spf('funnel',this.value)"><option value="">—</option>${FUNNEL.map(f=>`<option ${post.funnel===f?'selected':''}>${f}</option>`).join('')}</select></div>
     </div>
     <div class="fgrid" style="grid-template-columns:1fr 1fr;margin-bottom:11px">
@@ -4326,8 +4333,8 @@ async function addPost(){
   const {db,addDoc,collection}=window._fb;
   const order=Object.keys(posts).length;
   const num=String(order+1).padStart(2,'0');
-  const ref=await addDoc(collection(db,'posts'),{packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()});
-  posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()};
+  const ref=await addDoc(collection(db,'posts'),{packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',audiovisualLevel:'',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()});
+  posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',audiovisualLevel:'',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()};
   await updPCnt(Object.keys(posts).length);
   renderPostsList(); openPost(ref.id); showToast('Post adicionado','ok');
 }
@@ -4847,6 +4854,7 @@ async function renderAudiovisualBoard(){
   const matchesFilters=item=>{
     if(audiovisualClientFilter && item.post.clientId!==audiovisualClientFilter) return false;
     if(audiovisualStatusFilter && item.statusId!==audiovisualStatusFilter) return false;
+    if(audiovisualLevelFilter && (item.post.audiovisualLevel||'')!==audiovisualLevelFilter) return false;
     if(audiovisualEditorFilter==='__none__' && item.post.audiovisualEditor) return false;
     if(audiovisualEditorFilter && audiovisualEditorFilter!=='__none__' && (item.post.audiovisualEditor||'')!==audiovisualEditorFilter) return false;
     return true;
@@ -4863,25 +4871,19 @@ async function renderAudiovisualBoard(){
     ['Finalizados',countBy(i=>i.statusId==='finalizado'),'no mês selecionado'],
     ['Atrasados',monthItems.filter(i=>{const d=avDeliveryDate(i); return d&&d<today&&i.statusId!=='finalizado';}).length,'pela data de entrega']
   ];
-  const lastDay=new Date(yr,mo+1,0).getDate();
-  const weeks=[1,2,3,4,5].map(n=>{
-    const start=new Date(yr,mo,1+(n-1)*7), end=new Date(yr,mo,Math.min(lastDay,n*7));
-    const total=monthItems.filter(i=>{const d=avDeliveryDate(i); return d&&d>=start&&d<=end;}).length;
-    const editing=monthItems.filter(i=>{const d=avDeliveryDate(i); return d&&d>=start&&d<=end&&i.statusId==='em_edicao';}).length;
-    return {n,total,editing,start,end};
-  });
   const clientOptions=Object.values(clients).filter(c=>!c.inactive).sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}" ${audiovisualClientFilter===c.id?'selected':''}>${escHtml(c.name)}</option>`).join('');
   const editorOptions=TEAM.map(m=>`<option value="${m.id}" ${audiovisualEditorFilter===m.id?'selected':''}>${escHtml(m.name)}</option>`).join('');
   root.innerHTML=`
-    <div class="av-dash">${dash.map(d=>`<div class="av-stat"><div class="av-stat-lbl">${d[0]}</div><div class="av-stat-num">${d[1]}</div><div class="av-stat-sub">${d[2]}</div></div>`).join('')}</div>
-    <div class="av-week-grid">${weeks.map(w=>`<div class="av-week"><div class="av-week-title">Semana ${w.n}</div><div class="av-week-num">${w.total}</div><div class="av-mini">${w.editing} em edição · ${w.start.getDate()} a ${w.end.getDate()}</div></div>`).join('')}</div>
-    <div class="av-controls">
-      <select class="av-filter" onchange="audiovisualClientFilter=this.value;renderAudiovisualBoard()"><option value="">Todos os clientes</option>${clientOptions}</select>
-      <select class="av-filter" onchange="audiovisualStatusFilter=this.value;renderAudiovisualBoard()"><option value="">Todos os status</option>${AUDIOVISUAL_STATUSES.map(s=>`<option value="${s.id}" ${audiovisualStatusFilter===s.id?'selected':''}>${s.label}</option>`).join('')}</select>
-      <select class="av-filter" onchange="audiovisualEditorFilter=this.value;renderAudiovisualBoard()"><option value="">Todos os editores</option><option value="__none__" ${audiovisualEditorFilter==='__none__'?'selected':''}>Sem responsável</option>${editorOptions}</select>
-      <button class="btn btn-s btn-sm" onclick="audiovisualClientFilter='';audiovisualStatusFilter='';audiovisualEditorFilter='';renderAudiovisualBoard()">Limpar filtros</button>
-    </div>
-    <div class="kanban-outer" style="padding:0;min-height:0">
+    <div class="av-workspace">
+      <div class="av-dash">${dash.map(d=>`<div class="av-stat"><div class="av-stat-lbl">${d[0]}</div><div class="av-stat-num">${d[1]}</div><div class="av-stat-sub">${d[2]}</div></div>`).join('')}</div>
+      <div class="av-controls">
+        <select class="av-filter" onchange="audiovisualClientFilter=this.value;renderAudiovisualBoard()"><option value="">Todos os clientes</option>${clientOptions}</select>
+        <select class="av-filter" onchange="audiovisualStatusFilter=this.value;renderAudiovisualBoard()"><option value="">Todos os status</option>${AUDIOVISUAL_STATUSES.map(s=>`<option value="${s.id}" ${audiovisualStatusFilter===s.id?'selected':''}>${s.label}</option>`).join('')}</select>
+        <select class="av-filter" onchange="audiovisualLevelFilter=this.value;renderAudiovisualBoard()"><option value="">Todos os níveis</option>${AUDIOVISUAL_LEVELS.map(l=>`<option value="${l.id}" ${audiovisualLevelFilter===l.id?'selected':''}>${l.label} · ${l.hint}</option>`).join('')}</select>
+        <select class="av-filter" onchange="audiovisualEditorFilter=this.value;renderAudiovisualBoard()"><option value="">Todos os editores</option><option value="__none__" ${audiovisualEditorFilter==='__none__'?'selected':''}>Sem responsável</option>${editorOptions}</select>
+        <button class="btn btn-s btn-sm" onclick="audiovisualClientFilter='';audiovisualStatusFilter='';audiovisualEditorFilter='';audiovisualLevelFilter='';renderAudiovisualBoard()">Limpar filtros</button>
+      </div>
+    <div class="av-board-scroll">
       <div class="kanban-board" id="av-kb">
         ${AUDIOVISUAL_STATUSES.map(st=>{
           const col=visible.filter(i=>i.statusId===st.id);
@@ -4891,6 +4893,7 @@ async function renderAudiovisualBoard(){
           </div>`;
         }).join('')}
       </div>
+    </div>
     </div>`;
 }
 function renderAudiovisualCard(item){
@@ -4903,6 +4906,8 @@ function renderAudiovisualCard(item){
   const cleanTitle=String(post.title||'Post').replace(/^Post\s*\d+\s*[-—]\s*/i,'').trim()||'Post';
   const editor=post.audiovisualEditor||'';
   const editorOptions=`<option value="">Sem responsável</option>${TEAM.map(m=>`<option value="${m.id}" ${editor===m.id?'selected':''}>${escHtml(m.name)}</option>`).join('')}`;
+  const level=AUDIOVISUAL_LEVELS.find(l=>l.id===post.audiovisualLevel);
+  const levelOptions=`<option value="">Nível não definido</option>${AUDIOVISUAL_LEVELS.map(l=>`<option value="${l.id}" ${post.audiovisualLevel===l.id?'selected':''}>${l.label} · ${l.hint}</option>`).join('')}`;
   const statusGeral=getPostStatusDef(post.status,post);
   return `<div class="av-card" id="av-card-${post.id}" draggable="true" ondragstart="audiovisualDragStart(event,'${post.id}')" ondragend="audiovisualDragEnd(event)">
     <div class="av-meta-row" style="justify-content:space-between;margin-top:0">
@@ -4913,9 +4918,13 @@ function renderAudiovisualCard(item){
     <div class="av-meta-row">
       <span class="ktag s${statusGeral.cls}" style="font-size:10px">${statusGeral.label}</span>
       ${post.format?`<span class="ktag tag-${String(post.format).toLowerCase().replace(/\s/g,'')}" style="font-size:10px">${escHtml(post.format)}</span>`:''}
+      ${level?`<span class="ktag" style="font-size:10px;background:var(--ag);color:var(--accent)">${level.label}</span>`:''}
     </div>
     <div class="av-mini" style="margin-top:8px;color:${dueColor};font-weight:750">📅 Entrega: ${escHtml(dueTxt)}</div>
     <div class="av-mini">${escHtml(pack?.type||'Pack')}${pack?.month?` · ${escHtml(pack.month)}`:''}</div>
+    <select class="av-editor" onchange="event.stopPropagation();setAudiovisualLevel('${post.id}',this.value)">
+      ${levelOptions}
+    </select>
     <select class="av-editor" onchange="event.stopPropagation();setAudiovisualEditor('${post.id}',this.value)">
       ${editorOptions}
     </select>
@@ -4958,6 +4967,14 @@ async function setAudiovisualEditor(pid,editorId){
   await updateDoc(doc(db,'posts',pid),payload);
   if(posts[pid]) Object.assign(posts[pid],payload);
   showToast(editorId?'Editor definido':'Responsável removido','ok');
+  if(currentView==='audiovisual') renderAudiovisualBoard();
+}
+async function setAudiovisualLevel(pid,levelId){
+  const {db,doc,updateDoc}=window._fb;
+  const payload={audiovisualLevel:levelId,updatedAt:Date.now()};
+  await updateDoc(doc(db,'posts',pid),payload);
+  if(posts[pid]) Object.assign(posts[pid],payload);
+  showToast(levelId?'Nível de edição definido':'Nível removido','ok');
   if(currentView==='audiovisual') renderAudiovisualBoard();
 }
 
@@ -10509,7 +10526,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=33').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=34').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
