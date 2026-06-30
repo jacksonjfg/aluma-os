@@ -875,6 +875,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
       </div>
       <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
         <button class="btn btn-s btn-sm" onclick="exportPDF()">📄 PDF</button>
+        <button class="btn btn-s btn-sm" onclick="openPackDownloadModal()">📦 Baixar posts</button>
         <button class="btn btn-s btn-sm" onclick="copyApprovalLink(currentPackId)" title="Link público para aprovação do cliente">🔗 Aprovação</button>
         <button class="btn btn-s btn-sm" onclick="gerarRoteiros(currentPackId)">📝 Roteiros</button>
         <button class="btn btn-s btn-sm" onclick="duplicatePack(currentPackId)">⧉ Duplicar</button>
@@ -3322,6 +3323,120 @@ async function downloadAllFinal(pid){
   }catch(err){
     console.warn('downloadAllFinal fallback:',err);
     showToast('Não consegui montar o ZIP deste carrossel.','err');
+  }
+}
+
+function packBulkZipName(){
+  const pack=packs[currentPackId]||{};
+  const client=clients[pack.clientId||currentClientId]||{};
+  const month=pack.month||pack.operationalMonth||'Mês';
+  return safeDownloadName(`Posts ${month} - ${client.name||'Cliente'}.zip`,'posts.zip');
+}
+function packBulkRootName(){
+  return packBulkZipName().replace(/\.zip$/i,'');
+}
+function openPackDownloadModal(){
+  if(!currentPackId){ showToast('Abra um pack primeiro.','err'); return; }
+  document.getElementById('pack-download-mo')?.remove();
+  const pack=packs[currentPackId]||{};
+  const client=clients[pack.clientId||currentClientId]||{};
+  const total=Object.keys(posts||{}).length;
+  const agCount=Object.values(posts||{}).filter(p=>p.status==='agendamento').length;
+  const ov=document.createElement('div');
+  ov.className='mo open';
+  ov.id='pack-download-mo';
+  ov.style.zIndex='280';
+  ov.innerHTML=`<div class="modal modal-sm" style="max-width:560px">
+    <div class="mhdr">
+      <div class="mhdr-info">
+        <div class="mtitle">Baixar posts</div>
+        <div class="mmeta">${escHtml(client.name||'Cliente')} · ${escHtml(pack.month||pack.operationalMonth||'')}</div>
+      </div>
+      <button class="mclose" onclick="closePackDownloadModal()">×</button>
+    </div>
+    <div style="padding:18px 20px;display:grid;gap:10px">
+      <button class="btn btn-s" style="justify-content:flex-start;padding:13px 14px;text-align:left" onclick="downloadPackFinalFiles('all',this)">
+        <span style="font-weight:850">📦 Baixar todos os posts do mês</span>
+        <span style="margin-left:auto;color:var(--text3);font-size:12px">${total} posts</span>
+      </button>
+      <button class="btn btn-s" style="justify-content:flex-start;padding:13px 14px;text-align:left" onclick="downloadPackFinalFiles('agendamento',this)">
+        <span style="font-weight:850">📅 Baixar somente posts em Agendamento</span>
+        <span style="margin-left:auto;color:var(--text3);font-size:12px">${agCount} posts</span>
+      </button>
+      <div style="font-size:12px;color:var(--text3);line-height:1.45;margin-top:2px">O ZIP usa somente os arquivos da área Arquivos Finais. Posts sem arquivo final ficam fora do download.</div>
+    </div>
+  </div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closePackDownloadModal(); });
+  document.body.appendChild(ov);
+}
+function closePackDownloadModal(){
+  document.getElementById('pack-download-mo')?.remove();
+}
+function uniqueZipFileName(usedNames, baseName){
+  const safe=safeDownloadName(baseName||'arquivo.jpg');
+  const parts=safe.split('.');
+  const ext=parts.length>1?'.'+parts.pop():'';
+  const stem=parts.join('.')||'arquivo';
+  let name=safe, n=2;
+  while(usedNames.has(name.toLowerCase())){
+    name=`${stem} (${n++})${ext}`;
+  }
+  usedNames.add(name.toLowerCase());
+  return name;
+}
+async function downloadPackFinalFiles(mode='all',btn=null){
+  if(typeof JSZip==='undefined'){ showToast('Não consegui montar ZIP neste navegador.','err'); return; }
+  if(!currentPackId){ showToast('Abra um pack primeiro.','err'); return; }
+  const originalText=btn?.innerHTML;
+  if(btn){ btn.disabled=true; btn.innerHTML='<span style="font-weight:850">Montando ZIP...</span>'; }
+  try{
+    const ordered=Object.values(posts||{}).sort((a,b)=>(a.order||0)-(b.order||0));
+    const selected=ordered.filter(p=>mode==='agendamento'?p.status==='agendamento':true);
+    if(!selected.length){
+      showToast(mode==='agendamento'?'Nenhum post em Agendamento neste pack.':'Nenhum post neste pack.','err');
+      return;
+    }
+    const zip=new JSZip();
+    const root=zip.folder(packBulkRootName());
+    let addedPosts=0, addedFiles=0, failedFiles=0, skippedPosts=0;
+    for(let i=0;i<selected.length;i++){
+      const post=selected[i];
+      const files=Array.isArray(post.finalFiles)?post.finalFiles.filter(f=>f&&(f.url||f.data||f.path)):[];
+      if(!files.length){ skippedPosts++; continue; }
+      const visualIndex=ordered.findIndex(p=>p.id===post.id)+1;
+      const folder=root.folder(`Post ${String(visualIndex>0?visualIndex:i+1).padStart(2,'0')}`);
+      let addedThisPost=0;
+      const usedNames=new Set();
+      for(let j=0;j<files.length;j++){
+        try{
+          const file=files[j];
+          const ext=(file.name?.split('.').pop()||'jpg').toLowerCase();
+          const blob=await finalFileBlob(file);
+          const name=uniqueZipFileName(usedNames,file.name||`${String(j+1).padStart(2,'0')}.${ext}`);
+          folder.file(name,blob);
+          addedFiles++;
+          addedThisPost++;
+        }catch(err){
+          failedFiles++;
+          console.warn('downloadPackFinalFiles item:',err,post,files[j]);
+        }
+      }
+      if(addedThisPost) addedPosts++;
+    }
+    if(!addedFiles){
+      showToast('Nenhum arquivo final encontrado para baixar.','err');
+      return;
+    }
+    const blob=await zip.generateAsync({type:'blob'});
+    triggerBlobDownload(blob,packBulkZipName());
+    closePackDownloadModal();
+    const msg=`ZIP criado com ${addedFiles} arquivo(s) de ${addedPosts} post(s).${skippedPosts?` ${skippedPosts} post(s) sem arquivo final.`:''}${failedFiles?` ${failedFiles} arquivo(s) não entraram.`:''}`;
+    showToast(msg,failedFiles?'inf':'ok');
+  }catch(err){
+    console.error('downloadPackFinalFiles:',err);
+    showToast('Não consegui montar o ZIP dos posts.','err');
+  }finally{
+    if(btn){ btn.disabled=false; btn.innerHTML=originalText; }
   }
 }
 
@@ -10526,7 +10641,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=34').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=35').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
