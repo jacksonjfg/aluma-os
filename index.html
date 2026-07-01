@@ -165,8 +165,10 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .salt{color:var(--salt);background:rgba(255,82,82,.12);}
 .sag{color:var(--sag);background:rgba(129,140,248,.12);}
 .scon{color:var(--scon);background:rgba(74,222,128,.12);}
+.smat{color:var(--teal);background:rgba(45,212,191,.12);}
 .dp{background:var(--sp);}.dc{background:var(--sc);}.dd{background:var(--sd);}.dr{background:var(--sr);}
 .dpdf{background:var(--spdf);}.de{background:var(--se);}.dent{background:var(--sent);}.dalt{background:var(--salt);}.dag{background:var(--sag);}.dcon{background:var(--scon);}
+.dmat{background:var(--teal);}
 .tag-carrossel{color:#2dd4bf;background:rgba(45,212,191,.12);}
 .tag-reels{color:#c084fc;background:rgba(192,132,252,.12);}
 .tag-estático{color:#f472b6;background:rgba(244,114,182,.12);}
@@ -1012,9 +1014,10 @@ const POST_BASE_STATUSES=[
 ];
 const POST_REELS_EXTRA_STATUSES=[
   {id:'cliente_gravando',label:'Cliente gravando',cls:'c'},
+  {id:'material_recebido',label:'Material recebido',cls:'mat'},
   {id:'video_em_edicao',label:'Vídeo em edição',cls:'ag'}
 ];
-const AUDIOVISUAL_ENTRY_STATUSES=['cliente_gravando','video_em_edicao'];
+const AUDIOVISUAL_ENTRY_STATUSES=['cliente_gravando','material_recebido','video_em_edicao'];
 const AUDIOVISUAL_STATUSES=[
   {id:'aguardando_gravacao',label:'Aguardando gravação',color:'#60a5fa'},
   {id:'material_recebido',label:'Material recebido',color:'#2dd4bf'},
@@ -2396,7 +2399,7 @@ async function setPackMonth(id,m){
 }
 
 // STATUS DD
-const STATUS_SOLID={planejamento:'#fb923c',copy:'#60a5fa',design:'#facc15',revisao:'#f472b6',pdf:'#c084fc',para_entregar:'#c084fc',entregue:'#2dd4bf',em_alteracoes:'#ff5252',agendamento:'#818cf8',concluido:'#4ade80',cliente_gravando:'#60a5fa',video_em_edicao:'#818cf8'};
+const STATUS_SOLID={planejamento:'#fb923c',copy:'#60a5fa',design:'#facc15',revisao:'#f472b6',pdf:'#c084fc',para_entregar:'#c084fc',entregue:'#2dd4bf',em_alteracoes:'#ff5252',agendamento:'#818cf8',concluido:'#4ade80',cliente_gravando:'#60a5fa',material_recebido:'#2dd4bf',video_em_edicao:'#818cf8'};
 const STATUS_TEXT={design:'#111',concluido:'#111',pdf:'#111',para_entregar:'#111'};
 function buildSDD(packId,status){
   const s=getPackStatusDef(status);
@@ -4165,7 +4168,7 @@ function renderPF(post){
     ${renderPostVisualGallery(post)}
 
     <div class="fsect">📊 Campos</div>
-    <div class="fgrid" style="grid-template-columns:minmax(220px,1.15fr) minmax(150px,.58fr) minmax(150px,.58fr) minmax(140px,.5fr);margin-bottom:10px">
+    <div class="fgrid" style="grid-template-columns:minmax(220px,1.15fr) minmax(150px,.58fr) minmax(150px,.58fr) minmax(150px,.58fr) minmax(140px,.5fr);margin-bottom:10px">
       <div class="ff"><label class="flbl">Data e hora</label>
         <div class="time-field-wrap">
           <input type="datetime-local" class="fi" id="pf-dt-${post.id}" value="${post.postDate||''}" onchange="spfAndRender('postDate',this.value)">
@@ -4179,6 +4182,7 @@ function renderPF(post){
       </div>
       <div class="ff"><label class="flbl">Formato</label><select class="fs" onchange="spfAndRender('format',this.value)">${FORMATS.map(f=>`<option ${post.format===f?'selected':''}>${f}</option>`).join('')}</select></div>
       <div class="ff"><label class="flbl">Nível de edição</label><select class="fs" onchange="spf('audiovisualLevel',this.value)"><option value="">—</option>${AUDIOVISUAL_LEVELS.map(l=>`<option value="${l.id}" ${post.audiovisualLevel===l.id?'selected':''}>${l.label} · ${l.hint}</option>`).join('')}</select></div>
+      <div class="ff"><label class="flbl">Data de entrega</label><input type="date" class="fi" value="${post.deliveryDate||''}" onchange="spf('deliveryDate',this.value)"></div>
       <div class="ff"><label class="flbl">Funil</label><select class="fs" onchange="spf('funnel',this.value)"><option value="">—</option>${FUNNEL.map(f=>`<option ${post.funnel===f?'selected':''}>${f}</option>`).join('')}</select></div>
     </div>
     <div class="fgrid" style="grid-template-columns:1fr 1fr;margin-bottom:11px">
@@ -4426,6 +4430,10 @@ async function spfDirect(pid,field,value){
   const prev=posts[pid]?.[field];
   posts[pid][field]=value;
   const payload={[field]:value,updatedAt:Date.now()};
+  if(field==='status'){
+    payload.statusAudiovisual=audiovisualStatusForPostStatus(value);
+    posts[pid].statusAudiovisual=payload.statusAudiovisual;
+  }
   posts[pid].updatedAt=payload.updatedAt;
   if(field==='designBriefing'){
     const by=currentUserData?.name||currentUser?.email?.split('@')[0]||'Equipe';
@@ -4448,8 +4456,8 @@ async function addPost(){
   const {db,addDoc,collection}=window._fb;
   const order=Object.keys(posts).length;
   const num=String(order+1).padStart(2,'0');
-  const ref=await addDoc(collection(db,'posts'),{packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',audiovisualLevel:'',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()});
-  posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',audiovisualLevel:'',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()};
+  const ref=await addDoc(collection(db,'posts'),{packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',audiovisualLevel:'',deliveryDate:'',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()});
+  posts[ref.id]={id:ref.id,packId:currentPackId,clientId:currentClientId,title:`Post ${num} -`,status:'planejamento',format:'Carrossel',audiovisualLevel:'',deliveryDate:'',order,references:'',designBriefing:'',designBriefingVersions:[],designBriefingMeta:null,caption:'',refLinks:[],refLink:'',images:[],comments:[],assignees:[],createdAt:Date.now(),updatedAt:Date.now()};
   await updPCnt(Object.keys(posts).length);
   renderPostsList(); openPost(ref.id); showToast('Post adicionado','ok');
 }
@@ -4879,11 +4887,22 @@ async function openClientAndPost(cid,packId,postId){
 function closePV(){ document.getElementById('pvo').classList.remove('open'); }
 
 // ===== AUDIOVISUAL =====
+function audiovisualStatusForPostStatus(status){
+  if(status==='cliente_gravando') return 'aguardando_gravacao';
+  if(status==='material_recebido') return 'material_recebido';
+  if(status==='video_em_edicao') return 'em_edicao';
+  return '';
+}
+function postStatusForAudiovisualStatus(statusId){
+  if(statusId==='aguardando_gravacao') return 'cliente_gravando';
+  if(statusId==='material_recebido') return 'material_recebido';
+  if(['em_edicao','revisao_interna','ajustes'].includes(statusId)) return 'video_em_edicao';
+  if(statusId==='finalizado') return 'para_entregar';
+  return 'video_em_edicao';
+}
 function audiovisualStatusId(post){
   if(post?.statusAudiovisual) return post.statusAudiovisual;
-  if(post?.status==='cliente_gravando') return 'aguardando_gravacao';
-  if(post?.status==='video_em_edicao') return 'em_edicao';
-  return 'aguardando_gravacao';
+  return audiovisualStatusForPostStatus(post?.status)||'aguardando_gravacao';
 }
 function audiovisualStatusDef(id){ return AUDIOVISUAL_STATUSES.find(s=>s.id===id)||AUDIOVISUAL_STATUSES[0]; }
 function isAudiovisualPost(post){ return !!post && (AUDIOVISUAL_ENTRY_STATUSES.includes(post.status)||!!post.statusAudiovisual); }
@@ -4901,7 +4920,7 @@ function avWeekRange(date=new Date()){
   const sunday=new Date(monday); sunday.setDate(monday.getDate()+6);
   return {start:monday,end:sunday};
 }
-function avDeliveryDate(item){ return parseDateOnly(item?.pack?.dueDate || item?.post?.deliveryDate || item?.post?.dueDate || ''); }
+function avDeliveryDate(item){ return parseDateOnly(item?.post?.deliveryDate || item?.post?.dueDate || item?.pack?.dueDate || ''); }
 function avPostNumber(post,packPosts){
   const ordered=(packPosts[post.packId]||[]).sort((a,b)=>(a.order||0)-(b.order||0));
   const idx=ordered.findIndex(p=>p.id===post.id);
@@ -5036,6 +5055,7 @@ function renderAudiovisualCard(item){
       ${level?`<span class="ktag" style="font-size:10px;background:var(--ag);color:var(--accent)">${level.label}</span>`:''}
     </div>
     <div class="av-mini" style="margin-top:8px;color:${dueColor};font-weight:750">📅 Entrega: ${escHtml(dueTxt)}</div>
+    <input class="av-editor" type="date" value="${post.deliveryDate||''}" onchange="event.stopPropagation();setAudiovisualDeliveryDate('${post.id}',this.value)" onclick="event.stopPropagation()" title="Data de entrega do vídeo">
     <div class="av-mini">${escHtml(pack?.type||'Pack')}${pack?.month?` · ${escHtml(pack.month)}`:''}</div>
     <select class="av-editor" onchange="event.stopPropagation();setAudiovisualLevel('${post.id}',this.value)">
       ${levelOptions}
@@ -5065,9 +5085,8 @@ async function dropAudiovisualPost(e,statusId){
 }
 async function setAudiovisualStatus(pid,statusId){
   const {db,doc,updateDoc}=window._fb;
-  const payload={statusAudiovisual:statusId,updatedAt:Date.now()};
+  const payload={statusAudiovisual:statusId,status:postStatusForAudiovisualStatus(statusId),updatedAt:Date.now()};
   if(statusId==='finalizado'){
-    payload.status='para_entregar';
     payload.audiovisualFinishedAt=Date.now();
   }
   await updateDoc(doc(db,'posts',pid),payload);
@@ -5091,6 +5110,15 @@ async function setAudiovisualLevel(pid,levelId){
   if(posts[pid]) Object.assign(posts[pid],payload);
   showToast(levelId?'Nível de edição definido':'Nível removido','ok');
   if(currentView==='audiovisual') renderAudiovisualBoard();
+}
+async function setAudiovisualDeliveryDate(pid,value){
+  const {db,doc,updateDoc}=window._fb;
+  const payload={deliveryDate:value,updatedAt:Date.now()};
+  await updateDoc(doc(db,'posts',pid),payload);
+  if(posts[pid]) Object.assign(posts[pid],payload);
+  showToast(value?'Data de entrega atualizada':'Data de entrega removida','ok');
+  if(currentView==='audiovisual') renderAudiovisualBoard();
+  if(currentView==='client'&&currentPostId===pid&&posts[pid]) renderPF(posts[pid]);
 }
 
 // ===== DOCS =====
@@ -10641,7 +10669,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=35').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=36').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
