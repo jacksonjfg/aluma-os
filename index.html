@@ -1224,7 +1224,12 @@ async function loadUD(){
   const {db,doc,getDoc,setDoc}=window._fb;
   const snap=await getDoc(doc(db,'users',currentUser.uid));
   if(snap.exists()){ currentUserData=snap.data(); }
-  else{ currentUserData={name:currentUser.email.split('@')[0],role:'admin',email:currentUser.email}; await setDoc(doc(db,'users',currentUser.uid),currentUserData); }
+  else{
+    const email=currentUser.email||'';
+    const isJackson=accessNorm(email).includes('jackson');
+    currentUserData={name:email.split('@')[0],role:isJackson?'admin':'membro',email};
+    await setDoc(doc(db,'users',currentUser.uid),currentUserData);
+  }
   const ini=currentUserData.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('user-av').textContent=ini;
   document.getElementById('user-name').textContent=currentUserData.name; updateTopDate();
@@ -1247,8 +1252,9 @@ function currentMemberProfile(){
   return TEAM.find(m=>{
     const mid = accessNorm(m.id);
     const mname = accessNorm(m.name);
+    const memail = accessNorm(m.email || m.loginEmail);
     const first = mname.split(' ')[0];
-    return configuredIds.includes(mid) || name === mname || name.includes(mname) || (first && name.includes(first)) || email.includes(mid) || (first && email.includes(first));
+    return configuredIds.includes(mid) || (memail && email === memail) || name === mname || name.includes(mname) || (first && name.includes(first)) || email.includes(mid) || (first && email.includes(first));
   }) || null;
 }
 function currentAccessKeys(){
@@ -5606,11 +5612,31 @@ function renderMemberAccessEditor(selected=[]){
 function getMemberAccessSelection(){
   return [...document.querySelectorAll('[data-menu-access]')].filter(el=>el.checked).map(el=>el.getAttribute('data-menu-access'));
 }
+async function syncMemberUserAccess(memberId,data){
+  const email=String(data.email||'').trim().toLowerCase();
+  if(!email) return;
+  const {db,collection,getDocs,query,where,doc,setDoc}=window._fb;
+  const usersSnap=await getDocs(query(collection(db,'users'),where('email','==',email)));
+  const role=accessNorm(email).includes('jackson')?'admin':'membro';
+  const payload={
+    name:data.name,
+    email,
+    role,
+    teamId:memberId,
+    memberId,
+    allowPerfilAluma:!!data.allowPerfilAluma,
+    menuAccess:Array.isArray(data.menuAccess)?data.menuAccess:[]
+  };
+  const writes=[];
+  usersSnap.forEach(u=>writes.push(setDoc(doc(db,'users',u.id),payload,{merge:true})));
+  await Promise.all(writes);
+}
 function showAddMember(){
   _editMemberId=null;
   document.getElementById('member-modal-title').textContent='Novo membro';
   document.getElementById('m-name').value='';
   document.getElementById('m-role').value='';
+  document.getElementById('m-email').value='';
   document.getElementById('m-color').value='#8483ff';
   document.getElementById('m-perfil-aluma').checked=false;
   renderMemberAccessEditor(defaultMemberMenuAccess());
@@ -5623,6 +5649,7 @@ function showEditMember(mid){
   document.getElementById('member-modal-title').textContent='Editar membro';
   document.getElementById('m-name').value=m.name;
   document.getElementById('m-role').value=m.role||'';
+  document.getElementById('m-email').value=m.email||m.loginEmail||'';
   document.getElementById('m-color').value=m.color||'#8483ff';
   document.getElementById('m-perfil-aluma').checked=!!m.allowPerfilAluma;
   renderMemberAccessEditor(m.menuAccess || (m.allowPerfilAluma?[...defaultMemberMenuAccess(),'perfilAluma']:defaultMemberMenuAccess()));
@@ -5633,6 +5660,7 @@ function closeMemberModal(){ document.getElementById('member-mo').classList.remo
 async function saveMember(){
   const name=document.getElementById('m-name').value.trim();
   const role=document.getElementById('m-role').value.trim();
+  const email=(document.getElementById('m-email')?.value||'').trim().toLowerCase();
   const color=document.getElementById('m-color').value;
   const menuAccess=getMemberAccessSelection();
   const allowPerfilAluma=menuAccess.includes('perfilAluma');
@@ -5640,13 +5668,15 @@ async function saveMember(){
   const {db,doc,setDoc}=window._fb;
   if(_editMemberId){
     const idx=TEAM.findIndex(t=>t.id===_editMemberId);
-    if(idx>-1) TEAM[idx]={...TEAM[idx],name,role,color,allowPerfilAluma,menuAccess};
-    await setDoc(doc(db,'team',_editMemberId),{name,role,color,allowPerfilAluma,menuAccess},{merge:true});
+    if(idx>-1) TEAM[idx]={...TEAM[idx],name,role,email,color,allowPerfilAluma,menuAccess};
+    await setDoc(doc(db,'team',_editMemberId),{name,role,email,color,allowPerfilAluma,menuAccess},{merge:true});
+    await syncMemberUserAccess(_editMemberId,{name,role,email,allowPerfilAluma,menuAccess});
     showToast(name+' atualizado!','ok');
   } else {
     const id=name.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/g,'').slice(0,20)+'_'+Date.now().toString(36);
-    await setDoc(doc(db,'team',id),{name,role,color,allowPerfilAluma,menuAccess});
-    TEAM.push({id,name,role,color,allowPerfilAluma,menuAccess});
+    await setDoc(doc(db,'team',id),{name,role,email,color,allowPerfilAluma,menuAccess});
+    await syncMemberUserAccess(id,{name,role,email,allowPerfilAluma,menuAccess});
+    TEAM.push({id,name,role,email,color,allowPerfilAluma,menuAccess});
     showToast(name+' adicionado!','ok');
   }
   applyAccessControl();
@@ -6277,7 +6307,9 @@ async function loadEquipeData(){
   const inner=document.getElementById('equipe-inner'); if(!inner) return;
 
   const cards=TEAM.map(m=>{
+    const memberEmail=String(m.email||m.loginEmail||'').trim().toLowerCase();
     const userDoc=users.find(u=>
+      (memberEmail&&String(u.email||'').toLowerCase()===memberEmail)||
       u.name?.toLowerCase()===m.name.toLowerCase()||
       u.name?.toLowerCase().includes(m.name.toLowerCase())||
       m.name.toLowerCase().includes(u.name?.toLowerCase()?.split(' ')?.[0]||'__')
@@ -6328,7 +6360,7 @@ async function loadEquipeData(){
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500"><span>Conclusão</span><span style="color:var(--accent);font-weight:700">${pct}%</span></div>
         <div style="height:4px;background:var(--bg4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${m.color};border-radius:2px;transition:width .6s"></div></div>
       </div>`:''}
-      ${userDoc?.email?`<div style="font-size:12px;color:var(--text3)">✉️ ${userDoc.email}</div>`:''}
+      ${(memberEmail||userDoc?.email)?`<div style="font-size:12px;color:var(--text3)">✉️ ${escHtml(memberEmail||userDoc.email)}</div>`:''}
       ${currentUserData?.role==='admin'?`<div style="display:flex;gap:6px;margin-top:4px"><button class="btn btn-s btn-sm" style="flex:1" onclick="event.stopPropagation();showEditMember('${m.id}')">✏️ Editar</button><button class="btn btn-d btn-sm" onclick="event.stopPropagation();deleteMember('${m.id}','${m.name}')">🗑</button></div>`:''}
     </div>`;
   });
@@ -10522,6 +10554,7 @@ async function deleteProspect(){
     <div class="mhdr"><div class="mhdr-info"><div class="mtitle" id="member-modal-title">Novo membro</div></div><button class="mclose" onclick="closeMemberModal()">×</button></div>
     <div style="padding:20px">
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Nome completo</label><input class="fi" id="m-name" placeholder="Ex: Ana Lima"></div>
+      <div class="ff" style="margin-bottom:12px"><label class="flbl">E-mail de login</label><input class="fi" id="m-email" type="email" placeholder="email usado no Firebase Authentication"></div>
       <div class="ff" style="margin-bottom:12px"><label class="flbl">Função / Cargo</label><input class="fi" id="m-role" placeholder="Ex: Designer, Social Media..."></div>
       <div class="ff" style="margin-bottom:16px">
         <label class="flbl">Cor de identificação</label>
@@ -10762,7 +10795,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=37').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=38').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
