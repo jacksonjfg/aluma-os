@@ -1036,6 +1036,18 @@ const FORMATS=['Carrossel','Reels','Estático','Stories','TikTok','Foto','Linked
 const FUNNEL=['Topo','Meio','Fundo','Autoridade','Conexão','Venda'];
 const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const PRESET_TIMES=['09:00','11:00','12:00','18:00','19:00'];
+const MENU_ACCESS_ITEMS=[
+  {id:'dashboard',label:'Dashboard',aliases:['dash','dashboard']},
+  {id:'todos',label:'Todos os clientes',aliases:['todos os clientes','clientes']},
+  {id:'calendario',label:'Calendário',aliases:['calendário','calendario']},
+  {id:'audiovisual',label:'Audiovisual',aliases:['audiovisual']},
+  {id:'equipe',label:'Equipe',aliases:['equipe']},
+  {id:'tarefas',label:'Tarefas',aliases:['tarefas']},
+  {id:'pauta',label:'Pauta',aliases:['pauta']},
+  {id:'comercial',label:'Comercial',aliases:['comercial']},
+  {id:'financeiro',label:'Financeiro',aliases:['financeiro']},
+  {id:'perfilAluma',label:'Perfil Aluma',aliases:['perfil aluma']}
+];
 function normalizePackStatusId(status){
   return status==='pdf'?'para_entregar':(status||'planejamento');
 }
@@ -1264,6 +1276,33 @@ function hasPerfilAlumaAccess(){
   const member=currentMemberProfile();
   return !!(currentUserData?.allowPerfilAluma || member?.allowPerfilAluma);
 }
+function defaultMenuAccessForMember(member=null){
+  const base=['dashboard','todos','calendario','audiovisual','equipe','tarefas','pauta'];
+  if(hasCommercialAccess()) base.push('comercial');
+  if(hasPerfilAlumaAccess() || member?.allowPerfilAluma) base.push('perfilAluma');
+  return base;
+}
+function getMenuAccessForMember(member=null){
+  const explicit=currentUserData?.menuAccess || member?.menuAccess;
+  if(Array.isArray(explicit) && explicit.length) return explicit.filter(Boolean);
+  return defaultMenuAccessForMember(member);
+}
+function hasMenuAccess(view){
+  if(!view || view==='client') return true;
+  if(currentUserData?.role === 'admin') return true;
+  const member=currentMemberProfile();
+  return getMenuAccessForMember(member).includes(view);
+}
+function firstAccessibleView(){
+  if(currentUserData?.role === 'admin') return 'dashboard';
+  const member=currentMemberProfile();
+  const allowed=getMenuAccessForMember(member);
+  return MENU_ACCESS_ITEMS.find(item=>allowed.includes(item.id))?.id || 'dashboard';
+}
+function navViewFromText(text=''){
+  const norm=accessNorm(text);
+  return MENU_ACCESS_ITEMS.find(item=>item.aliases.some(alias=>norm.includes(accessNorm(alias))))?.id || '';
+}
 function canManagePacks(){
   if(currentUserData?.role === 'admin') return true;
   return hasCommercialAccess();
@@ -1290,23 +1329,18 @@ async function fetchVisibleTasks(){
 }
 function applyAccessControl(){
   const isAdmin = currentUserData?.role === 'admin';
-  const canCommercial = hasCommercialAccess();
-  const canPerfilAluma = hasPerfilAlumaAccess();
-  // Topbar tabs - Comercial/Financeiro/Perfil
+  const canSee=view=>isAdmin || hasMenuAccess(view);
   document.querySelectorAll('.ttab').forEach(tab => {
-    if(tab.textContent.includes('Comercial') || tab.textContent.includes('Financeiro') || tab.textContent.includes('Perfil Aluma')){
-      if(tab.textContent.includes('Perfil Aluma')) tab.style.display = canPerfilAluma ? '' : 'none';
-      else if(tab.textContent.includes('Financeiro')) tab.style.display = isAdmin ? '' : 'none';
-      else tab.style.display = canCommercial ? '' : 'none';
-    }
+    const view=navViewFromText(tab.textContent);
+    if(view) tab.style.display = canSee(view) ? '' : 'none';
   });
-  // Sidebar items - Comercial/Financeiro/Perfil
   document.querySelectorAll('.sb-item').forEach(item => {
-    if(item.textContent.includes('Comercial') || item.textContent.includes('Financeiro') || item.textContent.includes('Perfil Aluma')){
-      if(item.textContent.includes('Perfil Aluma')) item.style.display = canPerfilAluma ? '' : 'none';
-      else if(item.textContent.includes('Financeiro')) item.style.display = isAdmin ? '' : 'none';
-      else item.style.display = canCommercial ? '' : 'none';
-    }
+    const view=navViewFromText(item.textContent);
+    if(view) item.style.display = canSee(view) ? '' : 'none';
+  });
+  MENU_ACCESS_ITEMS.forEach(item=>{
+    const mobile=document.getElementById('mnav-'+item.id);
+    if(mobile) mobile.style.display=canSee(item.id)?'':'none';
   });
   const inactiveBtn=document.getElementById('btn-inactive-sb');
   if(inactiveBtn) inactiveBtn.style.display = isAdmin && hasInactiveClients() ? 'flex' : 'none';
@@ -1424,6 +1458,11 @@ async function loadCnt(cid){
 
 // ===== VIEWS =====
 async function setView(view,cid){
+  if(!hasMenuAccess(view)){
+    showToast('Você não tem acesso a esta área.','err');
+    view=firstAccessibleView();
+    cid=null;
+  }
   if(currentPackId && currentPostId && currentPostId!=='__orientacoes__'){
     try{ await saveCurrentRichDraft(); }catch(err){ console.warn('setView/saveCurrentRichDraft',err); }
   }
@@ -3474,12 +3513,12 @@ function getRichText(el){
 }
 function placeCaretAtEnd(el){
   if(!el) return;
+  el.focus();
   const range=document.createRange();
   range.selectNodeContents(el);
   range.collapse(false);
   const sel=window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
+  if(sel){ sel.removeAllRanges(); sel.addRange(range); }
 }
 function normalizePastedText(text){
   return String(text||'')
@@ -4729,7 +4768,8 @@ async function renderCLCGrid(){
   const t=document.getElementById('clc-title'); if(t) t.textContent=`${MONTHS[mo]} ${yr}`;
   const snap=await getDocs(query(collection(db,'posts'),where('clientId','==',currentClientId)));
   const all=[]; snap.forEach(d=>all.push({id:d.id,...d.data()}));
-  const fil=all.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d.getMonth()===mo&&d.getFullYear()===yr; });
+  const range=calendarVisibleRange(yr,mo);
+  const fil=all.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d>=range.start&&d<=range.end; });
   buildCalGrid('clc-grid',yr,mo,fil,false);
 }
 function changeCLC(d){ cliCalDate.setMonth(cliCalDate.getMonth()+d); renderCLCGrid(); }
@@ -4769,27 +4809,47 @@ async function renderCalGrid2(){
   all=all.filter(p=>!clients[p.clientId]?.inactive);
   if(calFC) all=all.filter(p=>p.clientId===calFC);
   if(calFF) all=all.filter(p=>p.format===calFF);
-  const fil=all.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d.getMonth()===mo&&d.getFullYear()===yr; });
+  const range=calendarVisibleRange(yr,mo);
+  const fil=all.filter(p=>{ if(!p.postDate) return false; const d=new Date(p.postDate); return d>=range.start&&d<=range.end; });
   buildCalGrid('cal-grid',yr,mo,fil,true);
 }
 function changeCalM(d){ calDate.setMonth(calDate.getMonth()+d); renderCalGrid2(); }
 
+function calendarDateKey(date){
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+function calendarVisibleRange(yr,mo){
+  const first=new Date(yr,mo,1);
+  const start=new Date(first);
+  start.setDate(first.getDate()-first.getDay());
+  start.setHours(0,0,0,0);
+  const dim=new Date(yr,mo+1,0).getDate();
+  const total=Math.ceil((first.getDay()+dim)/7)*7;
+  const end=new Date(start);
+  end.setDate(start.getDate()+total-1);
+  end.setHours(23,59,59,999);
+  return {start,end,total};
+}
 function buildCalGrid(cid,yr,mo,postsArr,showClient){
   const wrap=document.getElementById(cid); if(!wrap) return;
   const today=new Date();
-  const fd=new Date(yr,mo,1).getDay();
-  const dim=new Date(yr,mo+1,0).getDate();
+  const range=calendarVisibleRange(yr,mo);
   const pbd={};
   postsArr.forEach(p=>{
-    const d=new Date(p.postDate).getDate();
-    if(!pbd[d]) pbd[d]=[];
-    pbd[d].push(p);
+    const d=new Date(p.postDate);
+    const key=calendarDateKey(d);
+    if(!pbd[key]) pbd[key]=[];
+    pbd[key].push(p);
   });
   window._calP={}; postsArr.forEach(p=>window._calP[p.id]=p);
   const hdrs=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   let cells='';
-  const makeCell=(dayNum,isOther,isToday,dp)=>{
-    const dateStr=`${yr}-${String(mo+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`;
+  const makeCell=(dateObj)=>{
+    const dayNum=dateObj.getDate();
+    const isOther=dateObj.getMonth()!==mo;
+    const isToday=today.getDate()===dayNum&&today.getMonth()===dateObj.getMonth()&&today.getFullYear()===dateObj.getFullYear();
+    const dateStr=calendarDateKey(dateObj);
+    const dp=pbd[dateStr]||[];
     return `<div class="cal-d${isOther?' other':''}${isToday?' today':''}"
       ondragover="event.preventDefault();this.style.background='var(--ag)'"
       ondragleave="this.style.background=''"
@@ -4812,13 +4872,11 @@ function buildCalGrid(cid,yr,mo,postsArr,showClient){
       }).join('')}
     </div>`;
   };
-  for(let i=0;i<fd;i++) cells+=makeCell(new Date(yr,mo,-(fd-i-1)).getDate(),true,false,[]);
-  for(let d=1;d<=dim;d++){
-    const isT=today.getDate()===d&&today.getMonth()===mo&&today.getFullYear()===yr;
-    cells+=makeCell(d,false,isT,pbd[d]||[]);
+  for(let i=0;i<range.total;i++){
+    const d=new Date(range.start);
+    d.setDate(range.start.getDate()+i);
+    cells+=makeCell(d);
   }
-  const total=Math.ceil((fd+dim)/7)*7;
-  for(let i=fd+dim,a=1;i<total;i++,a++) cells+=makeCell(a,true,false,[]);
   wrap.innerHTML=`<div class="calgrid">${hdrs.map(h=>`<div class="cal-dh">${h}</div>`).join('')}${cells}</div>`;
 }
 let _calDragId=null;
@@ -5532,6 +5590,22 @@ async function deletePack(packId){
 
 // ===== TEAM MEMBER CRUD =====
 let _editMemberId=null;
+function defaultMemberMenuAccess(){
+  return ['dashboard','todos','calendario','audiovisual','equipe','tarefas','pauta'];
+}
+function renderMemberAccessEditor(selected=[]){
+  const box=document.getElementById('m-menu-access');
+  if(!box) return;
+  const chosen=new Set(Array.isArray(selected)&&selected.length?selected:defaultMemberMenuAccess());
+  box.innerHTML=MENU_ACCESS_ITEMS.map(item=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--border);border-radius:7px;background:var(--bg2);font-size:12px;color:var(--text2);cursor:pointer">
+      <input type="checkbox" data-menu-access="${item.id}" ${chosen.has(item.id)?'checked':''} style="accent-color:var(--accent)">
+      <span>${item.label}</span>
+    </label>`).join('');
+}
+function getMemberAccessSelection(){
+  return [...document.querySelectorAll('[data-menu-access]')].filter(el=>el.checked).map(el=>el.getAttribute('data-menu-access'));
+}
 function showAddMember(){
   _editMemberId=null;
   document.getElementById('member-modal-title').textContent='Novo membro';
@@ -5539,6 +5613,7 @@ function showAddMember(){
   document.getElementById('m-role').value='';
   document.getElementById('m-color').value='#8483ff';
   document.getElementById('m-perfil-aluma').checked=false;
+  renderMemberAccessEditor(defaultMemberMenuAccess());
   document.getElementById('m-delete-btn').style.display='none';
   document.getElementById('member-mo').classList.add('open');
 }
@@ -5550,6 +5625,7 @@ function showEditMember(mid){
   document.getElementById('m-role').value=m.role||'';
   document.getElementById('m-color').value=m.color||'#8483ff';
   document.getElementById('m-perfil-aluma').checked=!!m.allowPerfilAluma;
+  renderMemberAccessEditor(m.menuAccess || (m.allowPerfilAluma?[...defaultMemberMenuAccess(),'perfilAluma']:defaultMemberMenuAccess()));
   document.getElementById('m-delete-btn').style.display='flex';
   document.getElementById('member-mo').classList.add('open');
 }
@@ -5558,20 +5634,22 @@ async function saveMember(){
   const name=document.getElementById('m-name').value.trim();
   const role=document.getElementById('m-role').value.trim();
   const color=document.getElementById('m-color').value;
-  const allowPerfilAluma=document.getElementById('m-perfil-aluma').checked;
+  const menuAccess=getMemberAccessSelection();
+  const allowPerfilAluma=menuAccess.includes('perfilAluma');
   if(!name){ showToast('Nome obrigatorio','err'); return; }
   const {db,doc,setDoc}=window._fb;
   if(_editMemberId){
     const idx=TEAM.findIndex(t=>t.id===_editMemberId);
-    if(idx>-1) TEAM[idx]={...TEAM[idx],name,role,color,allowPerfilAluma};
-    await setDoc(doc(db,'team',_editMemberId),{name,role,color,allowPerfilAluma},{merge:true});
+    if(idx>-1) TEAM[idx]={...TEAM[idx],name,role,color,allowPerfilAluma,menuAccess};
+    await setDoc(doc(db,'team',_editMemberId),{name,role,color,allowPerfilAluma,menuAccess},{merge:true});
     showToast(name+' atualizado!','ok');
   } else {
     const id=name.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9]/g,'').slice(0,20)+'_'+Date.now().toString(36);
-    await setDoc(doc(db,'team',id),{name,role,color,allowPerfilAluma});
-    TEAM.push({id,name,role,color,allowPerfilAluma});
+    await setDoc(doc(db,'team',id),{name,role,color,allowPerfilAluma,menuAccess});
+    TEAM.push({id,name,role,color,allowPerfilAluma,menuAccess});
     showToast(name+' adicionado!','ok');
   }
+  applyAccessControl();
   closeMemberModal(); renderEquipe();
 }
 async function deleteMember(mid,name){
@@ -5864,6 +5942,19 @@ function closeCommentMentionMenu(pid){
 function insertCommentMention(pid,name){
   const inp=document.getElementById('ci-'+pid);
   if(!inp) return;
+  const saved=commentMentionState(pid);
+  if(saved && saved.start>=0){
+    const text=getCommentEditorText(inp);
+    const start=Math.min(saved.start,text.length);
+    let end=start+1+String(saved.query||'').length;
+    while(end<text.length && !/\s/.test(text[end])) end++;
+    const nextText=(text.slice(0,start)+'@'+name+' '+text.slice(end).replace(/^\s+/,'')).trimStart();
+    inp.innerHTML=commentComposerHtml(nextText);
+    closeCommentMentionMenu(pid);
+    previewCommentMentions(pid);
+    placeCaretAtEnd(inp);
+    return;
+  }
   const selection=window.getSelection();
   const range=selection&&selection.rangeCount?selection.getRangeAt(0):null;
   let tokenRange=null;
@@ -5923,7 +6014,7 @@ function renderCommentMentionMenu(pid){
   setCommentMentionState(pid,{open:true,start:token.start,query:token.query});
   menu.style.display='block';
   menu.innerHTML=`<div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:8px 10px 4px">Pessoas</div>${items.map(member=>`
-    <button type="button" onclick="insertCommentMention('${pid}','${member.name.replace(/'/g,"\\'")}')" style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;background:transparent;border:0;border-top:1px solid var(--border);cursor:pointer;text-align:left">
+    <button type="button" onmousedown="event.preventDefault()" onclick="insertCommentMention('${pid}','${member.name.replace(/'/g,"\\'")}')" style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;background:transparent;border:0;border-top:1px solid var(--border);cursor:pointer;text-align:left">
       <span style="width:28px;height:28px;border-radius:50%;background:${member.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">${escHtml((member.name||'?').charAt(0).toUpperCase())}</span>
       <span style="min-width:0">
         <span style="display:block;font-size:12.5px;font-weight:700;color:var(--text)">${escHtml(member.name)}</span>
@@ -10448,10 +10539,12 @@ async function deleteProspect(){
           </div>
         </div>
       </div>
-      <label style="display:flex;align-items:center;gap:10px;padding:12px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:16px;cursor:pointer">
-        <input type="checkbox" id="m-perfil-aluma" style="width:18px;height:18px;accent-color:var(--accent)">
-        <span><b style="display:block;font-size:13px;color:var(--text)">Acessar Perfil Aluma</b><span style="display:block;font-size:11px;color:var(--text3);margin-top:2px">Libera a aba e o conteúdo do perfil interno da agência.</span></span>
-      </label>
+      <input type="checkbox" id="m-perfil-aluma" style="display:none">
+      <div style="padding:12px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:16px">
+        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:3px">Acessos do menu</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Marque as áreas que este membro poderá visualizar no sistema.</div>
+        <div id="m-menu-access" style="display:grid;grid-template-columns:1fr 1fr;gap:7px"></div>
+      </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:11px 13px;margin-bottom:16px;font-size:12px;color:var(--text3);line-height:1.6">
         💡 Para que o membro acesse o sistema, crie o login em<br>
         <strong style="color:var(--accent)">Firebase Console → Authentication → Add user</strong>
@@ -10669,7 +10762,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=36').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=37').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
