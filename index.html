@@ -5060,15 +5060,16 @@ async function renderAudiovisualBoard(){
   const monthItems=allItems.filter(item=>{ const d=avDeliveryDate(item); return d&&avMonthKey(d)===monthKey; });
   const visible=monthItems.filter(matchesFilters);
   const weekItems=allItems.filter(item=>{ const d=avDeliveryDate(item); return d&&d>=week.start&&d<=week.end; });
+  const dashItems=visible;
   const filteredWeekItems=weekItems.filter(matchesFilters);
-  const countBy=fn=>visible.filter(fn).length;
+  const countBy=fn=>dashItems.filter(fn).length;
   const dash=[
-    ['Itens no mês',visible.length,`${MONTHS[mo]} ${yr}`],
+    ['Itens no mês',dashItems.length,`${MONTHS[mo]} ${yr}`],
     ['Nesta semana',filteredWeekItems.length,`${week.start.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} a ${week.end.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`],
     ['Em edição',countBy(i=>i.statusId==='em_edicao'),'vídeos em produção'],
     ['Aguardando',countBy(i=>i.statusId==='aguardando_gravacao'||i.statusId==='material_recebido'),'gravação ou material'],
     ['Finalizados',countBy(i=>i.statusId==='finalizado'),'no mês selecionado'],
-    ['Atrasados',visible.filter(i=>{const d=avDeliveryDate(i); return d&&d<today&&i.statusId!=='finalizado';}).length,'pela data de entrega']
+    ['Atrasados',dashItems.filter(i=>{const d=avDeliveryDate(i); return d&&d<today&&i.statusId!=='finalizado';}).length,'pela data de entrega']
   ];
   const clientOptions=Object.values(clients).filter(c=>!c.inactive).sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}" ${audiovisualClientFilter===c.id?'selected':''}>${escHtml(c.name)}</option>`).join('');
   const editorOptions=TEAM.map(m=>`<option value="${m.id}" ${audiovisualEditorFilter===m.id?'selected':''}>${escHtml(m.name)}</option>`).join('');
@@ -10796,7 +10797,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=39').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=40').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
