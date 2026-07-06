@@ -680,14 +680,14 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 
 
 /* ===== COMERCIAL ===== */
-.pipeline-board{display:flex;gap:10px;overflow-x:auto;padding:4px 0 12px;min-height:300px;}
-.pipeline-col{min-width:200px;flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;}
+.pipeline-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;overflow-x:hidden;padding:4px 0 12px;min-height:300px;}
+.pipeline-col{min-width:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;}
 .pipeline-col.drag-over{border-color:var(--accent);box-shadow:0 0 0 1px rgba(132,131,255,.25) inset}
 .pipeline-col-hdr{padding:10px 12px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .pipeline-col-body{flex:1;padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:400px;}
-.pipeline-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.pipeline-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;cursor:pointer;transition:border-color .15s;min-width:0;}
 .pipeline-card:hover{border-color:var(--border2);}
-.pipeline-card-name{font-size:13px;font-weight:600;margin-bottom:4px;}
+.pipeline-card-name{font-size:13px;font-weight:600;margin-bottom:4px;overflow-wrap:anywhere;}
 .pipeline-card-meta{font-size:11px;color:var(--text3);}
 .comercial-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
 .comercial-stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:4px;}
@@ -8079,6 +8079,7 @@ async function exportRelatorio(){
         <select class="fs" id="cp-status">
           <option value="prospeccao">Prospecção</option>
           <option value="contato">Contato</option>
+          <option value="contato_andamento">Contato em andamento</option>
           <option value="proposta">Proposta</option>
           <option value="negociacao">Negociação</option>
           <option value="contrato">Contrato</option>
@@ -8624,6 +8625,7 @@ async function saveAlumaDocs(){
 const PIPELINE_COLS = [
   {id:'prospeccao', label:'Prospecção',  color:'#60a5fa'},
   {id:'contato',    label:'Contato',     color:'#fb923c'},
+  {id:'contato_andamento', label:'Contato em andamento', color:'#f97316'},
   {id:'proposta',   label:'Proposta',    color:'#facc15'},
   {id:'negociacao', label:'Negociação',  color:'#c084fc'},
   {id:'contrato',   label:'Contrato',    color:'#818cf8'},
@@ -8801,6 +8803,15 @@ async function deleteCommercialReminder(id){
   await saveCommercialReminders(reminders);
   renderComTab('dash');
 }
+async function clearProspectFollowUp(id){
+  if(!_comProspects[id]) return;
+  const {db,doc,updateDoc}=window._fb;
+  const payload={followUpAt:'',lastFollowUpDoneAt:Date.now(),updatedAt:Date.now()};
+  await updateDoc(doc(db,'com_prospects',id),payload);
+  _comProspects[id]={..._comProspects[id],...payload};
+  showToast('Follow-up marcado como feito','ok');
+  renderComTab('dash');
+}
 function comEsc(value){
   return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -8925,6 +8936,7 @@ function renderCommercialFollowUps(limit=6){
             ${label?`<div style="font-size:10px;font-weight:900;color:${label.color};text-transform:uppercase">${label.text}</div>`:''}
             <div style="font-size:11px;font-weight:800;color:${label?.color||col.color}">${formatProspectDateTime(p.followUpAt)}</div>
           </div>
+          <button class="btn btn-p btn-sm" onclick="event.stopPropagation();clearProspectFollowUp('${p.id}')" title="Marcar follow-up como feito">OK</button>
         </div>`;
       }).join(''):`<div style="padding:14px;color:var(--text3);font-size:13px;text-align:center">Nenhum follow-up agendado.</div>`}
     </div>
@@ -10695,6 +10707,7 @@ async function deleteProspect(){
         <select class="fs" id="cp-status">
           <option value="prospeccao">Prospecção</option>
           <option value="contato">Contato</option>
+          <option value="contato_andamento">Contato em andamento</option>
           <option value="proposta">Proposta</option>
           <option value="negociacao">Negociação</option>
           <option value="fechado">✅ Fechado</option>
@@ -10797,7 +10810,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=40').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=41').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
