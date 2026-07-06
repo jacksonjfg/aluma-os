@@ -680,15 +680,15 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 
 
 /* ===== COMERCIAL ===== */
-.pipeline-board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;overflow-x:hidden;padding:4px 0 12px;min-height:300px;}
+.pipeline-board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;overflow-x:hidden;padding:4px 0 12px;min-height:300px;}
 .pipeline-col{min-width:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;}
 .pipeline-col.drag-over{border-color:var(--accent);box-shadow:0 0 0 1px rgba(132,131,255,.25) inset}
-.pipeline-col-hdr{padding:10px 12px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.pipeline-col-body{flex:1;padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:400px;}
+.pipeline-col-hdr{padding:10px 10px;font-size:10.5px;font-weight:800;letter-spacing:.35px;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:5px;min-width:0;}
+.pipeline-col-body{flex:1;padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;overflow-x:hidden;max-height:400px;min-width:0;}
 .pipeline-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;cursor:pointer;transition:border-color .15s;min-width:0;}
 .pipeline-card:hover{border-color:var(--border2);}
-.pipeline-card-name{font-size:13px;font-weight:600;margin-bottom:4px;overflow-wrap:anywhere;}
-.pipeline-card-meta{font-size:11px;color:var(--text3);}
+.pipeline-card-name{font-size:12.5px;font-weight:600;margin-bottom:4px;overflow-wrap:anywhere;}
+.pipeline-card-meta{font-size:11px;color:var(--text3);overflow-wrap:anywhere;}
 .comercial-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
 .comercial-stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:4px;}
 .comercial-stat-val{font-size:28px;font-weight:800;letter-spacing:-.5px;line-height:1;}
@@ -10810,7 +10810,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=41').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=42').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
