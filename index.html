@@ -1921,7 +1921,7 @@ function renderGlobalCard(pack, statusObj){
 
   // Due date formatting
   const dueLine = pack.dueDate ? (()=>{
-    const dm = dueUrgencyMeta(pack.dueDate);
+    const dm = statusId==='concluido' ? {text:smartDate(pack.dueDate),color:'var(--text3)',tag:''} : dueUrgencyMeta(pack.dueDate);
     const tag = dm.tag ? `<span style="background:var(--red);color:#fff;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:900;letter-spacing:.4px">${dm.tag}</span>` : '';
     return `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px;font-size:11px;font-weight:800;color:${dm.color}">&#128197; <span>${dm.text}</span>${tag}</div>`;
   })() : '';
@@ -2405,7 +2405,7 @@ function renderCard(pack){
     :(assigneeRow?`<div style="margin-bottom:4px">${assigneeRow}</div>`:'');
 
   const dueLine=pack.dueDate?(()=>{
-    const dm=dueUrgencyMeta(pack.dueDate);
+    const dm=statusId==='concluido'?{text:smartDate(pack.dueDate),color:'var(--text3)',tag:''}:dueUrgencyMeta(pack.dueDate);
     const tag=dm.tag?`<span style="background:var(--red);color:#fff;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:900;letter-spacing:.4px">${dm.tag}</span>`:'';
     return `<div onclick="event.stopPropagation()" style="margin-top:5px"><button class="mpill" type="button" style="color:${dm.color};font-weight:850;gap:5px" onclick="event.stopPropagation();showPackDueQuickEditor('${pack.id}')">&#128197; <span>${dm.text}</span>${tag}</button></div>`;
   })():`<div onclick="event.stopPropagation()" style="margin-top:5px"><button class="mpill" type="button" onclick="event.stopPropagation();showPackDueQuickEditor('${pack.id}')">&#128197; + Data</button></div>`;
@@ -10824,7 +10824,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=44').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=45').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
