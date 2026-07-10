@@ -1921,9 +1921,9 @@ function renderGlobalCard(pack, statusObj){
 
   // Due date formatting
   const dueLine = pack.dueDate ? (()=>{
-    const dl = smartDate(pack.dueDate);
-    const dc = dl==='hoje' ? 'var(--red)' : dl==='amanhã' ? 'var(--orange)' : 'var(--text3)';
-    return `<div style="display:flex;align-items:center;gap:5px;margin-top:5px;font-size:11px;font-weight:600;color:${dc}">📅 ${dl}</div>`;
+    const dm = dueUrgencyMeta(pack.dueDate);
+    const tag = dm.tag ? `<span style="background:var(--red);color:#fff;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:900;letter-spacing:.4px">${dm.tag}</span>` : '';
+    return `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px;font-size:11px;font-weight:800;color:${dm.color}">&#128197; <span>${dm.text}</span>${tag}</div>`;
   })() : '';
 
   return `<div class="kcard gk-card" draggable="true"
@@ -2405,10 +2405,10 @@ function renderCard(pack){
     :(assigneeRow?`<div style="margin-bottom:4px">${assigneeRow}</div>`:'');
 
   const dueLine=pack.dueDate?(()=>{
-    const dl=smartDate(pack.dueDate);
-    const dc=dl==='hoje'?'var(--red)':dl==='amanhã'?'var(--orange)':'var(--text3)';
-    return `<div onclick="event.stopPropagation()" style="margin-top:5px"><button class="mpill" type="button" style="color:${dc}" onclick="event.stopPropagation();showPackDueQuickEditor('${pack.id}')">📅 ${dl}</button></div>`;
-  })():`<div onclick="event.stopPropagation()" style="margin-top:5px"><button class="mpill" type="button" onclick="event.stopPropagation();showPackDueQuickEditor('${pack.id}')">📅 + Data</button></div>`;
+    const dm=dueUrgencyMeta(pack.dueDate);
+    const tag=dm.tag?`<span style="background:var(--red);color:#fff;border-radius:6px;padding:2px 6px;font-size:9px;font-weight:900;letter-spacing:.4px">${dm.tag}</span>`:'';
+    return `<div onclick="event.stopPropagation()" style="margin-top:5px"><button class="mpill" type="button" style="color:${dm.color};font-weight:850;gap:5px" onclick="event.stopPropagation();showPackDueQuickEditor('${pack.id}')">&#128197; <span>${dm.text}</span>${tag}</button></div>`;
+  })():`<div onclick="event.stopPropagation()" style="margin-top:5px"><button class="mpill" type="button" onclick="event.stopPropagation();showPackDueQuickEditor('${pack.id}')">&#128197; + Data</button></div>`;
 
   return `<div class="kcard" id="kc-${pack.id}" draggable="true"
     ondragstart="dragStart(event,'${pack.id}')" ondragend="dragEnd(event)"
@@ -5784,6 +5784,17 @@ function smartDate(dateStr){
   if(diff===1) return 'amanhã';
   if(diff>=2&&diff<=6) return wd[d.getDay()];
   return wd[d.getDay()]+' '+d.getDate()+'/'+mo[d.getMonth()];
+}
+function dueUrgencyMeta(dateStr){
+  if(!dateStr) return {text:'',color:'var(--text3)',tag:''};
+  const d=new Date(dateStr+'T12:00:00');
+  const today=new Date(); today.setHours(0,0,0,0);
+  const target=new Date(d); target.setHours(0,0,0,0);
+  const diff=Math.round((target-today)/(1000*60*60*24));
+  if(diff<0) return {text:smartDate(dateStr),color:'var(--red)',tag:'ATRASADO'};
+  if(diff===0) return {text:'hoje',color:'var(--red)',tag:''};
+  if(diff<5) return {text:smartDate(dateStr),color:'var(--orange)',tag:''};
+  return {text:smartDate(dateStr),color:'#22c55e',tag:''};
 }
 function formatMagicDate(dateStr){
   if(!dateStr) return '—';
@@ -10813,7 +10824,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=43').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=44').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
