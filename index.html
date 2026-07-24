@@ -1522,6 +1522,7 @@ async function renderDashData(){
   const yr=dashDate.getFullYear(),mo=dashDate.getMonth();
   const mn=MONTHS[mo];
   const lbl=document.getElementById('dm-lbl'); if(lbl) lbl.textContent=`${mn} ${yr}`;
+  const isJackUser=accessNorm(currentUserData?.name||currentUser?.email||'').includes('jack');
   const [pSnap,psSnap]=await Promise.all([getDocs(collection(db,'packs')),getDocs(collection(db,'posts'))]);
   const AP=[]; pSnap.forEach(d=>AP.push({id:d.id,...d.data()}));
   const APs=[]; psSnap.forEach(d=>APs.push({id:d.id,...d.data()}));
@@ -1552,6 +1553,9 @@ async function renderDashData(){
   // Total posts all time — include historical pre-system posts
   const historicalTotal=(yr>=2026?500:0); // jan44+fev96+mar108+abr120+mai132=500
   const totalPostsAllTime=APs.length+historicalTotal;
+  const deliveryDate=new Date(yr,mo+1,1);
+  const deliveryMonthName=MONTHS[deliveryDate.getMonth()];
+  const deliveryMonthLabel=`${deliveryMonthName} ${deliveryDate.getFullYear()}`;
 
   // Marcos
   const _marcos=[100,250,500,1000,2000,5000];
@@ -1571,6 +1575,15 @@ async function renderDashData(){
       <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
         <div style="height:100%;width:${marcoPct}%;background:linear-gradient(90deg,var(--accent),#a78bfa);border-radius:3px;transition:width .6s"></div>
       </div>
+    </div>
+  </div>`;
+  const agencyMetricsHtml=`<div class="dcard" style="grid-column:1/-1">
+    <div class="dcard-hdr" style="gap:10px;flex-wrap:wrap">
+      <span>📊 Métricas gerais dos clientes — ${MONTHS[new Date().getMonth()]} ${new Date().getFullYear()}</span>
+      <button class="btn btn-s btn-sm" style="margin-left:auto;font-size:11px" onclick="loadAgencyMetrics(true)">Atualizar métricas</button>
+    </div>
+    <div class="dcard-body" id="agency-metrics-box">
+      <div style="font-size:13px;color:var(--text3);display:flex;align-items:center;gap:8px"><span class="spinner" style="width:15px;height:15px"></span> Carregando métricas gerais da Meta...</div>
     </div>
   </div>`;
   // Load magic number for this month
@@ -1706,12 +1719,13 @@ async function renderDashData(){
       <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start">
         <div style="background:linear-gradient(135deg,rgba(132,131,255,0.15),rgba(132,131,255,0.05));border:1.5px solid rgba(132,131,255,0.3);border-radius:var(--r);padding:16px 18px;min-height:154px">
           <div style="font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px">✨ Magic Number</div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Data de entrega — ${mn} ${yr}</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Entrega da pauta — ${deliveryMonthLabel}</div>
           <div style="font-size:40px;font-weight:800;letter-spacing:-1px;color:var(--text);line-height:1;margin-bottom:6px">${magicDate?formatMagicDate(magicDate):'—'}</div>
           ${magicDate?`<div style="font-size:12px;color:var(--text3);display:flex;align-items:center;gap:5px">${daysUntilMagic(magicDate)}</div>`:''}
           <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn btn-s btn-sm" onclick="document.getElementById('magic-input-${mo}-${yr}').showPicker?.()??document.getElementById('magic-input-${mo}-${yr}').click()" style="font-size:11px">${magicDate?'✏️ Alterar':'📅 Definir'}</button>
             ${magicDate?`<button class="btn btn-d btn-sm" onclick="saveMagicNumber('${mn}','')" style="font-size:11px">Remover</button>`:''}
+            ${isJackUser?`<button class="btn btn-p btn-sm" onclick="replayMagicNumber('${deliveryMonthLabel}')" style="font-size:11px">▶ Play</button>`:''}
           </div>
           <input type="date" id="magic-input-${mo}-${yr}" value="${magicDate||''}" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="saveMagicNumber('${mn}',this.value)">
         </div>
@@ -1805,6 +1819,7 @@ async function renderDashData(){
         </div>
       </div>
       ${marcosHtml}
+      ${agencyMetricsHtml}
     </div>
     `;
     // Check magic number celebration
@@ -1812,10 +1827,59 @@ async function renderDashData(){
     const lastPct=parseInt(localStorage.getItem('_lastMagicPct_'+mn+'_'+yr)||'0');
     if(entreguesPct>=100&&lastPct<100&&mP.length>0){
       localStorage.setItem('_lastMagicPct_'+mn+'_'+yr,'100');
-      launchConfetti(0,'🎉 Magic Number batido!','Todos os conteúdos de '+mn+' foram entregues aos clientes!');
+      launchConfetti(0,'🎉 Magic Number batido!','Todos os conteúdos de '+deliveryMonthLabel+' foram entregues aos clientes!');
     }
     checkMarcos(totalPostsAllTime);
     startAgendaAutoSlide();
+    loadAgencyMetrics(false);
+}
+function replayMagicNumber(monthLabel){
+  launchConfetti(0,'🎉 Magic Number batido!','Todos os conteúdos de '+monthLabel+' foram entregues aos clientes!');
+}
+async function loadAgencyMetrics(force=false){
+  const box=document.getElementById('agency-metrics-box');
+  if(!box) return;
+  const date=new Date();
+  const cacheKey='agency_metrics_'+date.getFullYear()+'_'+date.getMonth();
+  const num=v=>Number(v||0).toLocaleString('pt-BR');
+  const render=(data,stale=false)=>{
+    box.innerHTML=`
+      <div style="font-size:13px;color:var(--text2);margin-bottom:13px;line-height:1.55">
+        Nesse mês, seus clientes ganharam <b style="color:var(--green)">${num(data.followers)}</b> seguidores e somaram <b>${num(data.posts)}</b> publicações monitoradas.
+      </div>
+      <div class="statsgrid" style="margin-bottom:8px">
+        <div class="statcard"><div class="stat-lbl">Seguidores ganhos</div><div class="stat-val" style="color:var(--green)">${num(data.followers)}</div><div class="stat-sub">${num(data.clients)} clientes lidos</div></div>
+        <div class="statcard"><div class="stat-lbl">Curtidas</div><div class="stat-val" style="color:#f472b6">${num(data.likes)}</div><div class="stat-sub">no mês vigente</div></div>
+        <div class="statcard"><div class="stat-lbl">Salvamentos</div><div class="stat-val" style="color:#60a5fa">${num(data.saves)}</div><div class="stat-sub">posts recentes do mês</div></div>
+        <div class="statcard"><div class="stat-lbl">Encaminhamentos</div><div class="stat-val" style="color:var(--accent)">${num(data.shares)}</div><div class="stat-sub">quando disponível na Meta</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <span>${data.failed?`${data.failed} cliente(s) sem leitura completa.`:'Dados somados com sucesso.'}</span>
+        <span>${stale?'Exibindo cache local. ':''}Atualizado ${new Date(data.updatedAt||Date.now()).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+      </div>`;
+  };
+  try{
+    const cached=JSON.parse(localStorage.getItem(cacheKey)||'null');
+    if(cached && !force && Date.now()-Number(cached.updatedAt||0)<1000*60*60*6){
+      render(cached,true);
+      return;
+    }
+  }catch(e){}
+  box.innerHTML='<div style="font-size:13px;color:var(--text3);display:flex;align-items:center;gap:8px"><span class="spinner" style="width:15px;height:15px"></span> Carregando métricas gerais da Meta...</div>';
+  try{
+    const data=await buildAgencyInstagramMetrics(date);
+    data.updatedAt=Date.now();
+    localStorage.setItem(cacheKey,JSON.stringify(data));
+    render(data,false);
+  }catch(err){
+    console.error('loadAgencyMetrics:',err);
+    const tokenMissing=String(err.message||'').toLowerCase().includes('token');
+    box.innerHTML=`<div style="font-size:13px;color:var(--text3);line-height:1.55">Não consegui carregar as métricas gerais agora. ${tokenMissing?'Atualize o token da Meta para liberar esse bloco.':'Tente atualizar em instantes.'}</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-p btn-sm" onclick="configureInstagramToken()">🔑 Atualizar token</button>
+        <button class="btn btn-s btn-sm" onclick="loadAgencyMetrics(true)">Tentar novamente</button>
+      </div>`;
+  }
 }
 function changeDM(d){ dashDate.setMonth(dashDate.getMonth()+d); renderDashData(); }
 function changeDashAgendaDay(delta){ dashAgendaOffset+=delta; renderDashData(); }
@@ -8165,6 +8229,67 @@ function metricMatchesMonth(post){
   const d=new Date(post.timestamp||0);
   return d.getMonth()===metricDate.getMonth() && d.getFullYear()===metricDate.getFullYear();
 }
+function metricMatchesDate(post,date){
+  const d=new Date(post?.timestamp||0);
+  return d.getMonth()===date.getMonth() && d.getFullYear()===date.getFullYear();
+}
+async function fetchInstagramMediaInsightValue(mediaId,metrics){
+  const token=await getInstagramToken();
+  if(!mediaId||!token) return 0;
+  try{
+    const res=await fetch('https://graph.facebook.com/v18.0/'+mediaId+'/insights?metric='+metrics+'&access_token='+encodeURIComponent(token));
+    const data=await res.json();
+    if(data.error) return 0;
+    return (data.data||[]).reduce((sum,item)=>sum+Number(item.values?.[0]?.value||0),0);
+  }catch(err){ return 0; }
+}
+async function fetchInstagramFollowerDelta(client,date){
+  const igId = client?.instagramId || CLIENT_INSTAGRAM_MAP[client?.name] || '';
+  const token=await getInstagramToken();
+  if(!igId||!token) return 0;
+  const since=Math.floor(new Date(date.getFullYear(),date.getMonth(),1).getTime()/1000);
+  const until=Math.floor(new Date(date.getFullYear(),date.getMonth()+1,1).getTime()/1000);
+  try{
+    const url='https://graph.facebook.com/v18.0/'+igId+'/insights?metric=follower_count&period=day&since='+since+'&until='+until+'&access_token='+encodeURIComponent(token);
+    const res=await fetch(url);
+    const data=await res.json();
+    if(data.error) return 0;
+    const vals=(data.data?.[0]?.values||[]).map(v=>Number(v.value||0));
+    return vals.reduce((a,b)=>a+b,0);
+  }catch(err){ return 0; }
+}
+async function buildAgencyInstagramMetrics(date){
+  const token=await getInstagramToken();
+  if(!token) throw new Error('Token da Meta não configurado.');
+  const activeClients=Object.values(clients||{}).filter(c=>!c.inactive && (c.instagramId||CLIENT_INSTAGRAM_MAP[c.name]));
+  const limit=60;
+  const totals={followers:0,likes:0,comments:0,saves:0,shares:0,posts:0,clients:0,failed:0};
+  const selected=activeClients.slice(0,12);
+  for(const client of selected){
+    try{
+      const posts=(await fetchMetricPostsForClient(client,limit)).filter(p=>metricMatchesDate(p,date));
+      totals.clients++;
+      totals.posts+=posts.length;
+      totals.followers+=await fetchInstagramFollowerDelta(client,date);
+      totals.likes+=posts.reduce((s,p)=>s+Number(p.like_count||0),0);
+      totals.comments+=posts.reduce((s,p)=>s+Number(p.comments_count||0),0);
+      const insightPosts=posts.slice(0,25);
+      const insights=await Promise.all(insightPosts.map(async p=>{
+        const [saves,shares]=await Promise.all([
+          fetchInstagramMediaInsightValue(p.id,'saved'),
+          fetchInstagramMediaInsightValue(p.id,'shares')
+        ]);
+        return {saves,shares};
+      }));
+      totals.saves+=insights.reduce((s,x)=>s+x.saves,0);
+      totals.shares+=insights.reduce((s,x)=>s+x.shares,0);
+    }catch(err){
+      totals.failed++;
+      console.warn('buildAgencyInstagramMetrics client failed:', client?.name, err);
+    }
+  }
+  return totals;
+}
 function toggleMetricReportPost(id, checked){
   if(checked) _metricasSelectedPosts.add(id);
   else _metricasSelectedPosts.delete(id);
@@ -10992,7 +11117,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=48').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=49').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
