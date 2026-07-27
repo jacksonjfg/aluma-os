@@ -129,6 +129,8 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .av-board-scroll .kanban-board{height:auto;align-items:stretch;}
 .av-board-scroll .kcol{height:auto;min-height:420px;max-height:none;}
 .av-board-scroll .kcol-body{overflow:visible;flex:0 0 auto;min-height:350px;}
+.av-finalizado-col{opacity:.68;filter:saturate(.75);}
+.av-finalizado-col .av-card{background:rgba(244,244,252,.72);}
 .av-card{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:11px;cursor:grab;transition:all .15s;}
 .av-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:var(--shad);}
 .av-card-title{font-size:13px;font-weight:800;line-height:1.35;color:var(--text);margin:6px 0 8px;}
@@ -1027,7 +1029,8 @@ const AUDIOVISUAL_STATUSES=[
   {id:'material_recebido',label:'Material recebido',color:'#2dd4bf'},
   {id:'em_edicao',label:'Em edição',color:'#818cf8'},
   {id:'revisao_interna',label:'Revisão interna',color:'#f472b6'},
-  {id:'ajustes',label:'Ajustes',color:'#fb923c'}
+  {id:'ajustes',label:'Ajustes',color:'#fb923c'},
+  {id:'finalizado',label:'Finalizado',color:'#4ade80'}
 ];
 const AUDIOVISUAL_LEVELS=[
   {id:'facil',label:'Fácil',hint:'Vídeo curto'},
@@ -5040,7 +5043,15 @@ function postStatusForAudiovisualStatus(statusId){
   if(statusId==='finalizado') return 'para_entregar';
   return 'video_em_edicao';
 }
+function isAudiovisualVideoLike(post){
+  const fmt=String(post?.format||'').toLowerCase();
+  return ['reels','tiktok'].includes(fmt) || !!post?.audiovisualLevel || !!post?.statusAudiovisual || !!post?.audiovisualEnteredAt || !!post?.audiovisualFinishedAt;
+}
+function isAudiovisualFinishedByPostStatus(post){
+  return !!post && ['agendamento','concluido'].includes(post.status) && isAudiovisualVideoLike(post);
+}
 function audiovisualStatusId(post){
+  if(isAudiovisualFinishedByPostStatus(post)) return 'finalizado';
   if(post?.statusAudiovisual) return post.statusAudiovisual;
   return audiovisualStatusForPostStatus(post?.status)||'';
 }
@@ -5049,6 +5060,7 @@ function isAudiovisualPost(post){
   if(!post) return false;
   const statusId=audiovisualStatusId(post);
   if(statusId==='aguardando_gravacao') return false;
+  if(isAudiovisualFinishedByPostStatus(post)) return true;
   return AUDIOVISUAL_ENTRY_STATUSES.includes(post.status)||['material_recebido','em_edicao','revisao_interna','ajustes','finalizado'].includes(statusId);
 }
 function parseDateOnly(dateStr){
@@ -5141,10 +5153,11 @@ async function renderAudiovisualBoard(){
   const monthItems=allItems.filter(item=>{ const d=avDeliveryDate(item); return d&&avMonthKey(d)===monthKey; });
   const visible=monthItems.filter(matchesFilters);
   const weekItems=allItems.filter(item=>{ const d=avDeliveryDate(item); return d&&d>=week.start&&d<=week.end; });
-  const isAvFinished=item=>item.statusId==='finalizado'||!!item.post.audiovisualFinishedAt;
+  const isAvFinished=item=>item.statusId==='finalizado'||!!item.post.audiovisualFinishedAt||isAudiovisualFinishedByPostStatus(item.post);
   const isAvActive=item=>!isAvFinished(item)&&AUDIOVISUAL_STATUSES.some(st=>st.id===item.statusId);
+  const isAvBoardItem=item=>AUDIOVISUAL_STATUSES.some(st=>st.id===item.statusId)||isAvFinished(item);
   const dashItems=visible;
-  const activeVisible=visible.filter(isAvActive);
+  const boardVisible=visible.filter(isAvBoardItem);
   const filteredWeekItems=weekItems.filter(matchesFilters);
   const countBy=fn=>dashItems.filter(fn).length;
   const totalVideos=dashItems.length;
@@ -5174,8 +5187,8 @@ async function renderAudiovisualBoard(){
     <div class="av-board-scroll">
       <div class="kanban-board" id="av-kb">
         ${AUDIOVISUAL_STATUSES.map(st=>{
-          const col=activeVisible.filter(i=>i.statusId===st.id);
-          return `<div class="kcol" id="av-col-${st.id}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropAudiovisualPost(event,'${st.id}')">
+          const col=boardVisible.filter(i=>st.id==='finalizado'?isAvFinished(i):(!isAvFinished(i)&&i.statusId===st.id));
+          return `<div class="kcol ${st.id==='finalizado'?'av-finalizado-col':''}" id="av-col-${st.id}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropAudiovisualPost(event,'${st.id}')">
             <div class="kcol-hdr"><div class="kcol-dot" style="background:${st.color}"></div><div class="kcol-name">${st.label}</div><div class="kcol-cnt">${col.length}</div></div>
             <div class="kcol-body">${col.map(renderAudiovisualCard).join('')||'<div style="font-size:12px;color:var(--text3);padding:10px;text-align:center">Sem vídeos aqui</div>'}</div>
           </div>`;
@@ -11139,7 +11152,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=50').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=51').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
