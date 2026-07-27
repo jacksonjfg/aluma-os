@@ -117,7 +117,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .kassignee-dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;border:1px solid var(--bg2);}
 .kadd-btn{width:100%;padding:7px;background:none;border:1px dashed var(--border);border-radius:var(--rs);color:var(--text3);font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:2px;}
 .kadd-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--ag);}
-.av-dash{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:10px;margin-bottom:12px;}
+.av-dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px;}
 .av-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:13px 14px;min-height:86px;}
 .av-stat-lbl{font-size:10.5px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
 .av-stat-num{font-size:27px;font-weight:850;line-height:1;color:var(--text);}
@@ -1022,14 +1022,12 @@ const POST_REELS_EXTRA_STATUSES=[
   {id:'material_recebido',label:'Material recebido',cls:'mat'},
   {id:'video_em_edicao',label:'Vídeo em edição',cls:'ag'}
 ];
-const AUDIOVISUAL_ENTRY_STATUSES=['cliente_gravando','material_recebido','video_em_edicao'];
+const AUDIOVISUAL_ENTRY_STATUSES=['material_recebido','video_em_edicao'];
 const AUDIOVISUAL_STATUSES=[
-  {id:'aguardando_gravacao',label:'Aguardando gravação',color:'#60a5fa'},
   {id:'material_recebido',label:'Material recebido',color:'#2dd4bf'},
   {id:'em_edicao',label:'Em edição',color:'#818cf8'},
   {id:'revisao_interna',label:'Revisão interna',color:'#f472b6'},
-  {id:'ajustes',label:'Ajustes',color:'#fb923c'},
-  {id:'finalizado',label:'Finalizado',color:'#4ade80'}
+  {id:'ajustes',label:'Ajustes',color:'#fb923c'}
 ];
 const AUDIOVISUAL_LEVELS=[
   {id:'facil',label:'Fácil',hint:'Vídeo curto'},
@@ -3788,7 +3786,7 @@ async function spfAndRender(field,value){
   if(field==='format' && currentPostId && posts[currentPostId]){
     const currentStatus=posts[currentPostId].status;
     const nextIsShortVideo=['reels','tiktok'].includes(String(value||'').toLowerCase());
-    if(!nextIsShortVideo && ['cliente_gravando','video_em_edicao','pdf'].includes(currentStatus)){
+    if(!nextIsShortVideo && ['cliente_gravando','material_recebido','video_em_edicao','pdf'].includes(currentStatus)){
       await spf('status','design');
     }
   }
@@ -4545,8 +4543,19 @@ async function spfDirect(pid,field,value){
   posts[pid][field]=value;
   const payload={[field]:value,updatedAt:Date.now()};
   if(field==='status'){
-    payload.statusAudiovisual=audiovisualStatusForPostStatus(value);
+    const avStatus=audiovisualStatusForPostStatus(value);
+    const hadAudiovisual=!!(posts[pid].statusAudiovisual||posts[pid].audiovisualEnteredAt);
+    const finishedByPostStatus=hadAudiovisual&&['para_entregar','agendamento','concluido'].includes(value);
+    payload.statusAudiovisual=finishedByPostStatus?'finalizado':avStatus;
     posts[pid].statusAudiovisual=payload.statusAudiovisual;
+    if(avStatus && !posts[pid].audiovisualEnteredAt){
+      payload.audiovisualEnteredAt=Date.now();
+      posts[pid].audiovisualEnteredAt=payload.audiovisualEnteredAt;
+    }
+    if(finishedByPostStatus&&!posts[pid].audiovisualFinishedAt){
+      payload.audiovisualFinishedAt=Date.now();
+      posts[pid].audiovisualFinishedAt=payload.audiovisualFinishedAt;
+    }
   }
   posts[pid].updatedAt=payload.updatedAt;
   if(field==='designBriefing'){
@@ -5021,13 +5030,11 @@ function closePV(){ document.getElementById('pvo').classList.remove('open'); }
 
 // ===== AUDIOVISUAL =====
 function audiovisualStatusForPostStatus(status){
-  if(status==='cliente_gravando') return 'aguardando_gravacao';
   if(status==='material_recebido') return 'material_recebido';
   if(status==='video_em_edicao') return 'em_edicao';
   return '';
 }
 function postStatusForAudiovisualStatus(statusId){
-  if(statusId==='aguardando_gravacao') return 'cliente_gravando';
   if(statusId==='material_recebido') return 'material_recebido';
   if(['em_edicao','revisao_interna','ajustes'].includes(statusId)) return 'video_em_edicao';
   if(statusId==='finalizado') return 'para_entregar';
@@ -5035,10 +5042,15 @@ function postStatusForAudiovisualStatus(statusId){
 }
 function audiovisualStatusId(post){
   if(post?.statusAudiovisual) return post.statusAudiovisual;
-  return audiovisualStatusForPostStatus(post?.status)||'aguardando_gravacao';
+  return audiovisualStatusForPostStatus(post?.status)||'';
 }
 function audiovisualStatusDef(id){ return AUDIOVISUAL_STATUSES.find(s=>s.id===id)||AUDIOVISUAL_STATUSES[0]; }
-function isAudiovisualPost(post){ return !!post && (AUDIOVISUAL_ENTRY_STATUSES.includes(post.status)||!!post.statusAudiovisual); }
+function isAudiovisualPost(post){
+  if(!post) return false;
+  const statusId=audiovisualStatusId(post);
+  if(statusId==='aguardando_gravacao') return false;
+  return AUDIOVISUAL_ENTRY_STATUSES.includes(post.status)||['material_recebido','em_edicao','revisao_interna','ajustes','finalizado'].includes(statusId);
+}
 function parseDateOnly(dateStr){
   if(!dateStr) return null;
   const d=new Date(String(dateStr).slice(0,10)+'T12:00:00');
@@ -5129,16 +5141,23 @@ async function renderAudiovisualBoard(){
   const monthItems=allItems.filter(item=>{ const d=avDeliveryDate(item); return d&&avMonthKey(d)===monthKey; });
   const visible=monthItems.filter(matchesFilters);
   const weekItems=allItems.filter(item=>{ const d=avDeliveryDate(item); return d&&d>=week.start&&d<=week.end; });
+  const isAvFinished=item=>item.statusId==='finalizado'||!!item.post.audiovisualFinishedAt;
+  const isAvActive=item=>!isAvFinished(item)&&AUDIOVISUAL_STATUSES.some(st=>st.id===item.statusId);
   const dashItems=visible;
+  const activeVisible=visible.filter(isAvActive);
   const filteredWeekItems=weekItems.filter(matchesFilters);
   const countBy=fn=>dashItems.filter(fn).length;
+  const totalVideos=dashItems.length;
+  const finishedVideos=dashItems.filter(isAvFinished).length;
+  const remainingVideos=Math.max(totalVideos-finishedVideos,0);
   const dash=[
-    ['Itens no mês',dashItems.length,`${MONTHS[mo]} ${yr}`],
-    ['Nesta semana',filteredWeekItems.length,`${week.start.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} a ${week.end.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`],
+    ['Vídeos no mês',totalVideos,`${MONTHS[mo]} ${yr}`],
+    ['Finalizados',finishedVideos,'editados no mês'],
+    ['Restam',remainingVideos,'vídeos em aberto'],
+    ['Nesta semana',filteredWeekItems.filter(isAvActive).length,`${week.start.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} a ${week.end.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`],
     ['Em edição',countBy(i=>i.statusId==='em_edicao'),'vídeos em produção'],
-    ['Aguardando',countBy(i=>i.statusId==='aguardando_gravacao'||i.statusId==='material_recebido'),'gravação ou material'],
-    ['Finalizados',countBy(i=>i.statusId==='finalizado'),'no mês selecionado'],
-    ['Atrasados',dashItems.filter(i=>{const d=avDeliveryDate(i); return d&&d<today&&i.statusId!=='finalizado';}).length,'pela data de entrega']
+    ['Material recebido',countBy(i=>i.statusId==='material_recebido'),'prontos para editar'],
+    ['Atrasados',dashItems.filter(i=>{const d=avDeliveryDate(i); return d&&d<today&&!isAvFinished(i);}).length,'pela data de entrega']
   ];
   const clientOptions=Object.values(clients).filter(c=>!c.inactive).sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}" ${audiovisualClientFilter===c.id?'selected':''}>${escHtml(c.name)}</option>`).join('');
   const editorOptions=TEAM.map(m=>`<option value="${m.id}" ${audiovisualEditorFilter===m.id?'selected':''}>${escHtml(m.name)}</option>`).join('');
@@ -5155,7 +5174,7 @@ async function renderAudiovisualBoard(){
     <div class="av-board-scroll">
       <div class="kanban-board" id="av-kb">
         ${AUDIOVISUAL_STATUSES.map(st=>{
-          const col=visible.filter(i=>i.statusId===st.id);
+          const col=activeVisible.filter(i=>i.statusId===st.id);
           return `<div class="kcol" id="av-col-${st.id}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropAudiovisualPost(event,'${st.id}')">
             <div class="kcol-hdr"><div class="kcol-dot" style="background:${st.color}"></div><div class="kcol-name">${st.label}</div><div class="kcol-cnt">${col.length}</div></div>
             <div class="kcol-body">${col.map(renderAudiovisualCard).join('')||'<div style="font-size:12px;color:var(--text3);padding:10px;text-align:center">Sem vídeos aqui</div>'}</div>
@@ -5221,6 +5240,9 @@ async function dropAudiovisualPost(e,statusId){
 async function setAudiovisualStatus(pid,statusId){
   const {db,doc,updateDoc}=window._fb;
   const payload={statusAudiovisual:statusId,status:postStatusForAudiovisualStatus(statusId),updatedAt:Date.now()};
+  if(statusId && !posts[pid]?.audiovisualEnteredAt){
+    payload.audiovisualEnteredAt=Date.now();
+  }
   if(statusId==='finalizado'){
     payload.audiovisualFinishedAt=Date.now();
   }
@@ -11117,7 +11139,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=49').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=50').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
