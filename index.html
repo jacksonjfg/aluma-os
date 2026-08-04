@@ -1142,6 +1142,7 @@ async function seedDefaultTeam(){
 let currentUser=null,currentUserData=null,currentView='dashboard',currentClientId=null;
 let currentPackId=null,currentPostId=null;
 let audiovisualMonthDate=new Date(),audiovisualClientFilter='',audiovisualStatusFilter='',audiovisualEditorFilter='',audiovisualLevelFilter='';
+let _packReturnView=null;
 let clients={},packs={},posts={};
 let calDate=new Date(),dashDate=new Date(),cliCalDate=new Date();
 let dashAgendaOffset=0;
@@ -1262,6 +1263,9 @@ function currentMemberProfile(){
     const first = mname.split(' ')[0];
     return configuredIds.includes(mid) || (memail && email === memail) || name === mname || name.includes(mname) || (first && name.includes(first)) || email.includes(mid) || (first && email.includes(first));
   }) || null;
+}
+function teamMemberName(memberId){
+  return TEAM.find(m=>m.id===memberId)?.name || '';
 }
 function currentAccessKeys(){
   const member = currentMemberProfile();
@@ -2812,11 +2816,16 @@ function renderPostsList(){
     const idxLabel=`Post ${String(visualIndex).padStart(2,'0')} - `;
     const cleanTitle=String(p.title||'Tema').replace(/^Post\s*\d+\s*[-—]\s*/i,'').trim()||'Tema';
     const formatTag=p.format?`<span class="ktag tag-${(p.format||'feed').toLowerCase().replace(/\s/g,'')}" style="font-size:9.5px;margin-top:4px;display:inline-flex">${p.format}</span>`:'';
+    const isVideoPost=['reels','tiktok'].includes(String(p.format||'').toLowerCase());
+    const editorName=teamMemberName(p.audiovisualEditor);
+    const deliveryTxt=p.deliveryDate?smartDate(p.deliveryDate):'sem entrega';
+    const videoMeta=isVideoPost?`<div style="font-size:10px;color:var(--text3);font-weight:700;margin-top:4px">📅 ${escHtml(deliveryTxt)}${editorName?` · 👤 ${escHtml(editorName)}`:''}</div>`:'';
     const active=currentPostId===p.id;
     return `<div class="mpost-item mpost-status-card ${active?'active':''}" onclick="openPost('${p.id}')" style="background:${sc}18;border-left-color:${sc};${active?`border-color:${sc};box-shadow:0 0 0 2px ${sc}33`:''}">
       <div style="flex:1;min-width:0">
         <div class="mpost-name" style="${active?`color:${sc};font-weight:760`:''}">${idxLabel}${cleanTitle}</div>
         <div style="font-size:10px;font-weight:800;color:${sc};margin-top:3px">${s.label}</div>
+        ${videoMeta}
         ${formatTag}
       </div>
     </div>`;
@@ -4252,6 +4261,8 @@ function renderPF(post){
   const imgs=(post.images||[]).map((src,i)=>`<div class="img-thumb"><img src="${src}" style="cursor:pointer" onclick="openImgFull('${post.id}',${i})"><button class="img-thumb-del" onclick="delImg('${post.id}',${i})">×</button></div>`).join('');
   const postAssignees=post.assignees||[];
   const assigneeChips=TEAM.map(m=>`<div class="assignee-chip ${postAssignees.includes(m.id)?'selected':''}" onclick="togglePostAssignee('${post.id}','${m.id}',this)"><div class="assignee-avatar" style="background:${m.color}">${m.name[0]}</div>${m.name}</div>`).join('');
+  const isVideoPost=['reels','tiktok'].includes(String(post.format||'').toLowerCase());
+  const audiovisualEditorOptions=`<option value="">Sem responsável</option>${TEAM.map(m=>`<option value="${m.id}" ${post.audiovisualEditor===m.id?'selected':''}>${escHtml(m.name)}</option>`).join('')}`;
   const comments=(post.comments||[]).map(normalizeComment);
   const briefMeta=buildEditMeta(post.designBriefingMeta);
   const cmtHtml=renderCommentsHtml(post);
@@ -4283,7 +4294,7 @@ function renderPF(post){
     ${renderPostVisualGallery(post)}
 
     <div class="fsect">📊 Campos</div>
-    <div class="fgrid" style="grid-template-columns:minmax(220px,1.15fr) minmax(150px,.58fr) minmax(150px,.58fr) minmax(150px,.58fr) minmax(140px,.5fr);margin-bottom:10px">
+    <div class="fgrid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:10px">
       <div class="ff"><label class="flbl">Data e hora</label>
         <div class="time-field-wrap">
           <input type="datetime-local" class="fi" id="pf-dt-${post.id}" value="${post.postDate||''}" onchange="spfAndRender('postDate',this.value)">
@@ -4298,6 +4309,7 @@ function renderPF(post){
       <div class="ff"><label class="flbl">Formato</label><select class="fs" onchange="spfAndRender('format',this.value)">${FORMATS.map(f=>`<option ${post.format===f?'selected':''}>${f}</option>`).join('')}</select></div>
       <div class="ff"><label class="flbl">Nível de edição</label><select class="fs" onchange="spf('audiovisualLevel',this.value)"><option value="">—</option>${AUDIOVISUAL_LEVELS.map(l=>`<option value="${l.id}" ${post.audiovisualLevel===l.id?'selected':''}>${l.label} · ${l.hint}</option>`).join('')}</select></div>
       <div class="ff"><label class="flbl">Data de entrega</label><input type="date" class="fi" value="${post.deliveryDate||''}" onchange="spf('deliveryDate',this.value)"></div>
+      ${isVideoPost?`<div class="ff"><label class="flbl">Responsável edição</label><select class="fs" onchange="spf('audiovisualEditor',this.value)">${audiovisualEditorOptions}</select></div>`:''}
       <div class="ff"><label class="flbl">Funil</label><select class="fs" onchange="spf('funnel',this.value)"><option value="">—</option>${FUNNEL.map(f=>`<option ${post.funnel===f?'selected':''}>${f}</option>`).join('')}</select></div>
     </div>
     <div class="fgrid" style="grid-template-columns:1fr 1fr;margin-bottom:11px">
@@ -4841,6 +4853,14 @@ async function closePackModal(){
     _packPostsUnsub=null;
     _packPostsLiveId=null;
   }
+  const returnView=_packReturnView;
+  _packReturnView=null;
+  if(returnView==='audiovisual'){
+    currentPackId=null;
+    currentPostId=null;
+    await setView('audiovisual');
+    return;
+  }
   if(currentView==='client'&&clientTab==='packs') loadKanban();
 }
 
@@ -5013,7 +5033,8 @@ function showPV(pid){
     </div>`;
   document.getElementById('pvo').classList.add('open');
 }
-async function openClientAndPost(cid,packId,postId){
+async function openClientAndPost(cid,packId,postId,returnView=null){
+  _packReturnView=returnView||null;
   currentClientId=cid; currentPostId=postId;
   openClient(cid);
   // Wait for client to render then open pack
@@ -5039,7 +5060,8 @@ function audiovisualStatusForPostStatus(status){
 }
 function postStatusForAudiovisualStatus(statusId){
   if(statusId==='material_recebido') return 'material_recebido';
-  if(['em_edicao','revisao_interna','ajustes'].includes(statusId)) return 'video_em_edicao';
+  if(statusId==='revisao_interna') return 'revisao';
+  if(['em_edicao','ajustes'].includes(statusId)) return 'video_em_edicao';
   if(statusId==='finalizado') return 'para_entregar';
   return 'video_em_edicao';
 }
@@ -5231,7 +5253,7 @@ function renderAudiovisualCard(item){
       ${editorOptions}
     </select>
     <div style="display:flex;gap:6px;margin-top:8px">
-      <button class="btn btn-s btn-sm" style="flex:1" onclick="event.stopPropagation();openClientAndPost('${post.clientId}','${post.packId||''}','${post.id}')">Abrir post</button>
+      <button class="btn btn-s btn-sm" style="flex:1" onclick="event.stopPropagation();openClientAndPost('${post.clientId}','${post.packId||''}','${post.id}','audiovisual')">Abrir post</button>
       ${statusId!=='finalizado'?`<button class="btn btn-p btn-sm" onclick="event.stopPropagation();setAudiovisualStatus('${post.id}','finalizado')">Finalizar</button>`:''}
     </div>
   </div>`;
@@ -11152,7 +11174,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=51').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=52').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
