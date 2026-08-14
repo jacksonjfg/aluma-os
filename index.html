@@ -647,6 +647,89 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 }
 .mobile-nav { display: none; }
 
+/* === UX REFRESH — shell lateral, topo limpo e acabamento geral === */
+:root{--sw:252px;--th:60px;--r:14px;--rs:10px;}
+[data-theme="light"]{--bg:#f6f6fb;--bg2:#fff;--bg3:#f2f2f8;--bg4:#ebeaf5;--border:#e5e4f0;--border2:#d7d5e8;--text:#111126;--text2:#5b5878;--text3:#9693b5;--shad:0 18px 45px rgba(31,28,75,.08);}
+body{font-size:14.8px;background:radial-gradient(circle at 24% -10%,rgba(132,131,255,.14),transparent 32%),var(--bg);}
+#app{background:var(--bg);}
+.topbar{height:var(--th);background:rgba(255,255,255,.74);backdrop-filter:blur(18px);border-bottom:1px solid rgba(224,224,238,.7);padding:0 18px;gap:12px;box-shadow:0 10px 30px rgba(31,28,75,.035);}
+[data-theme=""] .topbar{background:rgba(19,19,26,.82);border-bottom-color:rgba(54,54,78,.8);}
+.tlogo{font-size:17px;}
+.tsep,.tnav{display:none!important;}
+.tright{margin-left:auto;gap:8px;}
+#hamburger-btn{display:flex!important;}
+.tbtn{width:36px;height:36px;border-radius:11px;background:var(--bg2);box-shadow:0 8px 20px rgba(31,28,75,.04);}
+.top-date{height:36px;display:flex;align-items:center;border:1px solid var(--border);border-radius:12px;background:var(--bg2);padding:0 12px;margin:0;color:var(--text2);}
+.tuser{height:38px;background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:4px 11px 4px 5px;box-shadow:0 8px 22px rgba(31,28,75,.045);}
+.tavatar{width:29px;height:29px;box-shadow:0 8px 18px rgba(132,131,255,.28);}
+.app-body{background:transparent;}
+.sidebar{width:var(--sw);background:rgba(255,255,255,.78);backdrop-filter:blur(20px);border-right:1px solid rgba(224,224,238,.82);padding:10px 10px 12px;gap:2px;box-shadow:12px 0 34px rgba(31,28,75,.035);overflow-y:auto;overflow-x:hidden;}
+[data-theme=""] .sidebar{background:rgba(19,19,26,.86);border-right-color:rgba(54,54,78,.85);}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:8px 8px 13px;margin-bottom:4px;border-bottom:1px solid var(--border);}
+.sb-collapse{width:34px;height:34px;border-radius:11px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;font-family:inherit;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.sb-collapse:hover{border-color:var(--accent);color:var(--accent);background:var(--ag);}
+.sb-brand-mark{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#a7a5ff);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;letter-spacing:-.5px;box-shadow:0 12px 26px rgba(132,131,255,.32);}
+.sb-brand-copy{min-width:0;}
+.sb-brand-title{font-size:14px;font-weight:850;letter-spacing:-.25px;color:var(--text);}
+.sb-brand-sub{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-general{display:block;}
+.sb-sect{padding:10px 0 4px;}
+.sb-lbl{padding:0 10px;margin:8px 0 6px;font-size:10px;color:var(--text3);}
+.sb-section-head{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;margin:6px 0 4px;border:none;background:transparent;color:var(--text3);font-family:inherit;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.8px;cursor:pointer;border-radius:10px;}
+.sb-section-head:hover{background:rgba(132,131,255,.08);color:var(--text2);}
+.sb-section-arrow{font-size:12px;transition:transform .16s;}
+.sb-section.collapsed .sb-section-arrow{transform:rotate(-90deg);}
+.sb-section.collapsed .sb-section-body{display:none!important;}
+.sb-item{min-height:38px;padding:9px 10px;border-radius:12px;font-weight:650;color:var(--text2);}
+.sb-item span:first-child{width:20px;text-align:center;flex-shrink:0;}
+.sb-item:hover{background:rgba(132,131,255,.08);color:var(--text);}
+.sb-item.active{background:linear-gradient(135deg,rgba(132,131,255,.18),rgba(132,131,255,.08));color:var(--accent);box-shadow:inset 0 0 0 1px rgba(132,131,255,.16);}
+.sb-clients{padding:3px 0 8px;max-height:none;overflow-y:visible;}
+.sb-bottom{display:none!important;}
+.main{min-width:0;}
+.ph{padding:22px 26px 0;}
+.ptitle{font-size:24px;font-weight:850;letter-spacing:-.55px;}
+.psub{font-size:13.5px;color:var(--text3);}
+.ptabs{gap:6px;border-bottom:0;margin-top:10px;}
+.ptab{border:1px solid transparent;border-radius:999px;padding:8px 13px;background:transparent;}
+.ptab.active{border-color:rgba(132,131,255,.22);background:var(--ag);}
+.dashwrap,.clwrap,.docswrap,.pauta-wrap,.calwrap{padding:18px 26px;}
+.stat-card,.av-stat,.comercial-stat,.reuniao-card,.task-card,.task-inline,.kcol,.pipeline-col{border-color:rgba(224,224,238,.9);box-shadow:0 14px 34px rgba(31,28,75,.055);}
+[data-theme=""] .stat-card,[data-theme=""] .av-stat,[data-theme=""] .comercial-stat,[data-theme=""] .reuniao-card,[data-theme=""] .task-card,[data-theme=""] .task-inline,[data-theme=""] .kcol,[data-theme=""] .pipeline-col{border-color:var(--border);box-shadow:0 16px 38px rgba(0,0,0,.18);}
+.kcol,.pipeline-col{border-radius:16px;background:rgba(255,255,255,.82);}
+[data-theme=""] .kcol,[data-theme=""] .pipeline-col{background:rgba(19,19,26,.72);}
+.kcard,.pipeline-card,.av-card{border-radius:13px;border-color:rgba(215,213,232,.9);box-shadow:0 10px 24px rgba(31,28,75,.05);}
+.kcard:hover,.pipeline-card:hover,.av-card:hover{transform:translateY(-2px);box-shadow:0 18px 36px rgba(31,28,75,.1);}
+.modal{border-radius:20px;box-shadow:0 30px 80px rgba(20,18,55,.34);}
+.modal-pack{max-width:96vw;min-height:calc(100vh - 34px);height:calc(100vh - 34px);}
+.mhdr{padding:18px 22px;}
+.mclose,.iconbtn{border-radius:12px;}
+body.sidebar-collapsed{--sw:62px;}
+body.sidebar-collapsed .sidebar{width:62px;padding-left:8px;padding-right:8px;}
+body.sidebar-collapsed .sb-brand{justify-content:center;padding:8px 0;margin:0;border-bottom:0;}
+body.sidebar-collapsed .sb-brand-mark,body.sidebar-collapsed .sb-brand-copy,body.sidebar-collapsed .sb-sect,body.sidebar-collapsed .sb-section,body.sidebar-collapsed .sb-clients,body.sidebar-collapsed .sb-bottom{display:none!important;}
+@media (max-width:900px){
+  :root{--sw:232px;}
+  .top-date{display:none;}
+  .ph{padding:16px 18px 0;}
+  .dashwrap,.clwrap,.docswrap,.pauta-wrap,.calwrap{padding:14px 18px;}
+}
+@media (max-width:640px){
+  :root{--sw:0px;--th:58px;}
+  body.sidebar-collapsed{--sw:0px;}
+  .topbar{padding:0 10px;}
+  .tlogo{font-size:15px;}
+  .sidebar{width:288px!important;padding:10px;top:var(--th);height:calc(100vh - var(--th) - 54px);border-radius:0 20px 20px 0;}
+  .sidebar.open{left:0;}
+  .sidebar-overlay{top:var(--th);bottom:54px;background:rgba(17,17,38,.42);backdrop-filter:blur(4px);}
+  .sb-brand-copy,.sb-brand-mark,.sb-lbl,.sb-cnt,.sb-item span:not(:first-child){display:block!important;}
+  .sb-item{justify-content:flex-start;padding:9px 10px;}
+  .tuser{padding-right:5px;}
+  .ph{padding:14px 14px 0;}
+  .ptitle{font-size:20px;}
+  .modal-pack{height:calc(100vh - 54px);min-height:calc(100vh - 54px);border-radius:18px 18px 0 0;}
+}
+
 
 /* TAREFAS */
 .task-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;transition:border-color .15s;cursor:pointer;}
@@ -849,21 +932,33 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
   <div class="app-body">
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
     <div class="sidebar" id="main-sidebar">
-      <div class="sb-sect sidebar-general">
-        <div class="sb-lbl">Geral</div>
-        <button class="sb-item" onclick="setView('dashboard')"><span>📊</span>Dashboard</button>
-        <button class="sb-item" onclick="setView('todos')"><span>🗂</span>Todos os Clientes</button>
-        <button class="sb-item" onclick="setView('calendario')"><span>📅</span>Calendário</button>
-        <button class="sb-item" onclick="setView('audiovisual')"><span>🎬</span>Audiovisual</button>
-        <button class="sb-item" onclick="setView('equipe')"><span>👥</span>Equipe</button>
-        <button class="sb-item" onclick="setView('tarefas')"><span>✅</span>Tarefas</button>
-        <button class="sb-item" onclick="setView('pauta')"><span>📅</span>Pauta</button>
-        <button class="sb-item" onclick="setView('comercial')"><span>💼</span>Comercial</button>
-        <button class="sb-item" onclick="setView('financeiro')"><span>💸</span>Financeiro</button>
-        <button class="sb-item" onclick="setView('perfilAluma')"><span>⚡</span>Perfil Aluma</button>
+      <div class="sb-brand">
+        <button class="sb-collapse" onclick="toggleSidebar()" title="Expandir/recolher menu">☰</button>
+        <div class="sb-brand-mark">A</div>
+        <div class="sb-brand-copy">
+          <div class="sb-brand-title">Aluma OS</div>
+          <div class="sb-brand-sub">Operação da agência</div>
+        </div>
       </div>
-      <div class="sb-sect" style="padding-bottom:2px"><div class="sb-lbl">Clientes</div></div>
-      <div class="sb-clients" id="sb-clients"><div class="loading"><div class="spinner"></div></div></div>
+      <div class="sb-section" id="sb-section-general">
+        <button class="sb-section-head" onclick="toggleSidebarSection('general')"><span>Geral</span><span class="sb-section-arrow">⌄</span></button>
+        <div class="sb-section-body sb-sect sidebar-general">
+          <button class="sb-item" onclick="setView('dashboard')"><span>📊</span>Dashboard</button>
+          <button class="sb-item" onclick="setView('todos')"><span>🗂</span>Todos os Clientes</button>
+          <button class="sb-item" onclick="setView('calendario')"><span>📅</span>Calendário</button>
+          <button class="sb-item" onclick="setView('audiovisual')"><span>🎬</span>Audiovisual</button>
+          <button class="sb-item" onclick="setView('equipe')"><span>👥</span>Equipe</button>
+          <button class="sb-item" onclick="setView('tarefas')"><span>✅</span>Tarefas</button>
+          <button class="sb-item" onclick="setView('pauta')"><span>📅</span>Pauta</button>
+          <button class="sb-item" onclick="setView('comercial')"><span>💼</span>Comercial</button>
+          <button class="sb-item" onclick="setView('financeiro')"><span>💸</span>Financeiro</button>
+          <button class="sb-item" onclick="setView('perfilAluma')"><span>⚡</span>Perfil Aluma</button>
+        </div>
+      </div>
+      <div class="sb-section" id="sb-section-clients">
+        <button class="sb-section-head" onclick="toggleSidebarSection('clients')"><span>Clientes</span><span class="sb-section-arrow">⌄</span></button>
+        <div class="sb-section-body sb-clients" id="sb-clients"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
       <div class="sb-bottom">
         <button class="sb-item" id="btn-add-sb" style="display:none;color:var(--accent)" onclick="showAddClient()"><span>＋</span>Novo cliente</button>
         <button class="sb-item" id="btn-inactive-sb" style="display:none;opacity:.72;font-size:12px" onclick="showInactiveClientsModal()"><span>🗄</span>Inativos</button>
@@ -884,7 +979,7 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
       <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
         <button class="btn btn-s btn-sm" onclick="exportPDF()">📄 PDF</button>
         <button class="btn btn-s btn-sm" onclick="openPackDownloadModal()">📦 Baixar posts</button>
-        <button class="btn btn-s btn-sm" onclick="copyApprovalLink(currentPackId)" title="Link público para aprovação do cliente">🔗 Aprovação</button>
+        <button class="btn btn-s btn-sm" onclick="openApprovalLinkModal(currentPackId)" title="Link público para aprovação do cliente">🔗 Aprovação</button>
         <button class="btn btn-s btn-sm" onclick="gerarRoteiros(currentPackId)">📝 Roteiros</button>
         <button class="btn btn-s btn-sm" onclick="duplicatePack(currentPackId)">⧉ Duplicar</button>
         <button class="btn btn-s btn-sm" onclick="openChangeHistory()">🕘 Histórico</button>
@@ -1486,6 +1581,7 @@ async function setView(view,cid){
   const map={dashboard:0,todos:1,calendario:2,audiovisual:3,equipe:4,tarefas:5,pauta:6,comercial:7,financeiro:8,perfilAluma:9};
   const tabs=document.querySelectorAll('.ttab');
   if(map[view]!==undefined) tabs[map[view]]?.classList.add('active');
+  setShellActive(view);
   currentView=view; if(cid) currentClientId=cid;
   if(view==='dashboard') renderDashboard();
   else if(view==='todos') renderTodos();
@@ -3120,7 +3216,7 @@ function renderFinalFiles(post){
   const thumbs = files.map((f,i) =>
     '<div style="position:relative;display:inline-block">' +
     '<img src="' + (f.url||f.data||'') + '" alt="' + (f.name||'Slide '+(i+1)) + '" ' +
-    'style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer" ' +
+    'style="width:124px;height:124px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:pointer" ' +
     'onclick="openFinalImg(\'' + pid + '\',' + i + ')" title="' + (f.name||'Slide '+(i+1)) + '">' +
     '<button onclick="event.stopPropagation();downloadFinalFile(\'' + pid + '\',' + i + ')" title="Abrir imagem" style="position:absolute;top:-4px;left:-4px;width:20px;height:20px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:11px;cursor:pointer;line-height:1">↗</button>' +
     '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:8px;padding:2px 4px;border-radius:0 0 5px 5px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' + (f.name||'Slide '+(i+1)) + '</div>' +
@@ -3631,6 +3727,17 @@ function insertPlainTextAtCaret(text){
   sel.removeAllRanges();
   sel.addRange(range);
   return true;
+}
+function handleRichKeydown(event,targetId){
+  if(event.key!=='Enter') return;
+  event.preventDefault();
+  insertPlainTextAtCaret('\n');
+  const el=document.getElementById(targetId);
+  if(el){
+    autoLinkify(el);
+    const field=fieldFromRichTarget(targetId);
+    if(field) queueRichAutosave(field,targetId);
+  }
 }
 function handleRichPaste(event, targetId){
   event.preventDefault();
@@ -4270,7 +4377,7 @@ function renderPF(post){
   el.style.cssText='display:flex;gap:0;overflow:hidden;padding:0;min-height:100%;';
   el.innerHTML=`
   <!-- LEFT: main form -->
-  <div id="pf-left" style="flex:1;overflow-y:auto;padding:22px 28px;min-width:0">
+  <div id="pf-left" style="flex:1 1 auto;overflow-y:auto;padding:22px 24px;min-width:0">
     <div class="pfhdr">POST ${String(idx).padStart(2,'0')} — <span contenteditable="true" onblur="updTitle(this.textContent)" style="outline:none;border-bottom:1px dashed var(--border2);min-width:100px">${cleanPostTitle}</span></div>
 
     <!-- STATUS INLINE -->
@@ -4312,12 +4419,7 @@ function renderPF(post){
       ${isVideoPost?`<div class="ff"><label class="flbl">Responsável edição</label><select class="fs" onchange="spf('audiovisualEditor',this.value)">${audiovisualEditorOptions}</select></div>`:''}
       <div class="ff"><label class="flbl">Funil</label><select class="fs" onchange="spf('funnel',this.value)"><option value="">—</option>${FUNNEL.map(f=>`<option ${post.funnel===f?'selected':''}>${f}</option>`).join('')}</select></div>
     </div>
-    <div class="fgrid" style="grid-template-columns:1fr 1fr;margin-bottom:11px">
-      <div class="ff"><label class="flbl">Link do post publicado</label>
-        <div class="lwrap"><input class="fi" type="url" value="${post.postLink||''}" placeholder="https://instagram.com/p/..." onchange="spfR('postLink',this.value)">
-          ${post.postLink?`<a href="${post.postLink}" target="_blank" class="lbtn">Abrir ↗</a>`:`<span class="lbtn" style="opacity:.4;cursor:default">Abrir ↗</span>`}
-        </div>
-      </div>
+    <div class="fgrid" style="grid-template-columns:1fr;margin-bottom:11px">
       <div class="ff"><label class="flbl">📁 Pasta no Google Drive</label>
         <div class="lwrap"><input class="fi" type="url" value="${post.driveLink||''}" placeholder="https://drive.google.com/..." onchange="spfR('driveLink',this.value)">
           ${post.driveLink?`<a href="${post.driveLink}" target="_blank" class="lbtn">Abrir ↗</a>`:`<span class="lbtn" style="opacity:.4;cursor:default">Abrir ↗</span>`}
@@ -4327,7 +4429,7 @@ function renderPF(post){
 
     <div class="fsect">📋 Briefing & Referências</div>
     <div class="ff" style="margin-bottom:9px"><label class="flbl">Informações importantes</label>
-      <div class="rich-area" contenteditable="true" id="rt-ref-${post.id}" onpaste="handleRichPaste(event,'rt-ref-${post.id}')" onblur="flushRichAutosave('${post.id}','references','rt-ref-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('references','rt-ref-${post.id}')" style="min-height:72px">${renderRichText(post.references||'')}</div>
+      <div class="rich-area" contenteditable="true" id="rt-ref-${post.id}" onkeydown="handleRichKeydown(event,'rt-ref-${post.id}')" onpaste="handleRichPaste(event,'rt-ref-${post.id}')" onblur="flushRichAutosave('${post.id}','references','rt-ref-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('references','rt-ref-${post.id}')" style="min-height:72px">${renderRichText(post.references||'')}</div>
     </div>
     ${renderReferenceLinksEditor(post)}
 
@@ -4336,27 +4438,27 @@ function renderPF(post){
     <div id="rich-sync-${post.id}" class="rich-sync-note"><span>Chegou uma atualização deste post enquanto você estava escrevendo. Seu texto foi mantido para não sobrescrever sem querer.</span><button type="button" onclick="acceptRemotePostUpdate('${post.id}')">Ver versão atual</button></div>
     <div class="ff" style="margin-bottom:11px">
       ${richToolbar('rt-brief-'+post.id,false,true,`<button class="rich-tool-btn" type="button" onclick="openAiReview('rt-brief-${post.id}','${post.id}','designBriefing',this)">Revisar texto</button>`)}
-      <div class="rich-area post-copy-editor" contenteditable="true" id="rt-brief-${post.id}" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="saveBriefingField('rt-brief-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('designBriefing','rt-brief-${post.id}')" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
+      <div class="rich-area post-copy-editor" contenteditable="true" id="rt-brief-${post.id}" onkeydown="handleRichKeydown(event,'rt-brief-${post.id}')" onpaste="handleRichPaste(event,'rt-brief-${post.id}')" onblur="saveBriefingField('rt-brief-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('designBriefing','rt-brief-${post.id}')" style="min-height:120px">${renderRichText(post.designBriefing||'')}</div>
     </div>
 
     <div class="fsect">💬 Legenda</div>
     <div class="ff" style="margin-bottom:14px">
       ${richToolbar('rt-caption-'+post.id,true,false,`<button class="rich-tool-btn" type="button" onclick="openCaptionTemplatesModal('${post.id}')">Textos salvos</button><button class="rich-tool-btn" type="button" onclick="openAiReview('rt-caption-${post.id}','${post.id}','caption',this)">Revisar texto</button>`)}
-      <div class="rich-area post-copy-editor" contenteditable="true" id="rt-caption-${post.id}" onpaste="handleRichPaste(event,'rt-caption-${post.id}')" onblur="flushRichAutosave('${post.id}','caption','rt-caption-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('caption','rt-caption-${post.id}')" style="min-height:110px">${renderRichText(post.caption||'')}</div>
+      <div class="rich-area post-copy-editor" contenteditable="true" id="rt-caption-${post.id}" onkeydown="handleRichKeydown(event,'rt-caption-${post.id}')" onpaste="handleRichPaste(event,'rt-caption-${post.id}')" onblur="flushRichAutosave('${post.id}','caption','rt-caption-${post.id}')" oninput="autoLinkify(this);queueRichAutosave('caption','rt-caption-${post.id}')" style="min-height:110px">${renderRichText(post.caption||'')}</div>
     </div>
 
     <div class="brow"><button class="btn btn-d btn-sm" onclick="deletePost('${post.id}')">🗑 Excluir post</button></div>
   </div>
 
   <!-- RIGHT: Arquivos finais + comments panel -->
-  <div id="pf-comments-panel" style="width:320px;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .2s">
+  <div id="pf-comments-panel" style="width:430px;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;transition:width .2s">
     <!-- Arquivos Finais (MOVED HERE - above comments) -->
     <div style="padding:12px;border-bottom:1px solid var(--border);flex-shrink:0">
       <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px">
         🎨 Arquivos Finais
         <span style="background:var(--ag);color:var(--accent);padding:1px 6px;border-radius:8px;font-size:10px">${(post.finalFiles||[]).length}</span>
       </div>
-      <div id="final-files-${post.id}" style="max-height:150px;overflow-y:auto">
+      <div id="final-files-${post.id}" style="max-height:250px;overflow-y:auto">
         ${renderFinalFiles(post)}
       </div>
       <label class="img-attach-area" style="display:block;cursor:pointer;margin-top:6px;padding:8px">
@@ -4365,7 +4467,7 @@ function renderPF(post){
       </label>
     </div>
     <!-- Comments section -->
-    <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="padding:18px 12px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
       <span style="font-size:12px;font-weight:700;color:var(--text2)">💬 Comentários <span id="comment-count-${post.id}" style="background:var(--ag);color:var(--accent);padding:1px 6px;border-radius:8px;font-size:10px">${comments.length}</span></span>
       <button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:5px" onclick="toggleCommentPanel()" title="Ocultar">✕</button>
     </div>
@@ -4395,7 +4497,7 @@ function toggleCommentPanel(){
   if(!panel||!btn) return;
   if(panel.style.display==='none'||panel.style.width==='0px'){
     panel.style.display='flex'; panel.style.flexDirection='column';
-    panel.style.width='320px'; btn.style.display='none';
+    panel.style.width='430px'; btn.style.display='none';
     el.style.position='';
   } else {
     panel.style.display='none'; btn.style.display='block';
@@ -4570,6 +4672,9 @@ async function spfDirect(pid,field,value){
     if(finishedByPostStatus&&!posts[pid].audiovisualFinishedAt){
       payload.audiovisualFinishedAt=Date.now();
       posts[pid].audiovisualFinishedAt=payload.audiovisualFinishedAt;
+    }else if(!finishedByPostStatus && posts[pid].audiovisualFinishedAt){
+      payload.audiovisualFinishedAt=null;
+      posts[pid].audiovisualFinishedAt=null;
     }
   }
   posts[pid].updatedAt=payload.updatedAt;
@@ -5280,6 +5385,8 @@ async function setAudiovisualStatus(pid,statusId){
   }
   if(statusId==='finalizado'){
     payload.audiovisualFinishedAt=Date.now();
+  }else{
+    payload.audiovisualFinishedAt=null;
   }
   await updateDoc(doc(db,'posts',pid),payload);
   if(posts[pid]) Object.assign(posts[pid],payload);
@@ -5527,7 +5634,7 @@ async function genClientPDF(packId,clientName,modalEl){
     .cover-label,.cover-client,.cover-month{position:relative;z-index:1;}
     .cover-label{font-size:18px;font-weight:500;letter-spacing:6px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:24px;}
     .cover-client{font-size:72px;font-weight:900;color:#fff;letter-spacing:-1px;text-transform:uppercase;line-height:1.1;margin-bottom:20px;text-shadow:0 4px 30px rgba(0,0,0,.5);}
-    .cover-month{font-size:28px;font-weight:600;color:${clientColor};letter-spacing:8px;text-transform:uppercase;}
+    .cover-month{font-size:28px;font-weight:600;color:#6f6df6;letter-spacing:8px;text-transform:uppercase;}
     /* Feed page */
     .feed-page{position:relative;background:#050511;}
     .feed-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:0;}
@@ -5822,6 +5929,11 @@ async function deleteMember(mid,name){
 function toggleSidebar(){
   const sb=document.getElementById('main-sidebar');
   const ov=document.getElementById('sidebar-overlay');
+  if(window.innerWidth>640){
+    document.body.classList.toggle('sidebar-collapsed');
+    localStorage.setItem('sidebar-collapsed',document.body.classList.contains('sidebar-collapsed')?'1':'0');
+    return;
+  }
   if(sb) sb.classList.toggle('open');
   if(ov) ov.classList.toggle('open');
 }
@@ -5831,16 +5943,43 @@ function closeSidebar(){
   if(sb) sb.classList.remove('open');
   if(ov) ov.classList.remove('open');
 }
+function toggleSidebarSection(section){
+  const el=document.getElementById('sb-section-'+section);
+  if(!el) return;
+  el.classList.toggle('collapsed');
+  localStorage.setItem('sidebar-section-'+section,el.classList.contains('collapsed')?'1':'0');
+}
+function applySidebarSections(){
+  ['general','clients'].forEach(section=>{
+    const el=document.getElementById('sb-section-'+section);
+    if(!el) return;
+    el.classList.toggle('collapsed',localStorage.getItem('sidebar-section-'+section)==='1');
+  });
+}
 function setMobileNav(view){
   document.querySelectorAll('.mobile-nav-item').forEach(el=>el.classList.remove('active'));
   const btn=document.getElementById('mnav-'+view);
   if(btn) btn.classList.add('active');
   closeSidebar();
 }
+function setShellActive(view){
+  document.querySelectorAll('.sidebar-general .sb-item').forEach(item=>{
+    const itemView=navViewFromText(item.textContent);
+    item.classList.toggle('active',itemView===view);
+  });
+  setMobileNav(view);
+}
 function checkMobile(){
+  applySidebarSections();
   const isMobile=window.innerWidth<=640;
   const hb=document.getElementById('hamburger-btn');
-  if(hb) hb.style.display=isMobile?'flex':'none';
+  if(hb) hb.style.display='flex';
+  if(!isMobile){
+    closeSidebar();
+    if(localStorage.getItem('sidebar-collapsed')==='1') document.body.classList.add('sidebar-collapsed');
+  }else{
+    document.body.classList.remove('sidebar-collapsed');
+  }
 }
 window.addEventListener('resize',checkMobile);
 
@@ -6247,6 +6386,12 @@ function findCommentById(pid, cid){
   const list=(posts[pid]?.comments||[]).map(normalizeComment);
   return list.find(c=>c.id===cid)||null;
 }
+function canManageComment(comment){
+  if(!comment || !currentUser) return false;
+  if(comment.authorId) return comment.authorId===currentUser.uid;
+  const currentName=String(currentUserData?.name||currentUser?.email?.split('@')[0]||'').trim().toLowerCase();
+  return !!currentName && String(comment.author||'').trim().toLowerCase()===currentName;
+}
 function renderCommentsHtml(post){
   const comments=(post.comments||[]).map(normalizeComment);
   if(!comments.length) return '<div style="font-size:12px;color:var(--text3);padding:8px 0">Nenhum comentário ainda</div>';
@@ -6259,6 +6404,7 @@ function renderCommentsHtml(post){
   const renderBranch=(comment,depth=0)=>{
     const replies=(byParent[comment.id]||[]);
     const resolvedBadge=comment.resolved?`<span style="font-size:10px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.22);border-radius:999px;padding:2px 7px">Resolvido${comment.resolvedBy?` por ${escHtml(comment.resolvedBy)}`:''}</span>`:'';
+    const ownerActions=canManageComment(comment)?`<button class="btn btn-s btn-sm" onclick="editComment('${post.id}','${comment.id}')">Editar</button><button class="btn btn-d btn-sm" onclick="deleteComment('${post.id}','${comment.id}')">Excluir</button>`:'';
     return `<div class="comment-item" style="margin-left:${depth?18:0}px;border-left:${depth?'2px solid var(--border)':'1px solid var(--border)'}">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
         <div style="min-width:0">
@@ -6273,6 +6419,7 @@ function renderCommentsHtml(post){
         <div class="comment-time">${escHtml(comment.time||commentNowLabel(comment.createdAt))}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-s btn-sm" onclick="replyToComment('${post.id}','${comment.id}')">Responder</button>
+          ${ownerActions}
           <button class="btn btn-s btn-sm" onclick="toggleCommentResolved('${post.id}','${comment.id}')">${comment.resolved?'Reabrir':'Marcar como resolvido'}</button>
         </div>
       </div>
@@ -6336,6 +6483,33 @@ async function toggleCommentResolved(pid,cid){
     renderDashData().catch(err=>console.error('renderDashData after resolve:',err));
   }
   showToast(comments[idx].resolved?'Comentário resolvido!':'Comentário reaberto!','ok');
+}
+async function editComment(pid,cid){
+  if(!posts[pid]) return;
+  const comments=(posts[pid].comments||[]).map(normalizeComment);
+  const idx=comments.findIndex(c=>c.id===cid);
+  if(idx<0) return;
+  if(!canManageComment(comments[idx])){ showToast('Você só pode editar seus próprios comentários.','err'); return; }
+  const next=prompt('Editar comentário:',comments[idx].text||'');
+  if(next===null) return;
+  comments[idx].text=String(next||'').trim();
+  comments[idx].editedAt=Date.now();
+  comments[idx].mentions=extractCommentMentions(comments[idx].text);
+  await savePostComments(pid,comments);
+  rerenderComments(pid);
+  showToast('Comentário atualizado','ok');
+}
+async function deleteComment(pid,cid){
+  if(!posts[pid]) return;
+  const existing=(posts[pid].comments||[]).map(normalizeComment);
+  const target=existing.find(c=>c.id===cid);
+  if(!target) return;
+  if(!canManageComment(target)){ showToast('Você só pode excluir seus próprios comentários.','err'); return; }
+  if(!confirm('Excluir este comentário?')) return;
+  const comments=existing.filter(c=>c.id!==cid&&c.parentId!==cid);
+  await savePostComments(pid,comments);
+  rerenderComments(pid);
+  showToast('Comentário excluído','ok');
 }
 function syncMentionNotifications(allPosts=[]){
   const keys=currentAccessKeys();
@@ -7034,6 +7208,75 @@ function copyApprovalLink(packId){
     prompt('Copie o link abaixo:',link);
   });
 }
+function approvalSlugPart(value){
+  return String(value||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'');
+}
+function approvalPackYear(pack){
+  const raw=pack?.year||pack?.operationalYear||pack?.ano||pack?.dueDate||pack?.createdAt||'';
+  if(typeof raw==='number'){
+    const d=new Date(raw>9999999999?raw:raw*1000);
+    return Number.isFinite(d.getFullYear())?d.getFullYear():new Date().getFullYear();
+  }
+  const match=String(raw||'').match(/\b(20\d{2})\b/);
+  return match?match[1]:new Date().getFullYear();
+}
+function approvalPrettyPath(packId){
+  const pack=packs[packId]||{};
+  const client=clients[pack.clientId]||clients[currentClientId]||{};
+  const month=pack.month||pack.operationalMonth||'mes';
+  const slug=[client.name||'cliente',month,approvalPackYear(pack)].map(approvalSlugPart).filter(Boolean).join('-')||'aprovacao';
+  const path=window.location.pathname.match(/\/index\.html?$/i)?window.location.pathname:window.location.pathname.replace(/\/[^\/]*$/,'/index.html');
+  return {base:window.location.origin+path,slug};
+}
+function buildApprovalLink(packId,postIds=[],showFeed=false){
+  const pretty=approvalPrettyPath(packId);
+  const query=new URLSearchParams({aprovacao:packId});
+  if(postIds.length) query.set('posts',postIds.join(','));
+  if(showFeed) query.set('feed','1');
+  return pretty.base+'?'+query.toString()+'#/'+pretty.slug;
+}
+function openApprovalLinkModal(packId){
+  if(!packId){ showToast('Abra um pack para gerar o link','err'); return; }
+  const list=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0));
+  const ov=document.createElement('div');
+  ov.className='mo open';
+  ov.style.zIndex='240';
+  ov.id='approval-link-mo';
+  ov.innerHTML=`<div class="modal modal-sm" style="max-width:620px;min-height:auto">
+    <div class="mhdr">
+      <div class="mhdr-info"><div class="mtitle">Gerar link de aprovação</div><div class="mmeta">Escolha quais posts o cliente verá no link.</div></div>
+      <button class="mclose" onclick="document.getElementById('approval-link-mo')?.remove()">×</button>
+    </div>
+    <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px;max-height:62vh;overflow:auto">
+      <label style="display:flex;gap:9px;align-items:center;font-size:13px;font-weight:800;color:var(--text)"><input type="checkbox" id="approval-all-posts" checked onchange="document.querySelectorAll('.approval-post-check').forEach(c=>c.checked=this.checked)"> Todos os posts do pack</label>
+      <label style="display:flex;gap:9px;align-items:center;font-size:13px;font-weight:800;color:var(--text)"><input type="checkbox" id="approval-show-feed"> Incluir visualização do feed no link</label>
+      ${list.map((p,i)=>`<label style="display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);background:var(--bg3);border-radius:10px;padding:10px 12px;cursor:pointer">
+        <input class="approval-post-check" type="checkbox" value="${p.id}" checked onchange="document.getElementById('approval-all-posts').checked=[...document.querySelectorAll('.approval-post-check')].every(c=>c.checked)">
+        <span style="min-width:0"><b>Post ${String(i+1).padStart(2,'0')}</b> — ${escHtml(String(p.title||'Post').replace(/^Post\\s*\\d+\\s*[-—]\\s*/i,''))}<br><span style="font-size:11px;color:var(--text3)">${escHtml(p.format||'')}</span></span>
+      </label>`).join('')}
+    </div>
+    <div class="mfoot" style="justify-content:flex-end">
+      <button class="btn btn-s" onclick="document.getElementById('approval-link-mo')?.remove()">Cancelar</button>
+      <button class="btn btn-p" onclick="copySelectedApprovalLink('${packId}')">Copiar link</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+function copySelectedApprovalLink(packId){
+  const selected=[...document.querySelectorAll('.approval-post-check:checked')].map(c=>c.value);
+  if(!selected.length){ showToast('Selecione ao menos um post','err'); return; }
+  const all=[...document.querySelectorAll('.approval-post-check')];
+  const showFeed=!!document.getElementById('approval-show-feed')?.checked;
+  const link=buildApprovalLink(packId,selected.length===all.length?[]:selected,showFeed);
+  navigator.clipboard.writeText(link).then(()=>{
+    document.getElementById('approval-link-mo')?.remove();
+    showToast('Link de aprovação copiado!','ok');
+  }).catch(()=>prompt('Copie o link abaixo:',link));
+}
 
 async function checkApprovalMode(){
   const params=new URLSearchParams(window.location.search);
@@ -7047,116 +7290,244 @@ async function checkApprovalMode(){
 }
 
 async function renderApprovalPage(packId){
-  const {db,doc,getDoc,collection,getDocs,query,where,setDoc}=window._fb;
-  // Load pack
+  const {db,doc,getDoc,collection,getDocs,query,where,setDoc,updateDoc}=window._fb;
   const packSnap=await getDoc(doc(db,'packs',packId));
   if(!packSnap.exists()){ document.body.innerHTML='<div style="padding:40px;text-align:center;font-family:sans-serif;color:#888">Link inválido ou expirado.</div>'; return; }
   const pack={id:packId,...packSnap.data()};
   const clientSnap=await getDoc(doc(db,'clients',pack.clientId));
   const client=clientSnap.exists()?clientSnap.data():{name:'Cliente'};
   const clientColor=client.color||'#8483ff';
-  // Load posts
   const postsSnap=await getDocs(query(collection(db,'posts'),where('packId','==',packId)));
-  const postList=[]; postsSnap.forEach(d=>postList.push({id:d.id,...d.data()}));
-  postList.sort((a,b)=>(a.order||0)-(b.order||0));
-
-  // Build approval page
+  let postList=[]; postsSnap.forEach(d=>postList.push({id:d.id,...d.data()}));
+  postList.sort(approvalPostingSortDesc);
+  const params=new URLSearchParams(window.location.search);
+  const selected=(params.get('posts')||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(selected.length) postList=postList.filter(p=>selected.includes(p.id));
+  const monthLabel=pack.month||pack.operationalMonth||'';
+  window._approvalPosts=postList;
+  window._approvalClient=client;
+  window._approvalPack=pack;
+  window._approvalSlideState={};
+  window._approvalData={};
   document.body.innerHTML='';
-  document.body.style.cssText='font-family:Inter,Arial,sans-serif;background:#f5f5f8;min-height:100vh;';
+  document.documentElement.style.cssText='height:auto;overflow:auto;';
+  document.body.style.cssText='font-family:Inter,Arial,sans-serif;background:#f7f7fb;color:#17172c;min-height:100vh;height:auto;margin:0;overflow:auto;';
   const wrap=document.createElement('div');
-  wrap.style.cssText='max-width:720px;margin:0 auto;padding:24px 16px';
-  wrap.innerHTML=`
-    <!-- HEADER -->
-    <div style="background:#0d0d12;border-radius:14px;padding:28px 28px 24px;margin-bottom:20px;text-align:center">
-      <div style="font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:${clientColor};margin-bottom:8px">Aluma Marketing & Conteúdo</div>
-      <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:4px">${client.name}</div>
-      <div style="font-size:14px;color:rgba(255,255,255,.4)">${pack.type||'Conteúdos'} · ${pack.month||''}</div>
-    </div>
-    <div style="font-size:13px;color:#888;text-align:center;margin-bottom:24px">Revise os conteúdos abaixo e aprove ou solicite alterações em cada post.</div>
-    <!-- POSTS -->
-    <div id="approval-posts"></div>
-    <!-- SUBMIT -->
-    <div style="background:#fff;border-radius:12px;padding:20px;margin-top:16px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
-      <div style="font-size:13px;font-weight:600;margin-bottom:8px">Observação geral (opcional)</div>
-      <textarea id="approval-obs" style="width:100%;border:1px solid #e0e0e0;border-radius:8px;padding:10px;font-family:inherit;font-size:13px;resize:vertical;min-height:70px;outline:none" placeholder="Algum comentário geral sobre os conteúdos..."></textarea>
-      <button onclick="submitApproval('${packId}')" style="width:100%;margin-top:12px;background:${clientColor};color:#fff;border:none;border-radius:8px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">Enviar resposta</button>
-    </div>`;
-
-  // Render each post
-  const postsDiv=wrap.querySelector('#approval-posts');
-  postList.forEach((p,i)=>{
-    const finalFiles=p.finalFiles||[];
-    const imgs=[...finalFiles.map(f=>f.url||f.data||'')].filter(Boolean);
-    const div=document.createElement('div');
-    div.style.cssText='background:#fff;border-radius:12px;padding:20px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.06)';
-    div.innerHTML=`
-      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${clientColor};margin-bottom:6px">Post ${String(i+1).padStart(2,'0')}</div>
-      <div style="font-size:18px;font-weight:700;margin-bottom:10px;letter-spacing:-.3px">${p.title||'Post '+(i+1)}</div>
-      ${p.postDate?`<div style="font-size:12px;color:#888;margin-bottom:12px">📅 ${new Date(p.postDate).toLocaleString('pt-BR',{weekday:'long',day:'2-digit',month:'long',hour:'2-digit',minute:'2-digit'})}</div>`:''}
-      ${imgs.length?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">${imgs.slice(0,6).map(src=>`<img src="${src}" style="width:100px;height:125px;object-fit:cover;border-radius:8px;border:1px solid #eee">`).join('')}</div>`:''}
-      ${['Reels','TikTok'].includes(p.format)&&p.driveLink?`<a href="${p.driveLink}" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#0a0a14;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;margin-bottom:14px">▶ Assistir ao Vídeo</a>`:''}
-      ${p.caption?`<div style="background:#f8f8fc;border-radius:8px;padding:12px 14px;font-size:13.5px;line-height:1.7;color:#333;margin-bottom:14px;white-space:pre-wrap">${renderRichText(p.caption)}</div>`:''}
-      <!-- APPROVAL BUTTONS -->
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button onclick="setPostApproval('${p.id}','aprovado',this)" id="apv-${p.id}-ok" style="flex:1;padding:9px;border-radius:8px;border:2px solid #e0e0e0;background:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:#888">✅ Aprovado</button>
-        <button onclick="setPostApproval('${p.id}','alteracao',this)" id="apv-${p.id}-alt" style="flex:1;padding:9px;border-radius:8px;border:2px solid #e0e0e0;background:#fff;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;color:#888">✏️ Solicitar alteração</button>
-      </div>
-      <div id="change-${p.id}" style="display:none">
-        <textarea placeholder="Descreva o que deve ser alterado..." id="change-text-${p.id}" style="width:100%;border:1px solid #e0e0e0;border-radius:8px;padding:10px;font-family:inherit;font-size:13px;resize:vertical;min-height:60px;outline:none"></textarea>
-      </div>`;
-    postsDiv.appendChild(div);
-  });
+  wrap.className='approval-wrap';
+  wrap.innerHTML=`<style>
+    *{box-sizing:border-box}html,body{height:auto!important;overflow:auto!important}.approval-wrap{max-width:1560px;margin:0 auto;padding:28px 18px 44px}.approval-hero{background:linear-gradient(135deg,#111126,#25234b);border-radius:24px;padding:30px;color:#fff;box-shadow:0 24px 70px rgba(24,22,70,.22);display:flex;align-items:center;gap:18px}.approval-avatar{width:74px;height:74px;border-radius:22px;background:${clientColor};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:28px;overflow:hidden;flex-shrink:0}.approval-avatar img{width:100%;height:100%;object-fit:cover}.approval-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:2.5px;color:#aaa8ff;font-weight:900}.approval-title{font-size:30px;font-weight:900;letter-spacing:-.6px;margin-top:4px}.approval-sub{color:rgba(255,255,255,.64);font-size:14px;margin-top:4px}.approval-intro{background:#fff;border:1px solid #ecebf5;border-radius:18px;padding:18px 20px;margin:16px 0 18px;line-height:1.65;color:#5f5c7c}.approval-top-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.approval-btn{border:0;border-radius:12px;padding:11px 14px;font-family:inherit;font-weight:850;cursor:pointer}.approval-btn.primary{background:#6f6df6;color:#fff}.approval-btn.secondary{background:#fff;color:#5f5c7c;border:1px solid #e4e3f0}.approval-list{display:grid;gap:12px}.approval-card{background:#fff;border:2px solid #e6e5f1;border-radius:18px;box-shadow:0 14px 34px rgba(24,22,70,.07);overflow:hidden;transition:border-color .18s,box-shadow .18s}.approval-card.aprovado{border-color:#22c55e}.approval-card.alteracao{border-color:#f59e0b}.approval-card.rejeitado{border-color:#ef4444}.approval-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:16px 18px;cursor:pointer}.approval-card-title{font-size:17px;font-weight:900;letter-spacing:-.25px}.approval-card-meta{font-size:12px;color:#8d8aaa;margin-top:5px;display:flex;gap:7px;flex-wrap:wrap}.approval-pill{border-radius:999px;padding:4px 9px;font-size:11px;font-weight:900;background:#f0effb;color:#6f6df6}.approval-state{border-radius:999px;padding:5px 10px;font-size:11px;font-weight:950;white-space:nowrap}.approval-state.pending{background:#f1f0f7;color:#8d8aaa}.approval-state.aprovado{background:#dcfce7;color:#16a34a}.approval-state.alteracao{background:#fef3c7;color:#d97706}.approval-state.rejeitado{background:#fee2e2;color:#dc2626}.approval-card-body{display:none;border-top:1px solid #eeeeF6;padding:18px;background:#fafafe}.approval-card.open .approval-card-body{display:block}.approval-post-shell{display:grid;grid-template-columns:minmax(0,720px) minmax(250px,1fr);gap:18px;align-items:start}.approval-phone{background:#fff;border:1px solid #e6e5f1;border-radius:22px;overflow:hidden;box-shadow:0 18px 44px rgba(24,22,70,.10)}.approval-ig-head{height:58px;display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid #eee}.approval-ig-avatar{width:38px;height:38px;border-radius:50%;background:${clientColor};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;overflow:hidden;flex-shrink:0}.approval-ig-avatar img{width:100%;height:100%;object-fit:cover}.approval-ig-user{font-weight:950;font-size:15px}.approval-ig-menu{margin-left:auto;font-size:24px;line-height:1}.approval-carousel{position:relative;background:#fff;display:flex;align-items:center;justify-content:center;aspect-ratio:4/5;min-height:0;overflow:hidden}.approval-carousel img{width:100%;height:100%;max-height:none;object-fit:cover;background:#fff}.approval-carousel-empty{aspect-ratio:4/5;width:100%;display:flex;align-items:center;justify-content:center;color:#aaa;background:#f1f0f7}.approval-nav-btn{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:50%;background:rgba(255,255,255,.86);color:#111;font-size:24px;cursor:pointer}.approval-nav-btn.prev{left:12px}.approval-nav-btn.next{right:12px}.approval-dots{display:flex;justify-content:center;gap:6px;padding:10px}.approval-dot{width:8px;height:8px;border-radius:50%;background:#d8d8df}.approval-dot.active{background:#4f6cff}.approval-ig-actions{display:flex;align-items:center;gap:18px;font-size:27px;padding:2px 16px 10px}.approval-save{margin-left:auto}.approval-ig-caption{padding:0 16px 18px;line-height:1.45;font-size:15px}.approval-side-panel{display:flex;flex-direction:column;gap:12px}.approval-slide-note{display:none}.approval-slide-note.active{display:block}.approval-textarea{width:100%;border:1px solid #deddec;background:#fff;border-radius:12px;padding:11px 12px;font-family:inherit;font-size:13px;resize:vertical;min-height:86px;outline:none}.approval-caption{background:#fff;border:1px solid #eeeeF6;border-radius:14px;padding:14px;white-space:pre-wrap;line-height:1.65;color:#33334a}.approval-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}.approval-choice{border:2px solid #e2e1ee;background:#fff;border-radius:12px;padding:10px;font-family:inherit;font-weight:900;cursor:pointer;color:#777494}.approval-choice.active-ok{border-color:#22c55e;color:#16a34a;background:#dcfce7}.approval-choice.active-alt{border-color:#f59e0b;color:#d97706;background:#fef3c7}.approval-choice.active-no{border-color:#ef4444;color:#dc2626;background:#fee2e2}.approval-footer{background:#fff;border:1px solid #e6e5f1;border-radius:18px;padding:18px;margin-top:14px;box-shadow:0 14px 34px rgba(24,22,70,.07)}.approval-submit{width:100%;background:#6f6df6;color:#fff;border:0;border-radius:14px;padding:14px;font-family:inherit;font-size:15px;font-weight:950;cursor:pointer;margin-top:12px}@media(max-width:900px){.approval-post-shell{grid-template-columns:1fr}}@media(max-width:720px){.approval-wrap{padding:16px 12px 30px}.approval-hero{padding:22px;align-items:flex-start}.approval-avatar{width:58px;height:58px;border-radius:18px}.approval-title{font-size:23px}.approval-actions{grid-template-columns:1fr}.approval-card-head{align-items:flex-start}.approval-card-body{padding:12px}}@media(max-width:430px){.approval-hero{flex-direction:column}.approval-card-head{flex-direction:column}.approval-ig-actions{font-size:24px}}
+    .approval-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}.approval-layout.with-feed{grid-template-columns:minmax(0,1080px) minmax(430px,1fr);align-items:start}.approval-feed-panel{display:none;background:#fff;border:1px solid #e6e5f1;border-radius:18px;padding:20px;box-shadow:0 14px 34px rgba(24,22,70,.07);position:sticky;top:18px}.approval-layout.with-feed .approval-feed-panel{display:block}.approval-feed-title{font-weight:950;margin-bottom:12px}.approval-feed-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.approval-feed-tile{aspect-ratio:4/5;background:#f1f0f7;border:0;padding:0;overflow:hidden;cursor:pointer}.approval-feed-tile img{width:100%;height:100%;object-fit:cover;display:block}.approval-feed-tile.empty{display:flex;align-items:center;justify-content:center;color:#aaa;font-size:22px}.approval-save-note{font-size:12px;color:#8d8aaa;min-height:16px}.approval-linkedin{background:#fff;border-radius:0}.approval-linkedin .approval-ig-head{height:auto;align-items:flex-start;border-bottom:0;padding:12px}.approval-linkedin .approval-ig-avatar{width:48px;height:48px}.approval-linkedin .approval-ig-user{font-size:16px}.approval-linkedin-copy{padding:0 12px 12px;font-size:13px;line-height:1.45;color:#111;white-space:pre-wrap}.approval-linkedin-social{border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;margin:0 12px;padding:7px 0;color:#64748b;font-size:12px}.approval-linkedin-actions{display:flex;justify-content:space-around;color:#64748b;font-size:12px;font-weight:800;padding:9px 0}.approval-card.open .approval-card-body{padding:14px}.approval-card.open .approval-post-shell{grid-template-columns:minmax(0,min(62vw,680px)) minmax(270px,340px);gap:16px}.approval-card.open .approval-phone{display:flex;flex-direction:column}.approval-card.open .approval-carousel{height:min(64vh,680px);width:auto;max-width:100%;aspect-ratio:4/5;margin:0 auto;flex:0 0 auto}.approval-card.open .approval-carousel img{object-fit:cover}.approval-card.open .approval-ig-head{height:54px;padding:9px 13px}.approval-card.open .approval-ig-avatar{width:36px;height:36px}.approval-card.open .approval-ig-actions{font-size:24px;padding:2px 15px 8px}.approval-card.open .approval-dots{padding:8px}.approval-card.open .approval-ig-caption{font-size:14px;max-height:none;overflow:visible;padding:0 15px 16px}.approval-card.open .approval-side-panel{gap:10px}.approval-card.open .approval-textarea{min-height:82px;padding:10px 11px}.approval-card.open .approval-actions{gap:8px}.approval-card.open .approval-choice{padding:10px 8px}.approval-card.open .approval-linkedin-copy{max-height:none;overflow:visible;font-size:13px}.approval-card.open .approval-linkedin-social,.approval-card.open .approval-linkedin-actions{padding-top:7px;padding-bottom:7px}@media(max-width:1240px){.approval-layout.with-feed{grid-template-columns:1fr}.approval-feed-panel{position:static;order:-1}.approval-feed-grid{grid-template-columns:repeat(4,1fr)}}@media(max-width:900px){.approval-card.open .approval-post-shell{grid-template-columns:1fr}.approval-card.open .approval-carousel{height:min(58vh,560px)}}@media(max-width:520px){.approval-feed-grid{grid-template-columns:repeat(3,1fr)}.approval-card.open .approval-card-body{padding:10px}.approval-card.open .approval-carousel{height:min(52vh,470px)}.approval-card.open .approval-textarea{min-height:64px}.approval-card.open .approval-actions{grid-template-columns:repeat(3,1fr)}.approval-card.open .approval-choice{font-size:12px;padding:8px 4px}}
+  </style>
+  <section class="approval-hero"><div class="approval-avatar">${client.photo||client.avatar?`<img src="${client.photo||client.avatar}">`:escHtml((client.name||'?').charAt(0))}</div><div><div class="approval-eyebrow">Aprovações de conteúdo - ${escHtml(monthLabel)}</div><div class="approval-title">${escHtml(client.name||'Cliente')}</div><div class="approval-sub">${client.handle?escHtml(client.handle):'Conteúdos disponíveis para revisão'}</div></div></section>
+  <section class="approval-intro">Olá ${escHtml((client.name||'').split(' ')[0]||'cliente')}! Abaixo você encontrará os conteúdos produzidos e disponíveis para aprovação. Abra cada post para revisar imagens, legenda e inserir comentários em slides individuais ou no geral.</section>
+  <div class="approval-top-actions"><button class="approval-btn secondary" onclick="document.querySelectorAll('.approval-card').forEach(c=>c.classList.add('open'))">Abrir todos</button></div>
+  <div class="approval-layout ${params.get('feed')==='1'?'with-feed':''}">
+    <main class="approval-list">${postList.map((p,i)=>renderApprovalPostCard(p,i,clientColor,monthLabel)).join('')}</main>
+    <aside class="approval-feed-panel">${renderApprovalFeedPreview(postList,client)}</aside>
+  </div>`;
   document.body.appendChild(wrap);
 }
-
-window._approvalData={};
-function setPostApproval(pid,status,btn){
-  window._approvalData[pid]=status;
-  const okBtn=document.getElementById('apv-'+pid+'-ok');
-  const altBtn=document.getElementById('apv-'+pid+'-alt');
-  const changeDiv=document.getElementById('change-'+pid);
-  okBtn.style.cssText=okBtn.style.cssText.replace(/background:[^;]+/,'background:'+(status==='aprovado'?'rgba(74,222,128,.15)':'#fff'));
-  okBtn.style.borderColor=status==='aprovado'?'#4ade80':'#e0e0e0';
-  okBtn.style.color=status==='aprovado'?'#4ade80':'#888';
-  altBtn.style.borderColor=status==='alteracao'?'#fb923c':'#e0e0e0';
-  altBtn.style.color=status==='alteracao'?'#fb923c':'#888';
-  if(changeDiv) changeDiv.style.display=status==='alteracao'?'block':'none';
+function approvalCleanTitle(p,i){ return String(p.title||('Post '+(i+1))).replace(/^Post\s*\d+\s*[-—]\s*/i,'').trim()||('Post '+(i+1)); }
+function approvalPostDateTs(post){
+  const raw=post.dateTime||post.datetime||post.scheduledAt||post.publishAt||post.publishDate||post.postDate||post.date||post.when||'';
+  if(raw&&typeof raw==='object'&&typeof raw.toMillis==='function') return raw.toMillis();
+  if(typeof raw==='number') return raw>9999999999?raw:raw*1000;
+  const s=String(raw||'').trim();
+  if(!s) return 0;
+  const br=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(br) return new Date(+br[3],+br[2]-1,+br[1],+(br[4]||0),+(br[5]||0)).getTime();
+  const iso=s.includes('T')?s:s.replace(' ','T');
+  const t=Date.parse(iso);
+  return Number.isFinite(t)?t:0;
 }
-
+function approvalPostingSortDesc(a,b){
+  const diff=approvalPostDateTs(b)-approvalPostDateTs(a);
+  return diff||((b.order||0)-(a.order||0));
+}
+function approvalClientHandle(client=window._approvalClient||{}){
+  const raw=String(client.handle||client.instagram||client.username||client.name||'cliente').trim();
+  return raw.startsWith('@')?raw:'@'+raw.replace(/^https?:\/\/(www\.)?instagram\.com\//i,'').replace(/\/$/,'');
+}
+function approvalClientAvatar(client=window._approvalClient||{},clientColor='#8483ff'){
+  const src=client.photo||client.avatar||client.photoUrl||client.image||'';
+  return src?`<img src="${src}">`:escHtml((client.name||'?').charAt(0));
+}
+function approvalPostFiles(post){
+  return (post.finalFiles||[]).filter(f=>f&&(f.url||f.data)).map((f,i)=>({src:f.url||f.data,name:f.name||('Slide '+(i+1))}));
+}
+function renderApprovalDots(count){
+  if(count<=1) return '';
+  return `<div class="approval-dots">${Array.from({length:count}).map((_,i)=>`<span class="approval-dot ${i===0?'active':''}"></span>`).join('')}</div>`;
+}
+function renderApprovalSlideNotes(pid,count){
+  if(!count) return '<div style="color:#8d8aaa;font-size:13px">Nenhum arquivo final anexado.</div>';
+  return Array.from({length:count}).map((_,i)=>`<div class="approval-slide-note ${i===0?'active':''}" id="slide-note-${pid}-${i}"><b>Ajuste no slide ${i+1}</b><textarea class="approval-textarea" id="slide-comment-${pid}-${i}" placeholder="Escreva o ajuste específico deste slide..."></textarea></div>`).join('');
+}
+function approvalIsLinkedin(post){
+  const f=String(post.format||post.type||post.channel||'').toLowerCase();
+  return f.includes('linkedin');
+}
+function approvalLinkedinProfile(client=window._approvalClient||{}){
+  const name=client.linkedinName||client.linkedInName||(String(client.name||'').toLowerCase().includes('king')?'Marcio Shimomoto':client.name||'Perfil LinkedIn');
+  const role=client.linkedinRole||client.segment||client.category||(String(client.name||'').toLowerCase().includes('king')?'Empresário Contábil':'');
+  const avatar=client.linkedinPhoto||client.linkedinAvatar||client.photo||client.avatar||client.photoUrl||client.image||'';
+  return {name,role,avatar};
+}
+function renderApprovalFeedPreview(postList,client){
+  const tiles=postList.map((p,i)=>{
+    const file=approvalPostFiles(p)[0];
+    const title=approvalCleanTitle(p,i);
+    return `<button class="approval-feed-tile ${file?'':'empty'}" onclick="document.getElementById('approval-card-${p.id}')?.classList.add('open');document.getElementById('approval-card-${p.id}')?.scrollIntoView({behavior:'smooth',block:'start'})" title="${escHtml(title)}">${file?`<img src="${file.src}" alt="${escHtml(title)}">`:'+'}</button>`;
+  }).join('');
+  return `<div class="approval-feed-title">Visualização do feed</div><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div class="approval-ig-avatar" style="background:#8483ff">${approvalClientAvatar(client,'#8483ff')}</div><div><b>${escHtml(client.name||'Cliente')}</b><br><span style="font-size:12px;color:#8d8aaa">${escHtml(approvalClientHandle(client))}</span></div></div><div class="approval-feed-grid">${tiles||'<div style="color:#8d8aaa;font-size:13px">Nenhum post selecionado.</div>'}</div>`;
+}
+function renderApprovalPostCard(p,i,clientColor,monthLabel){
+  const files=approvalPostFiles(p);
+  const isVideo=['Reels','TikTok'].includes(p.format);
+  const isLinkedin=approvalIsLinkedin(p);
+  const cover=files[0]?.src||'';
+  const client=window._approvalClient||{};
+  const handle=approvalClientHandle(client);
+  const cleanHandle=handle.replace(/^@/,'');
+  const linkedProfile=approvalLinkedinProfile(client);
+  const title=approvalCleanTitle(p,i);
+  const caption=String(p.caption||p.content||'').trim();
+  return `<article class="approval-card" id="approval-card-${p.id}">
+    <div class="approval-card-head" onclick="this.closest('.approval-card').classList.toggle('open')">
+      <div>
+        <div class="approval-card-title">Post ${String(i+1).padStart(2,'0')} - ${escHtml(title)}</div>
+        <div class="approval-card-meta"><span class="approval-pill">${escHtml(p.format||'Conteúdo')}</span>${monthLabel?`<span class="approval-pill">${escHtml(monthLabel)}</span>`:''}${files.length?`<span class="approval-pill">${files.length} slide(s)</span>`:''}</div>
+      </div>
+      <span class="approval-state pending" id="approval-state-${p.id}">Não analisado</span>
+    </div>
+    <div class="approval-card-body">
+      <div class="approval-post-shell">
+        <div class="approval-phone ${isLinkedin?'approval-linkedin':''}">
+          <div class="approval-ig-head">
+            <div class="approval-ig-avatar">${isLinkedin?(linkedProfile.avatar?`<img src="${linkedProfile.avatar}">`:escHtml((linkedProfile.name||'?').charAt(0))):approvalClientAvatar(client,clientColor)}</div>
+            <div>
+              <div class="approval-ig-user">${isLinkedin?`${escHtml(linkedProfile.name)} <span style="color:#c58b00;background:#f8d775;border-radius:2px;font-size:11px;padding:0 2px">in</span>`:`${escHtml(cleanHandle)} <span style="color:#0ea5e9">✓</span>`}</div>
+              <div style="font-size:11px;color:#8d8aaa;font-weight:800">${isLinkedin?escHtml(linkedProfile.role||'LinkedIn'):escHtml(p.format||'Conteúdo')}</div>
+            </div>
+            <div class="approval-ig-menu">${isLinkedin?'...':'☰'}</div>
+          </div>
+          ${isLinkedin&&caption?`<div class="approval-linkedin-copy">${renderRichText(caption)}</div>`:''}
+          <div class="approval-carousel" id="approval-carousel-${p.id}">
+            ${cover?`<img id="approval-slide-img-${p.id}" src="${cover}" alt="${escHtml(title)}">`:`<div class="approval-carousel-empty">Sem imagem anexada</div>`}
+            ${files.length>1&&!isVideo?`<button class="approval-nav-btn prev" onclick="event.stopPropagation();setApprovalSlide('${p.id}',-1)">‹</button><button class="approval-nav-btn next" onclick="event.stopPropagation();setApprovalSlide('${p.id}',1)">›</button>`:''}
+          </div>
+          ${renderApprovalDots(isVideo&&files.length?1:files.length)}
+          ${isLinkedin?`<div class="approval-linkedin-social">Pedro Anaraku e mais 6 pessoas</div><div class="approval-linkedin-actions"><span>Gostei</span><span>Comentar</span><span>Compartilhar</span><span>Enviar</span></div>`:`<div class="approval-ig-actions"><span>♡</span><span>◯</span><span>↗</span><span class="approval-save">⌑</span></div><div class="approval-ig-caption">${caption?`<b>${escHtml(cleanHandle)}</b> ${renderRichText(caption)}`:`<b>${escHtml(cleanHandle)}</b> Legenda ainda não informada.`}</div>`}
+        </div>
+        <div class="approval-side-panel">
+          ${isVideo&&p.driveLink?`<a href="${p.driveLink}" target="_blank" class="approval-btn primary" style="display:block;text-align:center;text-decoration:none">Assistir vídeo</a>`:''}
+          ${renderApprovalSlideNotes(p.id,isVideo&&files.length?1:files.length)}
+          <div><b>Ajuste na legenda</b><textarea class="approval-textarea" id="caption-comment-${p.id}" placeholder="Escreva um ajuste para a legenda, se houver..."></textarea></div>
+          <div class="approval-actions">
+            <button class="approval-choice" id="choice-${p.id}-aprovado" onclick="event.stopPropagation();setPostApproval('${p.id}','aprovado')">Aprovar</button>
+            <button class="approval-choice" id="choice-${p.id}-alteracao" onclick="event.stopPropagation();setPostApproval('${p.id}','alteracao')">Enviar ajuste</button>
+            <button class="approval-choice" id="choice-${p.id}-rejeitado" onclick="event.stopPropagation();setPostApproval('${p.id}','rejeitado')">Rejeitar</button>
+          </div>
+          <div class="approval-save-note" id="approval-save-note-${p.id}"></div>
+        </div>
+      </div>
+    </div>
+  </article>`;
+}
+window._approvalData={};
+function setApprovalSlide(pid,delta){
+  const post=(window._approvalPosts||[]).find(p=>p.id===pid);
+  if(!post) return;
+  const files=approvalPostFiles(post);
+  if(!files.length) return;
+  window._approvalSlideState=window._approvalSlideState||{};
+  const current=window._approvalSlideState[pid]||0;
+  const next=(current+delta+files.length)%files.length;
+  window._approvalSlideState[pid]=next;
+  const img=document.getElementById('approval-slide-img-'+pid);
+  if(img) img.src=files[next].src;
+  document.querySelectorAll(`#approval-card-${pid} .approval-dot`).forEach((dot,i)=>dot.classList.toggle('active',i===next));
+  document.querySelectorAll(`#approval-card-${pid} .approval-slide-note`).forEach((note,i)=>note.classList.toggle('active',i===next));
+}
+async function setPostApproval(pid,status){
+  window._approvalData[pid]=status;
+  ['aprovado','alteracao','rejeitado'].forEach(s=>document.getElementById(`choice-${pid}-${s}`)?.classList.remove('active-ok','active-alt','active-no'));
+  document.getElementById(`choice-${pid}-${status}`)?.classList.add(status==='aprovado'?'active-ok':status==='alteracao'?'active-alt':'active-no');
+  const state=document.getElementById('approval-state-'+pid);
+  if(state){ state.className='approval-state '+status; state.textContent=status==='aprovado'?'Aprovado':status==='alteracao'?'Ajuste enviado':'Rejeitado'; }
+  const card=document.getElementById('approval-card-'+pid);
+  if(card){
+    card.classList.remove('aprovado','alteracao','rejeitado');
+    card.classList.add(status);
+  }
+  const note=document.getElementById('approval-save-note-'+pid);
+  if(note) note.textContent='Salvando...';
+  try{
+    const {db,doc,setDoc,updateDoc}=window._fb;
+    const pack=window._approvalPack||{};
+    const post=(window._approvalPosts||[]).find(p=>p.id===pid);
+    if(!post) throw new Error('Post não encontrado');
+    const feedback=collectApprovalFeedback(post);
+    const nextStatus=status==='aprovado'?'agendamento':status==='alteracao'?'em_alteracoes':'cancelado';
+    const feedbackText=approvalFeedbackText(status,feedback);
+    const baseComments=Array.isArray(post.comments)?post.comments:[];
+    const commentId='client_approval_'+pid;
+    const cleanedComments=baseComments.filter(c=>c.id!==commentId);
+    const nextComments=feedbackText?[...cleanedComments,{id:commentId,author:'Cliente',authorId:'approval-link',text:feedbackText,time:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),createdAt:Date.now(),mentions:[],images:[],parentId:'',resolved:false}]:cleanedComments;
+    await setDoc(doc(db,'approvals',pack.id||'approval_'+pid),{packId:pack.id||'',responses:{[pid]:{status,feedback,updatedAt:Date.now()}},updatedAt:Date.now()},{merge:true});
+    await updateDoc(doc(db,'posts',pid),{status:nextStatus,approvalStatus:status,clientApprovalFeedback:feedback,clientComment:feedbackText,clientCommentAt:Date.now(),comments:nextComments,updatedAt:Date.now()});
+    post.status=nextStatus;
+    post.approvalStatus=status;
+    post.clientApprovalFeedback=feedback;
+    post.comments=nextComments;
+    if(note) note.textContent='Salvo. Você ainda pode trocar a resposta clicando em outro botão.';
+  }catch(err){
+    console.error('approval save error',err);
+    if(note) note.textContent='Não consegui salvar agora. Tente novamente.';
+  }
+}
+function approveAllPosts(){
+  (window._approvalPosts||[]).forEach(p=>setPostApproval(p.id,'aprovado'));
+}
+function collectApprovalFeedback(post){
+  const files=(post.finalFiles||[]).filter(f=>f&&(f.url||f.data));
+  const slideComments=files.map((_,idx)=>(document.getElementById(`slide-comment-${post.id}-${idx}`)?.value||'').trim()).filter(Boolean);
+  return {general:'',caption:(document.getElementById('caption-comment-'+post.id)?.value||'').trim(),slides:slideComments};
+}
+function approvalFeedbackText(status,feedback){
+  const parts=[`Retorno do cliente: ${status==='aprovado'?'aprovado':status==='alteracao'?'ajuste solicitado':'rejeitado'}.`];
+  if(feedback.general) parts.push('Ajuste geral: '+feedback.general);
+  if(feedback.caption) parts.push('Legenda: '+feedback.caption);
+  if(feedback.slides?.length) parts.push(...feedback.slides.map((txt,i)=>`Slide ${i+1}: ${txt}`));
+  return parts.join('\n\n');
+}
 async function submitApproval(packId){
   const {db,doc,setDoc,collection,getDocs,query,where,updateDoc}=window._fb;
   const postsSnap=await getDocs(query(collection(db,'posts'),where('packId','==',packId)));
-  const postList=[]; postsSnap.forEach(d=>postList.push({id:d.id,...d.data()}));
+  let postList=[]; postsSnap.forEach(d=>postList.push({id:d.id,...d.data()}));
+  const selected=(new URLSearchParams(window.location.search).get('posts')||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(selected.length) postList=postList.filter(p=>selected.includes(p.id));
   const responses={};
   let allAnswered=true;
   postList.forEach(p=>{
     const status=window._approvalData[p.id];
     if(!status){ allAnswered=false; return; }
-    const changeText=document.getElementById('change-text-'+p.id)?.value||'';
-    responses[p.id]={status,changeText};
+    const feedback=collectApprovalFeedback(p);
+    responses[p.id]={status,feedback};
   });
   if(!allAnswered){ alert('Por favor, responda todos os posts antes de enviar.'); return; }
   const obs=document.getElementById('approval-obs')?.value||'';
-  await setDoc(doc(db,'approvals',packId),{
-    packId, responses, obs, submittedAt:Date.now(), clientName:''
-  });
-  // Update post statuses
-  for(const [pid,r] of Object.entries(responses)){
-    if(r.status==='alteracao'){
-      await updateDoc(doc(db,'posts',pid),{
-        status:'em_alteracoes',
-        clientComment:r.changeText,
-        clientCommentAt:Date.now()
-      });
-    }
+  await setDoc(doc(db,'approvals',packId),{packId,responses,obs,submittedAt:Date.now()});
+  for(const p of postList){
+    const r=responses[p.id];
+    const nextStatus=r.status==='aprovado'?'agendamento':r.status==='alteracao'?'em_alteracoes':'cancelado';
+    const comments=Array.isArray(p.comments)?p.comments:[];
+    const feedbackText=approvalFeedbackText(r.status,r.feedback);
+    const nextComments=feedbackText?[...comments,{id:'client_'+Date.now()+'_'+p.id,author:'Cliente',authorId:'approval-link',text:feedbackText,time:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),createdAt:Date.now(),mentions:[],images:[],parentId:'',resolved:false}]:comments;
+    await updateDoc(doc(db,'posts',p.id),{status:nextStatus,approvalStatus:r.status,clientApprovalFeedback:r.feedback,clientComment:feedbackText,clientCommentAt:Date.now(),comments:nextComments,updatedAt:Date.now()});
   }
-  document.body.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;text-align:center;padding:40px">
-    <div style="font-size:48px;margin-bottom:16px">🎉</div>
-    <div style="font-size:24px;font-weight:700;margin-bottom:8px">Resposta enviada!</div>
-    <div style="font-size:14px;color:#888">Nossa equipe vai analisar e entrar em contato.</div>
-  </div>`;
+  document.body.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:Inter,Arial,sans-serif;text-align:center;padding:40px;background:#f7f7fb"><div style="font-size:54px;margin-bottom:16px">🎉</div><div style="font-size:26px;font-weight:900;margin-bottom:8px;color:#17172c">Resposta enviada!</div><div style="font-size:14px;color:#888">Nossa equipe recebeu sua aprovação e/ou ajustes.</div></div>`;
 }
-
 // ===== GERADOR DE ROTEIROS =====
 async function gerarRoteiros(packId){
   if(!packId) return;
@@ -7399,7 +7770,7 @@ async function handleClientPhoto(files){
   if(preview){
     preview.innerHTML=editClientPhotoB64
       ? `<img src="${editClientPhotoB64}" style="width:100%;height:100%;object-fit:cover">`
-      : `<div style="font-size:22px;font-weight:800;color:${clientColor}">${(clientName||'?')[0]}</div>`;
+      : `<div style="font-size:22px;font-weight:800;color:#6f6df6">${(clientName||'?')[0]}</div>`;
   }
   const inp=document.getElementById('ec-photo-inp');
   if(inp) inp.value='';
@@ -10782,7 +11153,7 @@ async function deleteProspect(){
       </div>
       <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
         <button class="btn btn-s btn-sm" onclick="exportPDF()">📄 PDF</button>
-        <button class="btn btn-s btn-sm" onclick="copyApprovalLink(currentPackId)" title="Link público para aprovação do cliente">🔗 Aprovação</button>
+        <button class="btn btn-s btn-sm" onclick="openApprovalLinkModal(currentPackId)" title="Link público para aprovação do cliente">🔗 Aprovação</button>
         <button class="btn btn-s btn-sm" onclick="gerarRoteiros(currentPackId)">📝 Roteiros</button>
         <button class="btn btn-s btn-sm" onclick="duplicatePack(currentPackId)">⧉ Duplicar</button>
         <button class="btn btn-s btn-sm" onclick="openChangeHistory()">🕘 Histórico</button>
@@ -11174,7 +11545,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=52').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=65').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
@@ -11182,6 +11553,7 @@ async function deleteProspect(){
 </script>
 </body>
 </html>
+
 
 
 
