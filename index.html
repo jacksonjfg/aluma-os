@@ -899,6 +899,7 @@ body.sidebar-collapsed .sb-brand-mark,body.sidebar-collapsed .sb-brand-copy,body
       <button class="ttab" onclick="setView('comercial')">💼 Comercial</button>
       <button class="ttab" onclick="setView('financeiro')">💸 Financeiro</button>
       <button class="ttab" onclick="setView('perfilAluma')">⚡ Perfil Aluma</button>
+      <button class="ttab" onclick="setView('integracoes')">🔌 Integrações</button>
     </div>
     <div class="tright">
       <button class="tbtn" id="btn-add-top" style="display:none" onclick="showAddClient()">＋</button>
@@ -953,6 +954,7 @@ body.sidebar-collapsed .sb-brand-mark,body.sidebar-collapsed .sb-brand-copy,body
           <button class="sb-item" onclick="setView('comercial')"><span>💼</span>Comercial</button>
           <button class="sb-item" onclick="setView('financeiro')"><span>💸</span>Financeiro</button>
           <button class="sb-item" onclick="setView('perfilAluma')"><span>⚡</span>Perfil Aluma</button>
+          <button class="sb-item" onclick="setView('integracoes')"><span>🔌</span>Integrações</button>
         </div>
       </div>
       <div class="sb-section" id="sb-section-clients">
@@ -1049,7 +1051,61 @@ body.sidebar-collapsed .sb-brand-mark,body.sidebar-collapsed .sb-brand-copy,body
 <script>
 // VERSION: 20260428_235900
 // ===== INSTAGRAM API =====
+const META_BUSINESS_APP_ID = '4260713480740701';
+const META_OAUTH_REDIRECT_URI = 'https://app.alumamkt.com.br/meta-callback';
+const META_OAUTH_SCOPES = [
+  'pages_show_list',
+  'pages_read_engagement',
+  'instagram_basic',
+  'instagram_content_publishing',
+  'business_management'
+];
 let INSTAGRAM_ACCESS_TOKEN = localStorage.getItem('aluma_instagram_token') || '';
+function getMetaAppRootUrl(){
+  let path=window.location.pathname||'/';
+  path=path.replace(/\/meta-callback\/?$/,'/').replace(/\/post\/[^/]+\/?$/,'/');
+  if(!path.endsWith('/')) path+='/';
+  return window.location.origin+path;
+}
+function getMetaOAuthResult(){
+  try{ return JSON.parse(localStorage.getItem('aluma_meta_oauth_result')||'null'); }
+  catch(err){ return null; }
+}
+function handleMetaOAuthReturn(){
+  const params=new URLSearchParams(window.location.search||'');
+  const code=params.get('code');
+  const state=params.get('state');
+  const error=params.get('error_message')||params.get('error_description')||params.get('error');
+  const isCallback=(window.location.pathname||'').includes('/meta-callback') || code || error;
+  if(!isCallback) return false;
+  if(code){
+    const expected=localStorage.getItem('aluma_meta_oauth_state')||'';
+    localStorage.setItem('aluma_meta_oauth_result',JSON.stringify({code,state,stateOk:!expected||expected===state,at:Date.now()}));
+    localStorage.removeItem('aluma_meta_oauth_state');
+  }
+  if(error){
+    localStorage.setItem('aluma_meta_oauth_error',JSON.stringify({error,at:Date.now()}));
+  }
+  try{ window.history.replaceState({},'',getMetaAppRootUrl()+'#integracoes'); }catch(err){}
+  return true;
+}
+function connectMetaBusiness(){
+  const state='aluma-meta-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  localStorage.setItem('aluma_meta_oauth_state',state);
+  const params=new URLSearchParams({
+    client_id:META_BUSINESS_APP_ID,
+    redirect_uri:META_OAUTH_REDIRECT_URI,
+    response_type:'code',
+    state,
+    scope:META_OAUTH_SCOPES.join(',')
+  });
+  window.location.href='https://www.facebook.com/dialog/oauth?'+params.toString();
+}
+function clearMetaOAuthPreview(){
+  localStorage.removeItem('aluma_meta_oauth_result');
+  localStorage.removeItem('aluma_meta_oauth_error');
+  if(currentView==='integracoes') renderIntegracoes();
+}
 async function getInstagramToken(){
   try{
     const {db,doc,getDoc}=window._fb;
@@ -1147,7 +1203,8 @@ const MENU_ACCESS_ITEMS=[
   {id:'pauta',label:'Pauta',aliases:['pauta']},
   {id:'comercial',label:'Comercial',aliases:['comercial']},
   {id:'financeiro',label:'Financeiro',aliases:['financeiro']},
-  {id:'perfilAluma',label:'Perfil Aluma',aliases:['perfil aluma']}
+  {id:'perfilAluma',label:'Perfil Aluma',aliases:['perfil aluma']},
+  {id:'integracoes',label:'Integrações',aliases:['integrações','integracoes','meta business','meta']}
 ];
 function normalizePackStatusId(status){
   return status==='pdf'?'para_entregar':(status||'planejamento');
@@ -1388,7 +1445,7 @@ function hasPerfilAlumaAccess(){
   return !!(currentUserData?.allowPerfilAluma || member?.allowPerfilAluma);
 }
 function defaultMenuAccessForMember(member=null){
-  const base=['dashboard','todos','calendario','audiovisual','equipe','tarefas','pauta'];
+  const base=['dashboard','todos','calendario','audiovisual','equipe','tarefas','pauta','integracoes'];
   if(hasCommercialAccess()) base.push('comercial');
   if(hasPerfilAlumaAccess() || member?.allowPerfilAluma) base.push('perfilAluma');
   return base;
@@ -1457,7 +1514,7 @@ function applyAccessControl(){
   if(inactiveBtn) inactiveBtn.style.display = isAdmin && hasInactiveClients() ? 'flex' : 'none';
 }
 
-async function initApp(){ await loadTeam(); applyAccessControl(); await loadClients(); setView('dashboard'); await openPostFromUrl(); initPresence(); }
+async function initApp(){ await loadTeam(); applyAccessControl(); await loadClients(); const metaReturned=handleMetaOAuthReturn(); setView(metaReturned?'integracoes':'dashboard'); if(!metaReturned) await openPostFromUrl(); initPresence(); }
 function getAppBasePath(){
   let path=window.location.pathname||'/';
   path=path.replace(/\/post\/[^/]+\/?$/,'/');
@@ -1578,7 +1635,7 @@ async function setView(view,cid){
     try{ await saveCurrentRichDraft(); }catch(err){ console.warn('setView/saveCurrentRichDraft',err); }
   }
   document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('active'));
-  const map={dashboard:0,todos:1,calendario:2,audiovisual:3,equipe:4,tarefas:5,pauta:6,comercial:7,financeiro:8,perfilAluma:9};
+  const map={dashboard:0,todos:1,calendario:2,audiovisual:3,equipe:4,tarefas:5,pauta:6,comercial:7,financeiro:8,perfilAluma:9,integracoes:10};
   const tabs=document.querySelectorAll('.ttab');
   if(map[view]!==undefined) tabs[map[view]]?.classList.add('active');
   setShellActive(view);
@@ -1594,6 +1651,7 @@ async function setView(view,cid){
   else if(view==='comercial') renderComercial();
   else if(view==='financeiro') renderFinanceiro();
   else if(view==='perfilAluma') renderPerfilAluma();
+  else if(view==='integracoes') renderIntegracoes();
 }
 
 async function openClient(cid){
@@ -6569,6 +6627,102 @@ function showPresenceToast(name,online){
   setTimeout(()=>t.remove(),4400);
 }
 
+
+// ===== INTEGRAÇÕES =====
+async function renderIntegracoes(){
+  const main=document.getElementById('main');
+  const activeClients=Object.values(clients||{}).filter(c=>!c.inactive).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const monthLabel=MONTHS[new Date().getMonth()]+' '+new Date().getFullYear();
+  const metaOAuth=getMetaOAuthResult();
+  let metaOAuthError=null;
+  try{ metaOAuthError=JSON.parse(localStorage.getItem('aluma_meta_oauth_error')||'null'); }catch(err){ metaOAuthError=null; }
+  const metaStatus=metaOAuth?'Autorização recebida':(metaOAuthError?'Erro no login':'Pronto para conectar');
+  const metaStatusColor=metaOAuth?'#22c55e':(metaOAuthError?'var(--red)':'var(--accent)');
+  const metaStatusBg=metaOAuth?'rgba(34,197,94,.12)':(metaOAuthError?'var(--dr)':'var(--ag)');
+  const metaStatusNote=metaOAuth?'Código OAuth capturado. Próximo passo: trocar por token em uma Firebase Function segura.':(metaOAuthError?'A Meta retornou um erro no login. Limpe o retorno e tente conectar novamente.':'Clique em Conectar Meta para abrir a autorização oficial do Facebook/Meta.');
+  const clientRows=activeClients.slice(0,10).map(c=>`
+    <div style="display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(150px,1fr) 120px;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:9px;min-width:0">
+        <span style="width:9px;height:9px;border-radius:50%;background:${c.color||'#8483ff'};flex-shrink:0"></span>
+        <div style="min-width:0">
+          <div style="font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.name||'Cliente')}</div>
+          <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.segment||c.niche||'Cliente ativo')}</div>
+        </div>
+      </div>
+      <input class="input" disabled value="Aguardando conexão" style="height:38px;font-size:12px;opacity:.72">
+      <input class="input" disabled value="Aguardando conexão" style="height:38px;font-size:12px;opacity:.72">
+      <span style="justify-self:start;border-radius:999px;padding:6px 10px;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:900">Pendente</span>
+    </div>`).join('');
+
+  main.innerHTML=`
+    <div class="ph">
+      <div>
+        <div class="ptitle">🔌 Integrações</div>
+        <div class="psub">Preparação para conectar o Meta Business sem bagunçar o fluxo atual da Aluma OS.</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow:auto;padding:18px 22px 28px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:stretch;margin-bottom:14px">
+        <div style="background:linear-gradient(135deg,rgba(132,131,255,.16),rgba(132,131,255,.04));border:1px solid rgba(132,131,255,.28);border-radius:16px;padding:18px;box-shadow:var(--shad)">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;font-weight:950;color:var(--accent);letter-spacing:.16em;text-transform:uppercase;margin-bottom:7px">Passo 3 · autorização</div>
+              <div style="font-size:24px;font-weight:950;letter-spacing:-.5px;color:var(--text)">Meta Business</div>
+              <div style="color:var(--text2);line-height:1.55;margin-top:6px;max-width:760px">App configurado para iniciar a autorização oficial da Meta. Nesta etapa capturamos o código de retorno, sem expor chave secreta nem salvar token no front-end.</div>
+            </div>
+            <button class="btn btn-p" onclick="connectMetaBusiness()">Conectar Meta</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:18px">
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Status</div><div style="font-size:18px;font-weight:950;margin-top:5px;color:${metaStatusColor}">${metaStatus}</div></div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Clientes ativos</div><div style="font-size:20px;font-weight:950;margin-top:5px">${activeClients.length}</div></div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Referência</div><div style="font-size:20px;font-weight:950;margin-top:5px">${monthLabel}</div></div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">App ID</div><div style="font-size:16px;font-weight:950;margin-top:7px">${META_BUSINESS_APP_ID}</div></div>
+          </div>
+          <div style="margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:12px;background:${metaStatusBg};color:${metaStatusColor};font-size:13px;font-weight:800;line-height:1.5">
+            ${metaStatusNote}
+            ${metaOAuth?`<div style="margin-top:8px;color:var(--text2);font-weight:700;font-size:12px">Recebido em ${new Date(metaOAuth.at).toLocaleString('pt-BR')} · state ${metaOAuth.stateOk?'validado':'não conferido'}</div><button class="btn btn-s btn-sm" onclick="clearMetaOAuthPreview()" style="margin-top:8px">Limpar retorno</button>`:''}
+          </div>
+        </div>
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shad)">
+          <div style="font-size:15px;font-weight:950;margin-bottom:12px">Checklist antes de conectar</div>
+          ${['Conta Instagram profissional','Página do Facebook vinculada','Jackson com acesso admin no Business','Arquivo final anexado no post','Legenda revisada no Aluma OS','Data e horário definidos'].map((item,i)=>`<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-top:${i?'1px solid var(--border)':'0'}"><span style="width:20px;height:20px;border-radius:7px;background:var(--ag);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:950;font-size:12px">${i+1}</span><span style="font-size:13px;color:var(--text2);font-weight:700">${item}</span></div>`).join('')}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;align-items:start">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shad)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px">
+            <div>
+              <div style="font-size:16px;font-weight:950">Mapeamento de clientes</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:3px">Quando a integração real entrar, cada cliente será ligado à página e ao Instagram Business correto.</div>
+            </div>
+            <button class="btn btn-s btn-sm" disabled style="opacity:.65">Atualizar contas</button>
+          </div>
+          <div style="overflow-x:auto"><div style="min-width:720px"><div style="display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(150px,1fr) 120px;gap:10px;color:var(--text3);font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.08em;padding:8px 0">
+            <div>Cliente</div><div>Página Facebook</div><div>Instagram Business</div><div>Status</div>
+          </div>
+          ${clientRows || '<div style="padding:22px;text-align:center;color:var(--text3);background:var(--bg3);border-radius:12px">Nenhum cliente ativo encontrado.</div>'}
+          </div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shad)">
+            <div style="font-size:15px;font-weight:950;margin-bottom:12px">Fluxo previsto</div>
+            ${[
+              ['Aprovado','Post aprovado pelo cliente'],
+              ['Agendamento','Equipe confere e envia para Meta'],
+              ['Programado','Meta confirma o agendamento'],
+              ['Publicado','Post sai da fila com segurança'],
+              ['Erro','Aluma OS aponta o que precisa corrigir']
+            ].map((step,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:${i?'1px solid var(--border)':'0'}"><span style="width:24px;height:24px;border-radius:9px;background:${i===4?'var(--dr)':'var(--ag)'};color:${i===4?'var(--red)':'var(--accent)'};display:flex;align-items:center;justify-content:center;font-weight:950;font-size:12px">${i+1}</span><div><div style="font-weight:900;font-size:13px">${step[0]}</div><div style="font-size:12px;color:var(--text3);line-height:1.4">${step[1]}</div></div></div>`).join('')}
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shad)">
+            <div style="font-size:15px;font-weight:950;margin-bottom:8px">Próximos passos técnicos</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.65">Na próxima etapa entram autenticação Meta, seleção de páginas, validação de permissões e fila segura de agendamento. Essa tela deixa o lugar certo pronto sem afetar o que já funciona hoje.</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
 // ===== EQUIPE =====
 async function renderEquipe(){
   const main=document.getElementById('main');
@@ -11545,7 +11699,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=65').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=67').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
