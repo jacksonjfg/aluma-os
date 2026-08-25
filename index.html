@@ -1122,6 +1122,7 @@ async function exchangeCapturedMetaCode(){
     console.error('exchangeCapturedMetaCode:',err);
     const msg=err?.message||'Não foi possível finalizar a conexão Meta.';
     showToast(msg,'err');
+    throw err;
   }
 }
 function clearMetaOAuthPreview(){
@@ -1136,6 +1137,10 @@ function getMetaAssetsCached(){
 }
 async function refreshMetaAssets(){
   try{
+    const pendingOAuth=getMetaOAuthResult();
+    if(pendingOAuth?.code && !getMetaExchangeResult()){
+      await exchangeCapturedMetaCode();
+    }
     showToast('Buscando páginas e perfis da Meta...','inf');
     const {functions,httpsCallable}=window._fb;
     const listAssets=httpsCallable(functions,'listMetaAssets',{timeout:60000});
@@ -6774,7 +6779,7 @@ async function renderIntegracoes(){
           </div>
           <div style="margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:12px;background:${metaStatusBg};color:${metaStatusColor};font-size:13px;font-weight:800;line-height:1.5">
             ${metaStatusNote}
-            ${metaOAuth?`<div style="margin-top:8px;color:var(--text2);font-weight:700;font-size:12px">Recebido em ${new Date(metaOAuth.at).toLocaleString('pt-BR')} · state ${metaOAuth.stateOk?'validado':'não conferido'}</div><button class="btn btn-s btn-sm" onclick="clearMetaOAuthPreview()" style="margin-top:8px">Limpar retorno</button>`:''}
+            ${metaOAuth?`<div style="margin-top:8px;color:var(--text2);font-weight:700;font-size:12px">Recebido em ${new Date(metaOAuth.at).toLocaleString('pt-BR')} · state ${metaOAuth.stateOk?'validado':'não conferido'}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-p btn-sm" onclick="exchangeCapturedMetaCode()">Finalizar conexão</button><button class="btn btn-s btn-sm" onclick="clearMetaOAuthPreview()">Limpar retorno</button></div>`:''}
           </div>
         </div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shad)">
@@ -11793,7 +11798,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=71').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=72').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
