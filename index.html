@@ -1101,10 +1101,86 @@ function connectMetaBusiness(){
   });
   window.location.href='https://www.facebook.com/dialog/oauth?'+params.toString();
 }
+function getMetaExchangeResult(){
+  try{ return JSON.parse(localStorage.getItem('aluma_meta_exchange_result')||'null'); }
+  catch(err){ return null; }
+}
+async function exchangeCapturedMetaCode(){
+  const metaOAuth=getMetaOAuthResult();
+  if(!metaOAuth?.code){ showToast('Nenhum código Meta capturado para finalizar.','err'); return; }
+  try{
+    showToast('Finalizando conexão com a Meta...','inf');
+    const {functions,httpsCallable}=window._fb;
+    const exchange=httpsCallable(functions,'exchangeMetaCode',{timeout:60000});
+    const res=await exchange({code:metaOAuth.code});
+    localStorage.setItem('aluma_meta_exchange_result',JSON.stringify({...(res.data||{}),at:Date.now()}));
+    localStorage.removeItem('aluma_meta_oauth_result');
+    localStorage.removeItem('aluma_meta_oauth_error');
+    showToast('Meta conectada com segurança!','ok');
+    if(currentView==='integracoes') renderIntegracoes();
+  }catch(err){
+    console.error('exchangeCapturedMetaCode:',err);
+    const msg=err?.message||'Não foi possível finalizar a conexão Meta.';
+    showToast(msg,'err');
+  }
+}
 function clearMetaOAuthPreview(){
   localStorage.removeItem('aluma_meta_oauth_result');
   localStorage.removeItem('aluma_meta_oauth_error');
+  localStorage.removeItem('aluma_meta_exchange_result');
   if(currentView==='integracoes') renderIntegracoes();
+}
+function getMetaAssetsCached(){
+  try{ return JSON.parse(localStorage.getItem('aluma_meta_assets')||'null') || {pages:[]}; }
+  catch(err){ return {pages:[]}; }
+}
+async function refreshMetaAssets(){
+  try{
+    showToast('Buscando páginas e perfis da Meta...','inf');
+    const {functions,httpsCallable}=window._fb;
+    const listAssets=httpsCallable(functions,'listMetaAssets',{timeout:60000});
+    const res=await listAssets({});
+    const pages=Array.isArray(res.data?.pages)?res.data.pages:[];
+    localStorage.setItem('aluma_meta_assets',JSON.stringify({pages,updatedAt:res.data?.updatedAt||Date.now()}));
+    localStorage.setItem('aluma_meta_exchange_result',JSON.stringify({...(getMetaExchangeResult()||{}),ok:true,at:Date.now()}));
+    showToast(`${pages.length} página(s) carregada(s) da Meta.`,'ok');
+    if(currentView==='integracoes') renderIntegracoes();
+  }catch(err){
+    console.error('refreshMetaAssets:',err);
+    showToast(err?.message||'Não foi possível carregar as contas da Meta.','err');
+  }
+}
+async function loadMetaClientMappings(){
+  try{
+    const {db,doc,getDoc}=window._fb;
+    const snap=await getDoc(doc(db,'settings','metaClientMappings'));
+    return snap.exists() ? (snap.data().mappings || {}) : {};
+  }catch(err){
+    console.warn('loadMetaClientMappings:',err);
+    return {};
+  }
+}
+async function saveMetaClientMapping(clientId,pageId){
+  const assets=getMetaAssetsCached();
+  const page=(assets.pages||[]).find(p=>String(p.id)===String(pageId));
+  const mapping=page?{
+    clientId,
+    pageId:page.id,
+    pageName:page.name||'',
+    instagramId:page.instagram?.id||'',
+    instagramUsername:page.instagram?.username||'',
+    updatedAt:Date.now(),
+    updatedBy:currentUserData?.name||currentUser?.email||''
+  }:null;
+  try{
+    const {db,doc,setDoc}=window._fb;
+    await setDoc(doc(db,'settings','metaClientMappings'),{mappings:{[clientId]:mapping}},{merge:true});
+    showToast(mapping?'Cliente vinculado à Meta.':'Vínculo removido.','ok');
+    if(currentView==='integracoes') renderIntegracoes();
+  }catch(err){
+    console.error('saveMetaClientMapping:',err);
+    showToast(err?.message||'Não foi possível salvar o vínculo Meta.','err');
+  }
 }
 async function getInstagramToken(){
   try{
@@ -6634,13 +6710,23 @@ async function renderIntegracoes(){
   const activeClients=Object.values(clients||{}).filter(c=>!c.inactive).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   const monthLabel=MONTHS[new Date().getMonth()]+' '+new Date().getFullYear();
   const metaOAuth=getMetaOAuthResult();
+  const metaExchange=getMetaExchangeResult();
+  const metaAssets=getMetaAssetsCached();
+  const metaMappings=await loadMetaClientMappings();
+  const metaPages=Array.isArray(metaAssets.pages)?metaAssets.pages:[];
   let metaOAuthError=null;
   try{ metaOAuthError=JSON.parse(localStorage.getItem('aluma_meta_oauth_error')||'null'); }catch(err){ metaOAuthError=null; }
-  const metaStatus=metaOAuth?'Autorização recebida':(metaOAuthError?'Erro no login':'Pronto para conectar');
-  const metaStatusColor=metaOAuth?'#22c55e':(metaOAuthError?'var(--red)':'var(--accent)');
-  const metaStatusBg=metaOAuth?'rgba(34,197,94,.12)':(metaOAuthError?'var(--dr)':'var(--ag)');
-  const metaStatusNote=metaOAuth?'Código OAuth capturado. Próximo passo: trocar por token em uma Firebase Function segura.':(metaOAuthError?'A Meta retornou um erro no login. Limpe o retorno e tente conectar novamente.':'Clique em Conectar Meta para abrir a autorização oficial do Facebook/Meta. O retorno será feito pela página inicial para evitar cair em versão antiga.');
-  const clientRows=activeClients.slice(0,10).map(c=>`
+  const metaStatus=metaExchange?'Meta conectada':(metaOAuth?'Autorização recebida':(metaOAuthError?'Erro no login':'Pronto para conectar'));
+  const metaStatusColor=(metaExchange||metaOAuth)?'#22c55e':(metaOAuthError?'var(--red)':'var(--accent)');
+  const metaStatusBg=(metaExchange||metaOAuth)?'rgba(34,197,94,.12)':(metaOAuthError?'var(--dr)':'var(--ag)');
+  const metaStatusNote=metaExchange?'Conexão Meta salva no Firebase. Clique em Atualizar contas para carregar páginas e perfis disponíveis.':(metaOAuth?'Código OAuth capturado. Clique em Finalizar conexão para trocar por token em uma Firebase Function segura.':(metaOAuthError?'A Meta retornou um erro no login. Limpe o retorno e tente conectar novamente.':'Clique em Conectar Meta para abrir a autorização oficial do Facebook/Meta. O retorno será feito pela página inicial para evitar cair em versão antiga.'));
+  const clientRows=activeClients.slice(0,10).map(c=>{
+    const mapping=metaMappings[c.id]||{};
+    const selectedPage=metaPages.find(p=>String(p.id)===String(mapping.pageId));
+    const selectedInstagram=selectedPage?.instagram || (mapping.instagramId?{id:mapping.instagramId,username:mapping.instagramUsername}:null);
+    const statusText=mapping?.pageId?'Mapeado':(metaPages.length?'Pendente':'Aguardando');
+    const statusStyle=mapping?.pageId?'background:rgba(34,197,94,.12);color:#22c55e':'background:var(--bg3);color:var(--text3)';
+    return `
     <div style="display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(150px,1fr) 120px;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:9px;min-width:0">
         <span style="width:9px;height:9px;border-radius:50%;background:${c.color||'#8483ff'};flex-shrink:0"></span>
@@ -6649,10 +6735,13 @@ async function renderIntegracoes(){
           <div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.segment||c.niche||'Cliente ativo')}</div>
         </div>
       </div>
-      <input class="input" disabled value="Aguardando conexão" style="height:38px;font-size:12px;opacity:.72">
-      <input class="input" disabled value="Aguardando conexão" style="height:38px;font-size:12px;opacity:.72">
-      <span style="justify-self:start;border-radius:999px;padding:6px 10px;background:var(--bg3);color:var(--text3);font-size:11px;font-weight:900">Pendente</span>
-    </div>`).join('');
+      <select class="input" onchange="saveMetaClientMapping('${c.id}',this.value)" ${metaPages.length?'':'disabled'} style="height:38px;font-size:12px;opacity:${metaPages.length?'1':'.72'}">
+        <option value="">${metaPages.length?'Selecionar página':'Atualize as contas'}</option>
+        ${metaPages.map(p=>`<option value="${escHtml(p.id)}" ${String(mapping.pageId||'')===String(p.id)?'selected':''}>${escHtml(p.name||'Página sem nome')}</option>`).join('')}
+      </select>
+      <div class="input" style="height:38px;font-size:12px;display:flex;align-items:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${selectedInstagram?.username?'var(--text)':'var(--text3)'}">${selectedInstagram?.username?'@'+escHtml(selectedInstagram.username):'Sem Instagram vinculado'}</div>
+      <span style="justify-self:start;border-radius:999px;padding:6px 10px;${statusStyle};font-size:11px;font-weight:900">${statusText}</span>
+    </div>`}).join('');
 
   main.innerHTML=`
     <div class="ph">
@@ -6675,7 +6764,7 @@ async function renderIntegracoes(){
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:18px">
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Status</div><div style="font-size:18px;font-weight:950;margin-top:5px;color:${metaStatusColor}">${metaStatus}</div></div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Clientes ativos</div><div style="font-size:20px;font-weight:950;margin-top:5px">${activeClients.length}</div></div>
-            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Referência</div><div style="font-size:20px;font-weight:950;margin-top:5px">${monthLabel}</div></div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Páginas Meta</div><div style="font-size:20px;font-weight:950;margin-top:5px">${metaPages.length}</div><div style="font-size:11px;color:var(--text3);margin-top:3px">${metaAssets.updatedAt?'Atualizado '+new Date(metaAssets.updatedAt).toLocaleDateString('pt-BR'):monthLabel}</div></div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">App ID</div><div style="font-size:16px;font-weight:950;margin-top:7px">${META_BUSINESS_APP_ID}</div></div>
           </div>
           <div style="margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:12px;background:${metaStatusBg};color:${metaStatusColor};font-size:13px;font-weight:800;line-height:1.5">
@@ -6696,7 +6785,7 @@ async function renderIntegracoes(){
               <div style="font-size:16px;font-weight:950">Mapeamento de clientes</div>
               <div style="font-size:12px;color:var(--text3);margin-top:3px">Quando a integração real entrar, cada cliente será ligado à página e ao Instagram Business correto.</div>
             </div>
-            <button class="btn btn-s btn-sm" disabled style="opacity:.65">Atualizar contas</button>
+            <button class="btn btn-s btn-sm" onclick="refreshMetaAssets()" ${metaExchange?'':'disabled'} style="${metaExchange?'':'opacity:.65'}">Atualizar contas</button>
           </div>
           <div style="overflow-x:auto"><div style="min-width:720px"><div style="display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(150px,1fr) 120px;gap:10px;color:var(--text3);font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.08em;padding:8px 0">
             <div>Cliente</div><div>Página Facebook</div><div>Instagram Business</div><div>Status</div>
@@ -11699,7 +11788,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=69').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=71').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
