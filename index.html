@@ -1052,7 +1052,7 @@ body.sidebar-collapsed .sb-brand-mark,body.sidebar-collapsed .sb-brand-copy,body
 // VERSION: 20260428_235900
 // ===== INSTAGRAM API =====
 const META_BUSINESS_APP_ID = '4260713480740701';
-const META_OAUTH_REDIRECT_URI = 'https://app.alumamkt.com.br/meta-callback';
+const META_OAUTH_REDIRECT_URI = 'https://app.alumamkt.com.br/';
 const META_OAUTH_SCOPES = [
   'pages_show_list',
   'pages_read_engagement',
@@ -6639,7 +6639,7 @@ async function renderIntegracoes(){
   const metaStatus=metaOAuth?'Autorização recebida':(metaOAuthError?'Erro no login':'Pronto para conectar');
   const metaStatusColor=metaOAuth?'#22c55e':(metaOAuthError?'var(--red)':'var(--accent)');
   const metaStatusBg=metaOAuth?'rgba(34,197,94,.12)':(metaOAuthError?'var(--dr)':'var(--ag)');
-  const metaStatusNote=metaOAuth?'Código OAuth capturado. Próximo passo: trocar por token em uma Firebase Function segura.':(metaOAuthError?'A Meta retornou um erro no login. Limpe o retorno e tente conectar novamente.':'Clique em Conectar Meta para abrir a autorização oficial do Facebook/Meta.');
+  const metaStatusNote=metaOAuth?'Código OAuth capturado. Próximo passo: trocar por token em uma Firebase Function segura.':(metaOAuthError?'A Meta retornou um erro no login. Limpe o retorno e tente conectar novamente.':'Clique em Conectar Meta para abrir a autorização oficial do Facebook/Meta. O retorno será feito pela página inicial para evitar cair em versão antiga.');
   const clientRows=activeClients.slice(0,10).map(c=>`
     <div style="display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(150px,1fr) 120px;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:9px;min-width:0">
@@ -11699,7 +11699,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=68').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=69').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
