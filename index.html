@@ -1182,6 +1182,11 @@ async function saveMetaClientMapping(clientId,pageId){
     showToast(err?.message||'Não foi possível salvar o vínculo Meta.','err');
   }
 }
+window.refreshMetaAssets=refreshMetaAssets;
+window.saveMetaClientMapping=saveMetaClientMapping;
+window.exchangeCapturedMetaCode=exchangeCapturedMetaCode;
+window.connectMetaBusiness=connectMetaBusiness;
+window.clearMetaOAuthPreview=clearMetaOAuthPreview;
 async function getInstagramToken(){
   try{
     const {db,doc,getDoc}=window._fb;
@@ -6716,10 +6721,10 @@ async function renderIntegracoes(){
   const metaPages=Array.isArray(metaAssets.pages)?metaAssets.pages:[];
   let metaOAuthError=null;
   try{ metaOAuthError=JSON.parse(localStorage.getItem('aluma_meta_oauth_error')||'null'); }catch(err){ metaOAuthError=null; }
-  const metaStatus=metaExchange?'Meta conectada':(metaOAuth?'Autorização recebida':(metaOAuthError?'Erro no login':'Pronto para conectar'));
-  const metaStatusColor=(metaExchange||metaOAuth)?'#22c55e':(metaOAuthError?'var(--red)':'var(--accent)');
-  const metaStatusBg=(metaExchange||metaOAuth)?'rgba(34,197,94,.12)':(metaOAuthError?'var(--dr)':'var(--ag)');
-  const metaStatusNote=metaExchange?'Conexão Meta salva no Firebase. Clique em Atualizar contas para carregar páginas e perfis disponíveis.':(metaOAuth?'Código OAuth capturado. Clique em Finalizar conexão para trocar por token em uma Firebase Function segura.':(metaOAuthError?'A Meta retornou um erro no login. Limpe o retorno e tente conectar novamente.':'Clique em Conectar Meta para abrir a autorização oficial do Facebook/Meta. O retorno será feito pela página inicial para evitar cair em versão antiga.'));
+  const metaStatus=metaExchange?'Meta conectada':(metaOAuth?'Autorização recebida':(metaPages.length?'Contas carregadas':(metaOAuthError?'Erro no login':'Pronto para conectar')));
+  const metaStatusColor=(metaExchange||metaOAuth||metaPages.length)?'#22c55e':(metaOAuthError?'var(--red)':'var(--accent)');
+  const metaStatusBg=(metaExchange||metaOAuth||metaPages.length)?'rgba(34,197,94,.12)':(metaOAuthError?'var(--dr)':'var(--ag)');
+  const metaStatusNote=metaExchange||metaPages.length?'Conexão Meta salva. Clique em Atualizar contas sempre que quiser recarregar páginas e perfis disponíveis.':(metaOAuth?'Código OAuth capturado. Clique em Finalizar conexão para trocar por token em uma Firebase Function segura.':(metaOAuthError?'A Meta retornou um erro no login. Limpe o retorno e tente conectar novamente.':'Se você já conectou a Meta, clique em Atualizar contas. Se aparecer erro de conexão, use Conectar Meta novamente.'));
   const clientRows=activeClients.slice(0,10).map(c=>{
     const mapping=metaMappings[c.id]||{};
     const selectedPage=metaPages.find(p=>String(p.id)===String(mapping.pageId));
@@ -6785,7 +6790,7 @@ async function renderIntegracoes(){
               <div style="font-size:16px;font-weight:950">Mapeamento de clientes</div>
               <div style="font-size:12px;color:var(--text3);margin-top:3px">Quando a integração real entrar, cada cliente será ligado à página e ao Instagram Business correto.</div>
             </div>
-            <button class="btn btn-s btn-sm" onclick="refreshMetaAssets()" ${metaExchange?'':'disabled'} style="${metaExchange?'':'opacity:.65'}">Atualizar contas</button>
+            <button class="btn btn-s btn-sm" onclick="refreshMetaAssets()">Atualizar contas</button>
           </div>
           <div style="overflow-x:auto"><div style="min-width:720px"><div style="display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(150px,1fr) 120px;gap:10px;color:var(--text3);font-size:10px;font-weight:950;text-transform:uppercase;letter-spacing:.08em;padding:8px 0">
             <div>Cliente</div><div>Página Facebook</div><div>Instagram Business</div><div>Status</div>
