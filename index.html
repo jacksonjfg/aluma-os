@@ -1057,7 +1057,7 @@ const META_OAUTH_SCOPES = [
   'pages_show_list',
   'pages_read_engagement',
   'instagram_basic',
-  'instagram_content_publishing',
+  'instagram_content_publish',
   'business_management'
 ];
 let INSTAGRAM_ACCESS_TOKEN = localStorage.getItem('aluma_instagram_token') || '';
@@ -11699,7 +11699,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=67').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=68').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
