@@ -702,6 +702,12 @@ body{font-size:14.8px;background:radial-gradient(circle at 24% -10%,rgba(132,131
 .kcard:hover,.pipeline-card:hover,.av-card:hover{transform:translateY(-2px);box-shadow:0 18px 36px rgba(31,28,75,.1);}
 .modal{border-radius:20px;box-shadow:0 30px 80px rgba(20,18,55,.34);}
 .modal-pack{max-width:96vw;min-height:calc(100vh - 34px);height:calc(100vh - 34px);}
+#pack-mo{padding:0;align-items:stretch;justify-content:stretch;background:rgba(17,17,38,.52);}
+#pack-mo .modal-pack{width:100vw;max-width:none;height:100vh;min-height:100vh;border:0;border-radius:0;box-shadow:none;}
+#pack-mo .mhdr{padding:14px 18px;align-items:center;}
+#pack-mo .mhdr-info{min-width:0;}
+#pack-mo #pm-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#pack-mo .mbody{min-height:0;}
 .mhdr{padding:18px 22px;}
 .mclose,.iconbtn{border-radius:12px;}
 body.sidebar-collapsed{--sw:62px;}
@@ -728,6 +734,8 @@ body.sidebar-collapsed .sb-brand-mark,body.sidebar-collapsed .sb-brand-copy,body
   .ph{padding:14px 14px 0;}
   .ptitle{font-size:20px;}
   .modal-pack{height:calc(100vh - 54px);min-height:calc(100vh - 54px);border-radius:18px 18px 0 0;}
+  #pack-mo .modal-pack{height:100dvh;min-height:100dvh;border-radius:0;}
+  #pack-mo .mhdr{padding:12px 12px;}
 }
 
 
@@ -1051,7 +1059,8 @@ body.sidebar-collapsed .sb-brand-mark,body.sidebar-collapsed .sb-brand-copy,body
 <script>
 // VERSION: 20260428_235900
 // ===== INSTAGRAM API =====
-const META_BUSINESS_APP_ID = '4260713480740701';
+const META_BUSINESS_APP_ID = '1511294180705558';
+const META_PRIMARY_APP_ID = '4260713480740701';
 const META_OAUTH_REDIRECT_URI = 'https://app.alumamkt.com.br/';
 const META_OAUTH_SCOPES = [
   'pages_show_list',
@@ -1080,7 +1089,7 @@ function handleMetaOAuthReturn(){
   if(!isCallback) return false;
   if(code){
     const expected=localStorage.getItem('aluma_meta_oauth_state')||'';
-    localStorage.setItem('aluma_meta_oauth_result',JSON.stringify({code,state,stateOk:!expected||expected===state,at:Date.now()}));
+    localStorage.setItem('aluma_meta_oauth_result',JSON.stringify({code,state,stateOk:!expected||expected===state,appId:META_BUSINESS_APP_ID,at:Date.now()}));
     localStorage.removeItem('aluma_meta_oauth_state');
   }
   if(error){
@@ -1112,7 +1121,7 @@ async function exchangeCapturedMetaCode(){
     showToast('Finalizando conexão com a Meta...','inf');
     const {functions,httpsCallable}=window._fb;
     const exchange=httpsCallable(functions,'exchangeMetaCode',{timeout:60000});
-    const res=await exchange({code:metaOAuth.code});
+    const res=await exchange({code:metaOAuth.code,appId:metaOAuth.appId||META_BUSINESS_APP_ID});
     localStorage.setItem('aluma_meta_exchange_result',JSON.stringify({...(res.data||{}),at:Date.now()}));
     localStorage.removeItem('aluma_meta_oauth_result');
     localStorage.removeItem('aluma_meta_oauth_error');
@@ -6775,7 +6784,7 @@ async function renderIntegracoes(){
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Status</div><div style="font-size:18px;font-weight:950;margin-top:5px;color:${metaStatusColor}">${metaStatus}</div></div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Clientes ativos</div><div style="font-size:20px;font-weight:950;margin-top:5px">${activeClients.length}</div></div>
             <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">Páginas Meta</div><div style="font-size:20px;font-weight:950;margin-top:5px">${metaPages.length}</div><div style="font-size:11px;color:var(--text3);margin-top:3px">${metaAssets.updatedAt?'Atualizado '+new Date(metaAssets.updatedAt).toLocaleDateString('pt-BR'):monthLabel}</div></div>
-            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">App ID</div><div style="font-size:16px;font-weight:950;margin-top:7px">${META_BUSINESS_APP_ID}</div></div>
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px"><div style="font-size:11px;font-weight:900;color:var(--text3);text-transform:uppercase">App IG</div><div style="font-size:15px;font-weight:950;margin-top:7px">${META_BUSINESS_APP_ID}</div><div style="font-size:11px;color:var(--text3);margin-top:3px">Meta ${META_PRIMARY_APP_ID}</div></div>
           </div>
           <div style="margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:12px;background:${metaStatusBg};color:${metaStatusColor};font-size:13px;font-weight:800;line-height:1.5">
             ${metaStatusNote}
@@ -11396,83 +11405,6 @@ async function deleteProspect(){
 }
 </script>
 
-<!-- PACK MODAL -->
-<div class="mo" id="pack-mo">
-  <div class="modal">
-    <div class="mhdr" style="background:linear-gradient(135deg,rgba(132,131,255,0.18) 0%,rgba(132,131,255,0.06) 100%);border-bottom-color:rgba(132,131,255,0.25)">
-      <div class="mhdr-info">
-        <div class="mtitle" id="pm-title" style="color:var(--accent)">Pack</div>
-        <div class="mmeta" id="pm-meta"></div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
-        <button class="btn btn-s btn-sm" onclick="exportPDF()">📄 PDF</button>
-        <button class="btn btn-s btn-sm" onclick="openApprovalLinkModal(currentPackId)" title="Link público para aprovação do cliente">🔗 Aprovação</button>
-        <button class="btn btn-s btn-sm" onclick="gerarRoteiros(currentPackId)">📝 Roteiros</button>
-        <button class="btn btn-s btn-sm" onclick="duplicatePack(currentPackId)">⧉ Duplicar</button>
-        <button class="btn btn-s btn-sm" onclick="openChangeHistory()">🕘 Histórico</button>
-        <button class="btn btn-d btn-sm" onclick="deletePack(currentPackId)">🗑 Excluir pack</button>
-        <button class="mclose" onclick="closePackModal()">×</button>
-      </div>
-    </div>
-    <div class="mbody">
-      <div class="msidebar" id="pm-posts"></div>
-      <div class="mmain" id="pm-content"><div class="empty"><div class="empty-ico">📝</div><div class="empty-title">Selecione um post</div></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- POST QUICK VIEW -->
-<div class="pvo" id="pvo" onclick="if(event.target===this)closePV()">
-  <div class="pvcard" id="pvc"></div>
-</div>
-
-<!-- ADD CLIENT -->
-<div class="mo" id="client-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Novo cliente</div></div><button class="mclose" onclick="closeClientModal()">×</button></div>
-    <div style="padding:20px">
-      <div class="fgrid">
-        <div class="ff"><label class="flbl">Nome</label><input class="fi" id="c-name" placeholder="Ex: João Silva"></div>
-        <div class="ff"><label class="flbl">@ Instagram</label><input class="fi" id="c-handle" placeholder="@joaosilva"></div>
-      </div>
-      <div class="fgrid">
-        <div class="ff"><label class="flbl">Nicho</label><input class="fi" id="c-niche" placeholder="Ex: Fisioterapeuta"></div>
-        <div class="ff"><label class="flbl">Cor</label><input type="color" class="fi" id="c-color" value="#8483ff" style="padding:3px;height:36px;cursor:pointer"></div>
-      </div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveClient()">Salvar</button>
-        <button class="btn btn-s" onclick="closeClientModal()">Cancelar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- NEW PACK -->
-<div class="mo" id="pack-new-mo">
-  <div class="modal modal-sm">
-    <div class="mhdr"><div class="mhdr-info"><div class="mtitle">Novo pack</div></div><button class="mclose" onclick="document.getElementById('pack-new-mo').classList.remove('open')">×</button></div>
-    <div style="padding:20px">
-      <div class="fgrid">
-        <div class="ff"><label class="flbl">Tipo</label>
-          <select class="fs" id="np-type"><option>Feed</option><option>Stories</option><option>Reels</option><option>TikTok</option><option>Facebook</option><option>LinkedIn</option></select>
-        </div>
-        <div class="ff"><label class="flbl">Mês</label>
-          <select class="fs" id="np-month"><option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option><option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option><option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option></select>
-        </div>
-      </div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Responsável</label>
-        <div class="assignee-grid" id="np-assignees"></div>
-      </div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Data de entrega</label><input type="date" class="fi" id="np-due"></div>
-      <div class="ff" style="margin-bottom:12px"><label class="flbl">Link Canva</label><input class="fi" id="np-canva" placeholder="canva.com/design/..."></div>
-      <div class="brow">
-        <button class="btn btn-p" onclick="saveNewPack()">Criar pack</button>
-        <button class="btn btn-s" onclick="document.getElementById('pack-new-mo').classList.remove('open')">Cancelar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- EDIT CLIENT -->
 <div class="mo" id="edit-client-mo">
   <div class="modal modal-sm">
@@ -11798,7 +11730,7 @@ async function deleteProspect(){
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=72').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=74').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
