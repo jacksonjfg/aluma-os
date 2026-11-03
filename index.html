@@ -1559,7 +1559,7 @@ waitFB().then(()=>{
   const {auth,onAuthStateChanged}=window._fb;
   onAuthStateChanged(auth,async user=>{
     if(user){ currentUser=user; await loadUD(); document.getElementById('login-screen').style.display='none'; document.getElementById('app').style.display='flex'; initApp(); }
-    else { currentUser=null; document.getElementById('login-screen').style.display='flex'; document.getElementById('app').style.display='none'; }
+    else { currentUser=null; clearSharedReads(); document.getElementById('login-screen').style.display='flex'; document.getElementById('app').style.display='none'; }
   });
 });
 
@@ -1698,7 +1698,7 @@ function applyAccessControl(){
   if(inactiveBtn) inactiveBtn.style.display = isAdmin && hasInactiveClients() ? 'flex' : 'none';
 }
 
-async function initApp(){ installAuditTrail(); await loadTeam(); applyAccessControl(); await loadClients(); setView('dashboard'); await openPostFromUrl(); initPresence(); }
+async function initApp(){ installSharedReads(); installAuditTrail(); await loadTeam(); applyAccessControl(); await loadClients(); setView('dashboard'); await openPostFromUrl(); initPresence(); }
 function getAppBasePath(){
   let path=window.location.pathname||'/';
   path=path.replace(/\/post\/[^/]+\/?$/,'/');
@@ -2851,6 +2851,7 @@ async function loadPosts(packId){
     let first=true;
     _packPostsLiveId=packId;
     _packPostsUnsub=onSnapshot(query(collection(db,'posts'),where('packId','==',packId)),(snap)=>{
+      const previous=posts;
       const busy=isPackEditorBusy();
       const activePid=currentPostId;
       const activeDrafts=busy?currentRichEditorDrafts(activePid):{};
@@ -2861,7 +2862,8 @@ async function loadPosts(packId){
         showRichRemoteUpdateNotice(activePid);
       }
       posts=next;
-      renderPostsList();
+      const listSignature=data=>JSON.stringify(Object.values(data).map(p=>[p.id,p.title,p.order,p.status,p.format,p.deliveryDate,p.audiovisualEditor]));
+      if(first||listSignature(previous)!==listSignature(next))renderPostsList();
       const list=Object.values(posts);
       if(!list.length){
         currentPostId='__orientacoes__';
@@ -2870,7 +2872,9 @@ async function loadPosts(packId){
         return;
       }
       if(currentPostId && posts[currentPostId]){
-        if(!busy) renderPF(posts[currentPostId]);
+        const visibleData=p=>{const {updatedAt,lastEdit,designBriefingMeta,...rest}=p||{};return rest;};
+        if(!busy&&(first||JSON.stringify(visibleData(previous[currentPostId]))!==JSON.stringify(visibleData(posts[currentPostId]))))renderPF(posts[currentPostId]);
+        else{const label=document.getElementById('post-last-edit-'+currentPostId);if(label)label.innerHTML=buildEditMeta(posts[currentPostId].lastEdit);}
       } else {
         currentPostId='__orientacoes__';
         openOrientacoes();
@@ -3752,8 +3756,37 @@ function openAlumaDateControl(input,anchor=null){
 function startDateEnhancement(){
   let frame=0;
   const run=()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;enhanceDateFields();});};
-  new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  new MutationObserver(records=>{
+    if(records.some(r=>r.type==='attributes'?r.target.matches('.mo,#app'):Array.from(r.addedNodes).some(n=>n.nodeType===1&&(n.matches('input[type="date"],input[type="datetime-local"]')||n.querySelector('input[type="date"],input[type="datetime-local"]')))))run();
+  }).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
   run();
+}
+
+const _sharedReads=new Map();
+function clearSharedReads(){
+  for(const state of _sharedReads.values())state.unsubscribe?.();
+  _sharedReads.clear();
+}
+function installSharedReads(){
+  const fb=window._fb;if(fb._sharedReadsInstalled||!fb.onSnapshot)return;
+  fb._sharedReadsInstalled=true;const raw=fb.getDocs;
+  fb.getDocs=ref=>{
+    if(!currentUser||!['posts','packs'].includes(ref?.path)||ref.type&&ref.type!=='collection'||ref.filters)return raw(ref);
+    let state=_sharedReads.get(ref.path);
+    if(!state){
+      state={snapshot:null,pending:null,version:0};_sharedReads.set(ref.path,state);
+      let ready,failed;
+      state.pending=new Promise((resolve,reject)=>{ready=resolve;failed=reject;});
+      state.unsubscribe=fb.onSnapshot(ref,snap=>{state.version++;state.snapshot=snap;state.pending=null;ready(snap);},err=>{state.version++;state.snapshot=null;state.pending=null;failed(err);console.warn('Shared read:',err.code);});
+    }
+    if(state.snapshot)return Promise.resolve(state.snapshot);
+    if(!state.pending){
+      const version=state.version;
+      const pending=raw(ref).then(snap=>{if(state.version===version)state.snapshot=snap;return state.snapshot||snap;}).finally(()=>{if(state.pending===pending)state.pending=null;});
+      state.pending=pending;
+    }
+    return state.pending;
+  };
 }
 
 const AUDIT_COLLECTIONS=new Set(['posts','packs','clients','pauta','clientDocs','macro_plans','reunioes']);
@@ -3775,26 +3808,24 @@ function installAuditTrail(){
       const replacing=mode==='setDoc'&&!options.merge;
       const keys=mode==='deleteDoc'?Object.keys(before):[...new Set([...Object.keys(data),...(replacing?Object.keys(before):[])])];
       const fields=keys.filter(k=>!AUDIT_IGNORED.has(k)&&!auditEqual(auditValueAt(before,k),mode==='deleteDoc'?undefined:data[k]));
-      if(mode==='deleteDoc')tx.delete(ref);
-      else if(mode==='updateDoc')tx.update(ref,data);
-      else tx.set(ref,data,options);
-      if(!fields.length&&mode!=='deleteDoc'&&exists)return;
       const by=currentUserData?.name||currentUser?.email||'Equipe',at=Date.now();
+      const collection=path.split('/')[0],id=ref.id;
+      const payload=(fields.length||!exists)&&['posts','packs'].includes(collection)?{...data,lastEdit:{by,at,fields}}:data;
+      if(mode==='deleteDoc')tx.delete(ref);
+      else if(mode==='updateDoc')tx.update(ref,payload);
+      else tx.set(ref,payload,options);
+      if(!fields.length&&mode!=='deleteDoc'&&exists)return;
       const beforeFields={},missingBefore=[],afterPreview={};
       fields.forEach(k=>{const value=auditValueAt(before,k);if(value===undefined)missingBefore.push(k);else beforeFields[k]=value;afterPreview[k]=auditPreview(mode==='deleteDoc'?null:data[k]);});
-      const collection=path.split('/')[0],id=ref.id;
       const record=mode==='deleteDoc'?before:{...before,...data};
       const entry={kind:mode==='deleteDoc'?'record_delete':exists?'record_update':'record_create',recordPath:path,recordCollection:collection,recordId:id,
         postId:collection==='posts'?id:'',packId:collection==='packs'?id:(record.packId||''),clientId:collection==='clients'||collection==='clientDocs'?id:(record.clientId||''),
         recordTitle:record.title||record.name||record.type||id,fields,beforeFields,missingBefore,afterPreview,
         by,userId:currentUser?.uid||'',createdAt:at};
       if(mode==='deleteDoc')entry.deletedRecord=before;
-      if(collection==='posts'||collection==='packs'){
-        if(mode!=='deleteDoc')tx.update(ref,{lastEdit:{by,at,fields}});
-      }
       tx.set(fb.doc(fb.collection(fb.db,'change_history')),entry);
     });
-    const pending=(queues.get(path)||Promise.resolve()).catch(()=>{}).then(run);
+    const pending=(queues.get(path)||Promise.resolve()).catch(()=>{}).then(run).finally(()=>{const state=_sharedReads.get(path.split('/')[0]);if(state){state.version++;state.snapshot=null;state.pending=null;}});
     queues.set(path,pending);
     pending.finally(()=>{if(queues.get(path)===pending)queues.delete(path);}).catch(()=>{});
     return pending;
@@ -4057,6 +4088,7 @@ function markRichSaveState(el,state='saving'){
 }
 function isPackEditorBusy(){
   if(document.querySelector('.flatpickr-calendar.open'))return true;
+  if(Array.from(document.querySelectorAll('body > [id^="comment-mention-menu-"]')).some(el=>el.style.display!=='none'))return true;
   const ae=document.activeElement;
   if(!ae) return false;
   if(ae.closest?.('#pf-left .rich-area')) return true;
@@ -4558,6 +4590,7 @@ function openImgFull(pid, idx){
   openPostMedia(pid, idx);
 }
 function renderPF(post){
+  document.querySelectorAll('body > [id^="comment-mention-menu-"]').forEach(menu=>menu.remove());
   const el=document.getElementById('pm-content');
   const workspacePane=el.dataset.postId===post.id?el.dataset.pane:'content';
   const idx=Object.values(posts).sort((a,b)=>(a.order||0)-(b.order||0)).findIndex(p=>p.id===post.id)+1;
@@ -5058,6 +5091,7 @@ async function deletePost(pid){
   clearPackEditorPanel('Post excluído');
 }
 async function closePackModal(){
+  document.querySelectorAll('body > [id^="comment-mention-menu-"]').forEach(menu=>menu.remove());
   if(currentPackId && currentPostId && currentPostId!=='__orientacoes__'){
     try{ await saveCurrentRichDraft(); }catch(err){ console.warn('closePackModal/saveCurrentRichDraft',err); }
   }
@@ -6336,7 +6370,7 @@ function insertCommentMention(pid,name){
   if(!inp) return;
   const saved=commentMentionState(pid);
   if(saved && saved.start>=0){
-    const text=getCommentEditorText(inp);
+    const text=(inp.innerText||inp.textContent||'').replace(/\u00a0/g,' ');
     const start=Math.min(saved.start,text.length);
     let end=start+1+String(saved.query||'').length;
     while(end<text.length && !/\s/.test(text[end])) end++;
@@ -6397,42 +6431,43 @@ function renderCommentMentionMenu(pid){
   const inp=document.getElementById('ci-'+pid);
   const menu=document.getElementById('comment-mention-menu-'+pid);
   if(!inp || !menu) return;
-  const text=inp.innerText||'';
+  const text=inp.innerText||inp.textContent||'';
   const caret=getContentEditableCaretOffset(inp);
   const token=findActiveMentionToken(text, caret);
   if(!token){ closeCommentMentionMenu(pid); return; }
   const items=getMentionCandidates(token.query||'');
   if(!items.length){ closeCommentMentionMenu(pid); return; }
   setCommentMentionState(pid,{open:true,start:token.start,query:token.query});
-  menu.style.display='block';
+  document.body.appendChild(menu);
+  const bounds=inp.getBoundingClientRect(),width=Math.min(320,window.innerWidth-24);
+  const below=window.innerHeight-bounds.bottom,above=bounds.top;
+  const height=Math.min(300,Math.max(120,Math.max(above,below)-20));
+  menu.style.cssText=`display:block;position:fixed;left:${Math.max(12,Math.min(bounds.left,window.innerWidth-width-12))}px;width:${width}px;max-height:${height}px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;box-shadow:var(--shad);z-index:1600;${above>=below?`bottom:${Math.max(12,window.innerHeight-bounds.top+6)}px`:`top:${bounds.bottom+6}px`}`;
   menu.innerHTML=`<div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:8px 10px 4px">Pessoas</div>${items.map(member=>`
-    <button type="button" onmousedown="event.preventDefault()" onclick="insertCommentMention('${pid}','${member.name.replace(/'/g,"\\'")}')" style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;background:transparent;border:0;border-top:1px solid var(--border);cursor:pointer;text-align:left">
+    <button type="button" onmousedown="event.preventDefault()" data-member-id="${escHtml(member.id)}" style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;background:transparent;border:0;border-top:1px solid var(--border);cursor:pointer;text-align:left">
       <span style="width:28px;height:28px;border-radius:50%;background:${member.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">${escHtml((member.name||'?').charAt(0).toUpperCase())}</span>
       <span style="min-width:0">
         <span style="display:block;font-size:12.5px;font-weight:700;color:var(--text)">${escHtml(member.name)}</span>
         <span style="display:block;font-size:10.5px;color:var(--text3)">${escHtml(member.role||'Equipe')}</span>
       </span>
     </button>`).join('')}`;
+  menu.querySelectorAll('button').forEach((button,index)=>button.onclick=()=>insertCommentMention(pid,items[index].name));
 }
 function getCommentEditorText(el){
   if(!el) return '';
-  const clone=el.cloneNode(true);
-  clone.querySelectorAll('.comment-mention-chip').forEach(chip=>{
-    const text=document.createTextNode(chip.getAttribute('data-mention')?('@'+chip.getAttribute('data-mention')):(chip.textContent||''));
-    chip.replaceWith(text);
-  });
-  return (clone.innerText||'').replace(/\n{3,}/g,'\n\n').trim();
+  return (typeof el.innerText==='string'?el.innerText:el.textContent||'').replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
 }
 function commentComposerHtml(text=''){
-  const lines=String(text||'').split(/\n/);
-  return lines.map(line=>{
-    let html=escHtml(line);
-    TEAM.forEach(member=>{
-      const safeName=member.name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-      html=html.replace(new RegExp(`@${safeName}`,'gi'),`<span class="comment-mention-chip" contenteditable="false" data-mention="${escHtml(member.name)}">@${escHtml(member.name)}</span>`);
-    });
-    return html||'<br>';
-  }).join('<br>');
+  const names=TEAM.map(m=>m.name).filter(Boolean).sort((a,b)=>b.length-a.length);
+  if(!names.length)return escHtml(text).replace(/\n/g,'<br>');
+  const pattern=new RegExp('@('+names.map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?=$|[\\s.,!?;:])','giu');
+  let html='',offset=0;
+  for(const match of String(text||'').matchAll(pattern)){
+    html+=escHtml(text.slice(offset,match.index));
+    const name=names.find(n=>n.toLocaleLowerCase()===match[1].toLocaleLowerCase());
+    html+=`<span class="comment-mention-chip" contenteditable="false" data-mention="${escHtml(name)}">@${escHtml(name)}</span>`;offset=match.index+match[0].length;
+  }
+  return (html+escHtml(text.slice(offset))).replace(/\n/g,'<br>');
 }
 function normalizeComment(cm={}){
   return {
@@ -11247,7 +11282,7 @@ startDateEnhancement();
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=57').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=58').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
