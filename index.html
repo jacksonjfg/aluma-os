@@ -439,6 +439,13 @@ h1,h2,h3,.bold-title{font-weight:700;letter-spacing:-.3px;}
 .clcard-foot{display:flex;gap:11px;padding-top:9px;border-top:1px solid var(--border);}
 /* DOCS */
 .docswrap{flex:1;overflow-y:auto;padding:16px 20px;}
+.client-files-section{min-width:0;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.client-files-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.client-files-header h2{font-size:16px;margin:0}
+.client-file-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--border)}.client-file-row:last-child{border-bottom:0}
+.client-file-info{min-width:0;flex:1}.client-file-info strong{display:block;font-size:13px;overflow-wrap:anywhere}.client-file-info small{display:block;font-size:11px;color:var(--text3);margin-top:5px;overflow-wrap:anywhere}
+.client-file-actions{display:flex;gap:6px;flex-shrink:0}.client-file-actions .btn{min-height:32px;min-width:32px}.client-files-empty{padding:22px 0;color:var(--text3);font-size:13px}
+.client-file-preview{width:min(1040px,96vw);height:88dvh;max-height:94dvh;display:flex;flex-direction:column;min-height:0}.client-file-preview .mhdr{gap:12px;flex-shrink:0}.client-file-preview .mtitle{flex:1}.client-file-preview-body{flex:1;min-height:0;overflow:auto;display:flex;align-items:center;justify-content:center;background:var(--bg3)}
+@media(max-width:600px){.client-file-row{align-items:flex-start;flex-direction:column;gap:10px}.client-file-actions{width:100%}.client-file-actions .btn:first-child{flex:1}.client-files-header{flex-wrap:wrap}.client-file-preview{width:96vw;height:90dvh}.client-file-preview .mhdr{padding:12px}.client-file-preview .mtitle{font-size:13px}}
 .docsgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
 .docscard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .docscard-hdr{padding:12px 15px;border-bottom:1px solid var(--border);font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:7px;letter-spacing:-.2px;}
@@ -5571,10 +5578,83 @@ async function setAudiovisualDeliveryDate(pid,value){
 }
 
 // ===== DOCS =====
+let _clientFileRenderToken=0;
+let _clientFiles={};
+let _clientFileBusy=false;
+function clientFileSize(bytes){return bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':Math.max(1,Math.round(bytes/1024))+' KB';}
+function renderClientFiles(data,cid){
+  _clientFiles={};
+  Object.entries(data).filter(([key,value])=>key.startsWith('attachment_')&&value?.url).forEach(([key,value])=>{_clientFiles[key]={...value,key,clientId:cid};});
+  const list=document.getElementById('client-files-list');if(!list)return;
+  list.innerHTML=Object.values(_clientFiles).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(file=>`<article class="client-file-row"><div class="client-file-info"><strong>${escHtml(file.title||file.name)}</strong><small>${escHtml(file.name)} · ${clientFileSize(file.size||0)} · ${escHtml(file.by||'Equipe')}</small></div><div class="client-file-actions"><button class="btn btn-s btn-sm" onclick="previewClientFile('${file.key}')" title="Visualizar arquivo">Visualizar</button><button class="btn btn-s btn-sm" onclick="downloadClientFile('${file.key}',this)" title="Baixar arquivo" aria-label="Baixar arquivo">↓</button><button class="btn btn-s btn-sm" onclick="openClientFileModal('${file.key}')" title="Editar título" aria-label="Editar título">✎</button><button class="btn btn-d btn-sm" onclick="removeClientFile('${file.key}')" title="Remover arquivo" aria-label="Remover arquivo">×</button></div></article>`).join('')||'<div class="client-files-empty">Nenhum arquivo anexado.</div>';
+}
+function openClientFileModal(key=''){
+  document.getElementById('client-file-modal')?.remove();
+  const file=_clientFiles[key],cid=currentClientId;
+  const overlay=document.createElement('div');overlay.id='client-file-modal';overlay.className='mo open';
+  overlay.dataset.clientId=cid;overlay.dataset.fileKey=key;
+  overlay.innerHTML=`<div class="modal" style="width:min(520px,94vw);max-height:90dvh;overflow:auto"><div class="mhdr"><div class="mtitle">${file?'Editar título':'Adicionar arquivo'}</div><button class="mclose" onclick="closeClientFileModal()" aria-label="Fechar">×</button></div><form style="padding:20px" onsubmit="event.preventDefault();saveClientFile()"><div class="ff"><label class="flbl" for="client-file-title">Título</label><input id="client-file-title" class="fi" maxlength="160" required value="${escHtml(file?.title||'')}" placeholder="Ex.: Playbook do cliente"></div>${file?'':`<div class="ff" style="margin-top:16px"><label class="flbl" for="client-file-upload">Arquivo · até 25 MB</label><input id="client-file-upload" class="fi" type="file" required accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.md,.png,.jpg,.jpeg,.webp" style="height:auto;padding:12px"></div>`}<div id="client-file-error" role="alert" style="color:var(--red);font-size:12px;margin-top:12px"></div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px"><button type="button" class="btn btn-s" onclick="closeClientFileModal()">Cancelar</button><button id="client-file-save" class="btn btn-p" type="submit">${file?'Salvar título':'Enviar arquivo'}</button></div></form></div>`;
+  overlay.onclick=e=>{if(e.target===overlay)closeClientFileModal();};document.body.appendChild(overlay);
+  overlay.querySelector('input').focus();
+}
+function closeClientFileModal(){if(!_clientFileBusy)document.getElementById('client-file-modal')?.remove();}
+async function saveClientFile(){
+  if(_clientFileBusy)return;
+  const modal=document.getElementById('client-file-modal');if(!modal)return;
+  const cid=modal.dataset.clientId,key=modal.dataset.fileKey,title=document.getElementById('client-file-title').value.trim(),file=document.getElementById('client-file-upload')?.files[0];
+  const error=document.getElementById('client-file-error');error.textContent='';
+  if(!title){error.textContent='Informe o título do arquivo.';return;}
+  if(!key&&(!file||file.size>25*1024*1024||! /\.(pdf|docx?|xlsx?|pptx?|txt|csv|md|png|jpe?g|webp)$/i.test(file.name))){error.textContent='Selecione um arquivo permitido de até 25 MB.';return;}
+  const existing=_clientFiles[key];if(key&&(!existing||existing.clientId!==cid))return;
+  const button=document.getElementById('client-file-save');_clientFileBusy=true;button.disabled=true;button.textContent=key?'Salvando…':'Enviando…';
+  const {db,doc,setDoc,storage,ref,deleteObject}=window._fb;let uploadedPath='';
+  try{
+    let metadata=existing?{...existing}:null;const id=key||'attachment_'+Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('');
+    if(!key){
+      uploadedPath='clients/'+cid+'/documents/'+id+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const url=await uploadToStorage(file,uploadedPath);
+      metadata={name:file.name,size:file.size,type:file.type||'',url,path:uploadedPath,createdAt:Date.now(),by:currentUserData?.name||currentUser?.email||'Equipe'};
+    }
+    delete metadata.key;delete metadata.clientId;
+    await setDoc(doc(db,'clientDocs',cid),{[id]:{...metadata,title,updatedAt:Date.now()}},{merge:true});
+    uploadedPath='';
+    _clientFileBusy=false;modal.remove();showToast(key?'Título atualizado!':'Arquivo anexado!','ok');
+    if(currentClientId===cid&&clientTab==='docs')await renderDocsInto(document.getElementById('ct'));
+  }catch(err){
+    if(uploadedPath)try{await deleteObject(ref(storage,uploadedPath));}catch(cleanup){console.warn('Upload cleanup:',cleanup);}
+    error.textContent='Não foi possível salvar o arquivo: '+err.message;
+  }finally{_clientFileBusy=false;button.disabled=false;button.textContent=key?'Salvar título':'Enviar arquivo';}
+}
+async function removeClientFile(key){
+  const file=_clientFiles[key];if(!file)return;
+  const confirmed=await confirmDangerAction('Remover arquivo','Deseja remover “'+(file.title||file.name)+'” dos documentos deste cliente?','Remover');if(!confirmed)return;
+  try{const {db,doc,updateDoc,deleteField}=window._fb;await updateDoc(doc(db,'clientDocs',file.clientId),{[key]:deleteField()});
+    if(currentClientId===file.clientId&&clientTab==='docs')await renderDocsInto(document.getElementById('ct'));showToast('Arquivo removido.','ok');
+  }catch(err){showToast('Erro ao remover arquivo: '+err.message,'err');}
+}
+function previewClientFile(key){
+  const file=_clientFiles[key];if(!file||!/^https:\/\//i.test(file.url))return;
+  document.getElementById('client-file-preview')?.remove();
+  const pdf=/\.pdf$/i.test(file.name),image=/\.(png|jpe?g|webp)$/i.test(file.name);
+  const overlay=document.createElement('div');overlay.className='mo open';overlay.id='client-file-preview';
+  overlay.innerHTML=`<div class="modal client-file-preview"><div class="mhdr"><div class="mtitle" style="min-width:0;overflow-wrap:anywhere">${escHtml(file.title||file.name)}</div><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-s btn-sm" onclick="downloadClientFile('${key}',this)" title="Baixar arquivo">↓ Baixar</button><button class="mclose" onclick="document.getElementById('client-file-preview').remove()" aria-label="Fechar">×</button></div></div><div class="client-file-preview-body">${pdf?`<iframe src="${escHtml(file.url)}" title="${escHtml(file.title)}" style="border:0;width:100%;height:100%;background:white"></iframe>`:image?`<img src="${escHtml(file.url)}" alt="${escHtml(file.title)}" style="max-width:100%;max-height:100%;object-fit:contain">`:`<div style="text-align:center;padding:24px"><strong>${escHtml(file.name)}</strong><p style="margin:12px 0;color:var(--text3)">Visualização indisponível neste formato.</p><button class="btn btn-p" onclick="downloadClientFile('${key}',this)">↓ Baixar arquivo</button></div>`}</div><a class="btn btn-s btn-sm" style="align-self:center;margin:8px" href="${escHtml(file.url)}" target="_blank" rel="noopener noreferrer">Abrir em nova aba ↗</a></div>`;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};document.body.appendChild(overlay);
+}
+async function downloadClientFile(key,button){
+  const file=_clientFiles[key];if(!file)return;
+  if(button)button.disabled=true;
+  try{
+    const {storage,ref,getBlob}=window._fb;const blob=await getBlob(ref(storage,file.path));
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(err){showToast('Download direto indisponível. Abra o arquivo em uma nova aba para baixar.','err');previewClientFile(key);}
+  finally{if(button)button.disabled=false;}
+}
 async function renderDocsInto(container){ container.setAttribute('style','flex:1;overflow:hidden;display:flex;flex-direction:column');
+  const cid=currentClientId,token=++_clientFileRenderToken;
   const {db,doc,getDoc}=window._fb;
   let d={};
-  try{ const snap=await getDoc(doc(db,'clientDocs',currentClientId)); if(snap.exists()) d=snap.data(); }catch(e){}
+  try{ const snap=await getDoc(doc(db,'clientDocs',cid)); if(snap.exists()) d=snap.data(); }catch(e){if(token===_clientFileRenderToken&&currentClientId===cid)container.innerHTML='<div class="client-files-empty">Não foi possível carregar os documentos. Tente abrir esta aba novamente.</div>';return;}
+  if(token!==_clientFileRenderToken||currentClientId!==cid||!container.isConnected)return;
   
   // Helper to render links properly
   const renderLinkField = (key, label) => {
@@ -5590,6 +5670,7 @@ async function renderDocsInto(container){ container.setAttribute('style','flex:1
   };
   
   container.innerHTML=`<div class="docswrap"><div class="docsgrid">
+    <section class="client-files-section" style="grid-column:1/-1"><header class="client-files-header"><h2>Arquivos</h2><button class="btn btn-p btn-sm" onclick="openClientFileModal()">+ Adicionar arquivo</button></header><div id="client-files-list"></div></section>
     <div class="docscard"><div class="docscard-hdr">🔗 Links</div><div class="docscard-body">
       ${renderLinkField('driveFolder','Pasta do Drive')}
       ${renderLinkField('photosFolder','Pasta de Fotos')}
@@ -5604,6 +5685,7 @@ async function renderDocsInto(container){ container.setAttribute('style','flex:1
       <textarea class="di" rows="6" style="resize:vertical;width:100%" onchange="sdf('dna',this.value)">${d.dna||''}</textarea>
     </div></div>
   </div></div>`;
+  renderClientFiles(d,cid);
 }
 async function sdf(k,v){
   const {db,doc,setDoc}=window._fb;
@@ -11282,7 +11364,7 @@ startDateEnhancement();
   if (!('serviceWorker' in navigator)) return;
   if (!['http:', 'https:'].includes(window.location.protocol)) return;
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js?v=58').then(function(reg){ reg.update(); }).catch(function(err){
+    navigator.serviceWorker.register('./sw.js?v=59').then(function(reg){ reg.update(); }).catch(function(err){
       console.warn('Service worker registration failed:', err);
     });
   });
